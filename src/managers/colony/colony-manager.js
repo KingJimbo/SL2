@@ -39,16 +39,81 @@ module.exports = function(game, resourceManager, memoryManager) {
 		}
 	};
 
+	this.addSourceToColony = function(colony, source) {
+		if (colony && source) {
+			if (!colony.sources) {
+				colony.sources = {};
+			}
+			colony.sources[source.id] = { id: source.id, pos: source.pos };
+			this.memoryManager.save(colony);
+		}
+	};
+
 	// this function performs all colony activities
 	this.run = function(colony) {
 		// start run colony
 		// Resource check
 		this.checkColonyResourceRequirements(colony);
+
+		//process resources
+		this.processColonyResources(colony);
+
 		// check spawn queues and spawn creeps
 		this.processSpawning(colony);
 		// resource requests
+		//this.processResourceRequests(colony);
 		// priorities
 		// resource out
+	};
+
+	this.processColonyResources = function(colony) {
+		// verify last resource check
+		if (!colony.lastResourceCheck || colony.lastResourceCheck.level < this.game.rooms[colony.mainRoom].controller.level) {
+			// find rooms for colony
+			this.checkColonySources(colony);
+
+			// TODO
+			this.checkColonyMinerals(colony);
+
+			//TODO
+			// assign operations to resources
+			this.createResourceOperations(colony);
+			// process sources for operations
+		}
+
+		//TODO
+		this.processResouceOperations(colony);
+
+		// save colony
+	};
+
+	// Function will assign sources to colony
+	this.checkColonySources = function(colony) {
+		const rooms = this.getColonyRooms(colony);
+
+		for (let i = 0; i < rooms.length; i++) {
+			// find all resources in room
+			const room = rooms[i];
+			const sources = room.find(FIND_SOURCES);
+			// add sources to colony
+		}
+	};
+
+	// Function will assign minerals to colony
+	this.checkColonyMinerals = function(colony) {
+		//TODO: add minderal logic
+		//const minerals = room.find(FIND_MINERALS);
+	};
+
+	this.getColonyRooms = function(colony) {
+		if (!colony.rooms) {
+			let rooms = [];
+			for (let i = 0; i < colony.rooms.length; i++) {
+				const roomName = colony.rooms[i];
+				rooms.push(this.game.rooms[roomName]);
+			}
+			return rooms;
+		}
 	};
 
 	this.checkColonyResourceRequirements = function(colony) {
