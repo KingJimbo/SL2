@@ -51,4 +51,8 @@ module.exports = function(memory) {
         this.memory.objectIds[objectType]++;
         return this.memory.objectIds[objectType];
     };
+
+    this.getNextCreepName = function() {
+        return "Creep_" + this.getNextId(OBJECT_TYPE_CREEP_ID);
+    };
 };
