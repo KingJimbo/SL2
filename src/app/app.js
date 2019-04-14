@@ -18,7 +18,7 @@ module.exports = function(memory, game) {
 	this.run = function() {
 		console.log("run start");
 
-		let colonies = this.memoryManager.getAll("colony");
+		let colonies = this.memoryManager.getAll(OBJECT_TYPE_COLONY);
 		if (!colonies) {
 			colonies = this.mapColonies();
 		}
@@ -37,6 +37,6 @@ module.exports = function(memory, game) {
 			}
 		}
 
-		return this.memoryManager.getAllColonies();
+		return this.memoryManager.getAll(OBJECT_TYPE_COLONY);
 	};
 };
