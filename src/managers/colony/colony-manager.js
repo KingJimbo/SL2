@@ -286,4 +286,17 @@ module.exports = function(game, resourceManager, memoryManager, operationManager
 			pos: structure.pos
 		};
 	};
+
+	// function that will check all resource requests and assign any available creeps
+	this.processResourceRequests = function(colony){
+		// find any available creeps
+		if(!colony.creepGroups){
+			colony.creepGroups = [];
+		}
+
+		if(!colony.creepGroups.availableCreeps)
+		let availableCreeps = colony.creepGroups.availableCreeps
+		// find all resource requests
+		// assign available creeps to resource requests
+	}
 };
