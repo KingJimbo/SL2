@@ -70,7 +70,7 @@ module.exports = function(game, resourceManager, memoryManager, operationManager
 		// check spawn queues and spawn creeps
 		this.processSpawning(colony);
 		// resource requests
-		//this.processResourceRequests(colony);
+		this.processResourceRequests(colony);
 		// priorities
 		// resource out
 	};
