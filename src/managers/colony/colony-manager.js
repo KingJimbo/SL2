@@ -1,11 +1,12 @@
 // colony-manager.js
 
-module.exports = function(game, resourceManager, memoryManager, operationManager, structureMapper) {
+module.exports = function(game, resourceManager, memoryManager, operationManager, structureMapper, creepManager) {
 	this.game = game;
 	this.resourceManager = resourceManager;
 	this.memoryManager = memoryManager;
 	this.operationManager = operationManager;
 	this.structureMapper = structureMapper;
+	this.creepManager = creepManager;
 
 	// Use this method to create a colony object json object from a room
 	this.createColony = function(room) {
@@ -290,13 +291,29 @@ module.exports = function(game, resourceManager, memoryManager, operationManager
 	// function that will check all resource requests and assign any available creeps
 	this.processResourceRequests = function(colony){
 		// find any available creeps
-		if(!colony.creepGroups){
-			colony.creepGroups = [];
+		//TODO
+		if(this.areAnyCreepsFree(colony) === true){
+
 		}
+		
 
 		if(!colony.creepGroups.availableCreeps)
 		let availableCreeps = colony.creepGroups.availableCreeps
 		// find all resource requests
 		// assign available creeps to resource requests
 	}
+	// function to check if there are any available creeps in the free queue
+	this.areAnyCreepsFree = function(colony, creepType) {
+
+		//TODO sort out queue format
+		// initialise creepQueues
+        if(!colony.creepQueues){
+			colony.creepQueues = {
+				COLONY_CREEP_QUEUE_FREE: {},
+				COLONY_CREEP_QUEUE_BUSY: {}
+			};
+		}
+
+		return !!colony.creepQueues[COLONY_CREEP_QUEUE_FREE][creepType];
+    };
 };
