@@ -289,31 +289,37 @@ module.exports = function(game, resourceManager, memoryManager, operationManager
 	};
 
 	// function that will check all resource requests and assign any available creeps
-	this.processResourceRequests = function(colony){
+	this.processResourceRequests = function(colony) {
 		// find any available creeps
+		// prioritise transport creeps then utility creeps
+		let creepType = null;
 		//TODO
-		if(this.areAnyCreepsFree(colony) === true){
-
+		if (this.areAnyCreepsFree(colony, CREEP_TYPE_TRANSPORTER) === true) {
+			creepType = CREEP_TYPE_TRANSPORTER;
+		} else if (this.areAnyCreepsFree(colony, CREEP_TYPE_UTILITY) === true) {
+			creepType = CREEP_TYPE_UTILITY;
 		}
-		
 
-		if(!colony.creepGroups.availableCreeps)
-		let availableCreeps = colony.creepGroups.availableCreeps
+		if (creepType) {
+		}
+
 		// find all resource requests
 		// assign available creeps to resource requests
-	}
+	};
 	// function to check if there are any available creeps in the free queue
 	this.areAnyCreepsFree = function(colony, creepType) {
-
-		//TODO sort out queue format
 		// initialise creepQueues
-        if(!colony.creepQueues){
-			colony.creepQueues = {
-				COLONY_CREEP_QUEUE_FREE: {},
-				COLONY_CREEP_QUEUE_BUSY: {}
+		if (!colony.creepQueues) {
+			colony.creepQueues = {};
+		}
+
+		if (!colony.creepQueues[creepType]) {
+			colony.creepQueues[creepType] = {
+				COLONY_CREEP_QUEUE_FREE: [],
+				COLONY_CREEP_QUEUE_BUSY: []
 			};
 		}
 
-		return !!colony.creepQueues[COLONY_CREEP_QUEUE_FREE][creepType];
-    };
+		return colony.creepQueues[creepType][COLONY_CREEP_QUEUE_FREE].length > 0;
+	};
 };
