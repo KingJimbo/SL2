@@ -292,26 +292,47 @@ module.exports = function(game, resourceManager, memoryManager, operationManager
 	this.processResourceRequests = function(colony) {
 		// find any available creeps
 		// prioritise transport creeps then utility creeps
-		let creepType = null;
-		//TODO
-		if (this.areAnyCreepsFree(colony, CREEP_TYPE_TRANSPORTER) === true) {
-			creepType = CREEP_TYPE_TRANSPORTER;
-		} else if (this.areAnyCreepsFree(colony, CREEP_TYPE_UTILITY) === true) {
-			creepType = CREEP_TYPE_UTILITY;
-		}
+		let freeTransporters = this.getColonyCreepQueue(colony, CREEP_TYPE_TRANSPORTER, COLONY_CREEP_QUEUE_FREE);
+		let freeUtilities = this.getColonyCreepQueue(colony, CREEP_TYPE_UTILITY, COLONY_CREEP_QUEUE_FREE);
 
-		if (creepType) {
+		if (freeTransporters) {
+			this.assignCreepsToResourceRequests(colony, freeTransporters);
 		}
 
 		// find all resource requests
 		// assign available creeps to resource requests
 	};
+
+	this.assignCreepsToResourceRequests = function (colony, creepNames){
+		//TODO
+		let resourceRequests
+
+		while(creepNames.length > 0 && ){
+
+		}
+	}
+
 	// function to check if there are any available creeps in the free queue
 	this.areAnyCreepsFree = function(colony, creepType) {
 		// initialise creepQueues
+		this.checkColonyCreepQueueType(colony, creepType);
+
+		return colony.creepQueues[creepType][COLONY_CREEP_QUEUE_FREE].length > 0;
+	};
+
+	this.getColonyCreepQueue = function(colony, creepType, queueType) {
+		this.checkColonyCreepQueueType(colony, creepType);
+		return this.colony.creepQueues[creepType][queueType];
+	};
+
+	this.checkColonyCreepQueue = function(colony) {
 		if (!colony.creepQueues) {
 			colony.creepQueues = {};
 		}
+	};
+
+	this.checkColonyCreepQueueType = function(colony, creepType) {
+		this.checkColonyCreepQueue(colony);
 
 		if (!colony.creepQueues[creepType]) {
 			colony.creepQueues[creepType] = {
@@ -319,7 +340,5 @@ module.exports = function(game, resourceManager, memoryManager, operationManager
 				COLONY_CREEP_QUEUE_BUSY: []
 			};
 		}
-
-		return colony.creepQueues[creepType][COLONY_CREEP_QUEUE_FREE].length > 0;
 	};
 };
