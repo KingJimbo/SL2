@@ -24,6 +24,13 @@ module.exports = function(memoryManager, game) {
 		}
 	};
 
+	this.assignCreepsToResourceRequests = function(colony, creepNames) {
+		//TODO
+		let resourceRequests;
+
+		while (creepNames.length > 0) {}
+	};
+
 	this.checkColonyResourceRequests = function(colony, type, priority) {
 		if (!colony.resourceRequests) {
 			colony.resourceRequests = {};

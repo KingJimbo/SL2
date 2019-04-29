@@ -303,14 +303,12 @@ module.exports = function(game, resourceManager, memoryManager, operationManager
 		// assign available creeps to resource requests
 	};
 
-	this.assignCreepsToResourceRequests = function (colony, creepNames){
+	this.assignCreepsToResourceRequests = function(colony, creepNames) {
 		//TODO
-		let resourceRequests
+		let resourceRequests;
 
-		while(creepNames.length > 0 && ){
-
-		}
-	}
+		while (creepNames.length > 0) {}
+	};
 
 	// function to check if there are any available creeps in the free queue
 	this.areAnyCreepsFree = function(colony, creepType) {
