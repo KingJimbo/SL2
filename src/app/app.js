@@ -5,6 +5,7 @@ module.exports = function(memory, game) {
 		throw "invalid arguements passed to app.js!";
 	}
 	this.game = game;
+	console.log("import managers");
 	const MemoryManager = require("../managers/memory/memory-manager.js");
 	this.memoryManager = new MemoryManager(memory);
 
@@ -14,6 +15,7 @@ module.exports = function(memory, game) {
 	const ColonyManager = require("../managers/colony/colony-manager.js");
 	this.colonyManager = new ColonyManager(this.game, this.resourceManager, this.memoryManager);
 
+	console.log("import managers end");
 	// run function will activate every loop
 	this.run = function() {
 		console.log("run start");
@@ -30,6 +32,7 @@ module.exports = function(memory, game) {
 	};
 
 	this.mapColonies = function() {
+		console.log("map colonies");
 		for (const i in this.game.rooms) {
 			const room = this.game.rooms[i];
 			if (typeof room.controller !== "undefined" && room.controller !== null && room.controller.my) {
