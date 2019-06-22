@@ -8,12 +8,8 @@ module.exports = function(memory) {
         typeof this.memory === "undefined" ||
         typeof this.memory.settings === "undefined"
     ) {
-        this.initialiseMemory();
-    }
-
-    this.initialiseMemory = function() {
         this.memory = {};
-    };
+    }
 
     this.getAll = function(objectType) {
         return this.memory[objectType];
