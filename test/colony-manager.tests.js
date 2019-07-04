@@ -5,74 +5,76 @@ var ColonyManager = require("../src/managers/colony/colony-manager.js");
 
 describe("Colony Manager Tests", function() {
 	describe("Add Room to Colony", function() {
-		//game, resourceManager, memoryManager, operationManager, structureMapper, creepManager
+		describe("Add an unassigned room to Colony", function() {
+			//game, resourceManager, memoryManager, operationManager, structureMapper, creepManager
 
-		var gameMock = {};
-		var resourceManagerMock = {};
+			var gameMock = {};
+			var resourceManagerMock = {};
 
-		var memoryManagerMock = { save: function(colony) {} };
-		sinon.spy(memoryManagerMock, "save");
+			var memoryManagerMock = { save: function(colony) {} };
+			sinon.spy(memoryManagerMock, "save");
 
-		var operationManagerMock = {};
-		var structureMapperMock = {};
-		var creepManagerMock = {};
+			var operationManagerMock = {};
+			var structureMapperMock = {};
+			var creepManagerMock = {};
 
-		var colonyManager = new ColonyManager(
-			gameMock,
-			resourceManagerMock,
-			memoryManagerMock,
-			operationManagerMock,
-			structureMapperMock,
-			creepManagerMock
-		);
-		var roomMock = { memory: { colonyId: 0 }, name: "testroom" };
-		var colonyMock = { id: 1, rooms: [] };
+			var colonyManager = new ColonyManager(
+				gameMock,
+				resourceManagerMock,
+				memoryManagerMock,
+				operationManagerMock,
+				structureMapperMock,
+				creepManagerMock
+			);
+			var roomMock = { memory: { colonyId: 0 }, name: "testroom" };
+			var colonyMock = { id: 1, rooms: [] };
 
-		colonyManager.addRoomToColony(colonyMock, roomMock);
+			colonyManager.addRoomToColony(colonyMock, roomMock);
 
-		it("Updates room colony id", function() {
-			expect(roomMock.memory.colonyId).to.equal(colonyMock.id);
+			it("Updates room colony id", function() {
+				expect(roomMock.memory.colonyId).to.equal(colonyMock.id);
+			});
+
+			it("Updates pushes room to colony.rooms", function() {
+				expect(colonyMock.rooms.length).to.equal(1);
+			});
+
+			it("calls memoryManager.save()", function() {
+				expect(memoryManagerMock.save.calledOnce).to.equal(true);
+			});
 		});
 
-		it("Updates pushes room to colony.rooms", function() {
-			expect(colonyMock.rooms.length).to.equal(1);
-		});
+		describe("Add an already assigned Room to Colony", function() {
+			var gameMock = {};
+			var resourceManagerMock = {};
 
-		it("calls memoryManager.save()", function() {
-			expect(memoryManagerMock.save.calledOnce).to.equal(true);
-		});
-	});
+			var memoryManagerMock = { save: function(colony) {} };
+			sinon.spy(memoryManagerMock, "save");
 
-	describe("Add an already assigned Room to Colony", function() {
-		var gameMock = {};
-		var resourceManagerMock = {};
+			var operationManagerMock = {};
+			var structureMapperMock = {};
+			var creepManagerMock = {};
 
-		var memoryManagerMock = { save: function(colony) {} };
-		sinon.spy(memoryManagerMock, "save");
+			var colonyManager = new ColonyManager(
+				gameMock,
+				resourceManagerMock,
+				memoryManagerMock,
+				operationManagerMock,
+				structureMapperMock,
+				creepManagerMock
+			);
+			var roomMock = { memory: { colonyId: 2 }, name: "testroom" };
+			var colonyMock = { id: 1, rooms: [] };
 
-		var operationManagerMock = {};
-		var structureMapperMock = {};
-		var creepManagerMock = {};
+			colonyManager.addRoomToColony(colonyMock, roomMock);
 
-		var colonyManager = new ColonyManager(
-			gameMock,
-			resourceManagerMock,
-			memoryManagerMock,
-			operationManagerMock,
-			structureMapperMock,
-			creepManagerMock
-		);
-		var roomMock = { memory: { colonyId: 2 }, name: "testroom" };
-		var colonyMock = { id: 1, rooms: [] };
+			it("Should check if room colony is still existing", function() {
+				//expect(memoryManagerMock.save.calledOnce).to.equal(true);
+			});
 
-		colonyManager.addRoomToColony(colonyMock, roomMock);
-
-		it("Should check if room colony is still existing", function() {
-			//expect(memoryManagerMock.save.calledOnce).to.equal(true);
-		});
-
-		it("If room colony doesn't exist assign new colony id", function() {
-			//expect(memoryManagerMock.save.calledOnce).to.equal(true);
+			it("If room colony doesn't exist assign new colony id", function() {
+				//expect(memoryManagerMock.save.calledOnce).to.equal(true);
+			});
 		});
 	});
 });
