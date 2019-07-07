@@ -1,23 +1,54 @@
 // colony-manager.js
 
-module.exports = function(game, resourceManager, memoryManager, operationManager, structureMapper, creepManager) {
-	this.game = game;
-	this.resourceManager = resourceManager;
+module.exports = function(game, memoryManager, resourceManager, operationManager, structureMapper, creepManager) {
+	this.game = game;	
 	this.memoryManager = memoryManager;
+	this.resourceManager = resourceManager;
 	this.operationManager = operationManager;
 	this.structureMapper = structureMapper;
 	this.creepManager = creepManager;
 
+	this.processColonies = function(){
+		let colonies = this.memoryManager.getAll(OBJECT_TYPE_COLONY);
+
+		// if no colonies map existing owned rooms
+        if (!colonies) {
+            colonies = this.mapColonies();
+        }
+
+        // for (const i in colonies) {
+        //     let colony = colonies[i];
+        //     this.processColony(colony);
+        // }
+	}
+
+	this.mapColonies = function() {
+        for (const i in this.game.rooms) {
+			const room = this.game.rooms[i];
+			console.log((
+                helper.objExists(room.controller) &&
+                room.controller.my
+			));
+			
+            if (this.isRoomColony(room)) {
+				this.memoryManager.save(this.createColony(room));
+				console.log(JSON.stringify(this.memoryManager.getAll(OBJECT_TYPE_COLONY)));
+            }
+        }
+
+        return this.memoryManager.getAll(OBJECT_TYPE_COLONY);
+    };
+
+
+
 	// Use this method to create a colony object json object from a room
 	this.createColony = function(room) {
-		console.log("create colony");
-		console.log(JSON.stringify(room));
 		let colony = {
 			id: 0,
 			objectType: OBJECT_TYPE_COLONY,
 			structureMap: this.createNewStructureMap(),
-			mainRoom: room.name,
-			rooms: [],
+			roomName: room.name,
+			remoteRoomNames: [],
 			resourceRequests: {},
 			spawnQueues: {
 				PRIORITY_HIGH: [],
@@ -28,10 +59,32 @@ module.exports = function(game, resourceManager, memoryManager, operationManager
 
 		// save colony to get colony id
 		colony = this.memoryManager.save(colony);
-		this.addRoomToColony(colony, room);
 
 		return colony;
 	};
+
+	this.isRoomColony = function(room){
+
+		if ((helper.objExists(room.controller) &&
+		room.controller.my)){
+			return true;
+		}
+		else{
+			const spawns = room.find(FIND_MY_STRUCTURES, {
+				filter: { structureType: STRUCTURE_SPAWN }
+			});
+
+			for(var i in spawns){
+				var spawn = spawns[i];
+				console.log("spawn " + i);
+				console.log(JSON.stringify(spawn));
+				if(spawn.my){
+					return true;
+				}
+			}
+		}
+		return false;
+	}
 
 	this.addRoomToColony = function(colony, room) {
 		// add if it doesn't exist

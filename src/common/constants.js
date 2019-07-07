@@ -1,25 +1,4 @@
 /** constants.js **/
-global.PRIORITY_LOW = "low";
-global.PRIORITY_MEDIUM = "medium";
-global.PRIORITY_HIGH = "high";
-
-global.OBJECT_TYPE_COLONY = "colony";
-global.OBJECT_TYPE_SOURCE_OPERATION = "sourceOperation";
-global.OBJECT_TYPE_SOURCE_MEMORY = "sourceMemory";
-global.OBJECT_TYPE_CREEP_ID = "creepId";
-
-global.CREEP_TYPE_UTILITY = "utility";
-global.CREEP_TYPE_MINER = "miner";
-global.CREEP_TYPE_TRANSPORTER = "transporter";
-global.CREEP_TYPE_CLAIMER = "claimer";
-global.CREEP_TYPE_MELEE = "melee";
-global.CREEP_TYPE_RANGED = "ranged";
-global.CREEP_TYPE_TANK = "tank";
-global.CREEP_TYPE_HEALER = "healer";
-
-global.COLONY_CREEP_QUEUE_FREE = "free";
-global.COLONY_CREEP_QUEUE_BUSY = "busy";
-
 global.CREEP_TEMPLATES = {
 	CREEP_TYPE_UTILITY: {
 		MOVE: 0.3,
@@ -102,6 +81,35 @@ global.CREEP_TEMPLATES = {
 		CLAIM: 0
 	}
 };
+
+
+global.CREEP_TYPE_UTILITY = "utility";
+global.CREEP_TYPE_MINER = "miner";
+global.CREEP_TYPE_TRANSPORTER = "transporter";
+global.CREEP_TYPE_CLAIMER = "claimer";
+global.CREEP_TYPE_MELEE = "melee";
+global.CREEP_TYPE_RANGED = "ranged";
+global.CREEP_TYPE_TANK = "tank";
+global.CREEP_TYPE_HEALER = "healer";
+
+global.COLONY_CREEP_QUEUE_FREE = "free";
+global.COLONY_CREEP_QUEUE_BUSY = "busy";
+
+global.ERR_MESSAGE_INVALID_ARGS = "Invalid arguments have been found!";
+
+global.OBJECT_TYPE_COLONY = "colony";
+global.OBJECT_TYPE_SOURCE_OPERATION = "sourceOperation";
+global.OBJECT_TYPE_SOURCE_MEMORY = "sourceMemory";
+global.OBJECT_TYPE_CREEP_ID = "creepId";
+
+global.PRIORITY_LOW = "low";
+global.PRIORITY_MEDIUM = "medium";
+global.PRIORITY_HIGH = "high";
+
+global.RESULT_FAILED = 0;
+global.RESULT_OK = 1;
+
+
 
 //     MOVE: "move",
 //     WORK: "work",

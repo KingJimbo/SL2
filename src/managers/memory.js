@@ -1,15 +1,11 @@
 // memory-manager.js
-
 module.exports = function(memory) {
-    this.memory = memory;
 
-    // undefined check to see if initialisation required
-    if (
-        typeof this.memory === "undefined" ||
-        typeof this.memory.settings === "undefined"
-    ) {
-        this.memory = {};
+    if(!memory){
+        throw ERR_MESSAGE_INVALID_ARGS;
     }
+
+    this.memory = memory;
 
     this.getAll = function(objectType) {
         return this.memory[objectType];
