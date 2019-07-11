@@ -62,10 +62,10 @@ module.exports = function(dateHelper){
         //message = this.dateHelper.getCurrentDateTimeAsString() + ': ' + message;
         switch(logType){
             case this.LOG_TYPES.ERROR:
-                this.logRed(message);
+                this.logError(message);
                 break;
             case this.LOG_TYPES.WARNING:
-                this.logYellow(message);
+                this.logWarning(message);
                 break;
             default:
                 console.log(message);
@@ -73,19 +73,19 @@ module.exports = function(dateHelper){
         }
     }
 
+    this.logException = function (error){
+        this.logError('An error has occured!');
+        this.log('message: ' + error.message );
+        this.log('name: ' + error.name );
+        this.log('error occured on file: ' + error.filename + ' line: ' + error.lineNumber + ' column: ' + error.columnNumber );
+        this.log('stacktrace ' + error.stack );
+    }
+
     this.logError = function (error){
-        this.log('An error has occured!', this.LOG_TYPES.ERROR);
-        this.logRed('message: ' + error.message );
-        this.logRed('name: ' + error.name );
-        this.logRed('error occured on file: ' + error.filename + ' line: ' + error.lineNumber + ' column: ' + error.columnNumber );
-        this.logRed('stacktrace ' + error.stack );
+        console.log('ERROR: ' + message);
     }
 
-    this.logRed = function (message){
-        console.log(message);
-    }
-
-    this.logYellow = function (message){
-        console.log(message);
+    this.logWarning = function (message){
+        console.log('WARNING: ' + message);
     }
 };

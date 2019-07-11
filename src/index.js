@@ -4,7 +4,7 @@ module.exports.loop = function() {
 	var DateHelper = require("./common/dateHelper.js");
 	var Helper = require("./common/helper.js");
 	global.helper = new Helper();
-	var logger = new Logger(new DateHelper());
+	global.logger = new Logger(new DateHelper());
 
 	logger.log("loop start");
 	require("./common/constants");
@@ -17,7 +17,7 @@ module.exports.loop = function() {
 		app.run();
 	}
 	catch(error){
-		logger.logError(error);
+		logger.logException(error);
 	}
 
 	logger.log("loop end");

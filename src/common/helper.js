@@ -16,4 +16,11 @@ module.exports = function(){
         if(mm<10) mm='0'+mm;
         return (mm+sp+dd+sp+yyyy);
     }
+
+    this.getFuncName = function(fn){
+        var f = typeof fn == 'function';
+        var s = f && ((fn.name && ['', fn.name]) || fn.toString().match(/function ([^\(]+)/));
+        return (!f && 'not a function') || (s && s[1] || 'anonymous');
+    }
+
 }

@@ -16,23 +16,22 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
             colonies = this.mapColonies();
         }
 
-        // for (const i in colonies) {
-        //     let colony = colonies[i];
-        //     this.processColony(colony);
-        // }
+        for (const i in colonies) {
+			let colony = colonies[i];
+			var result = this.processColony(colony)
+
+            if(!result.status){
+				logger.logWarning(result.message);
+			}
+        }
 	}
 
 	this.mapColonies = function() {
         for (const i in this.game.rooms) {
 			const room = this.game.rooms[i];
-			console.log((
-                helper.objExists(room.controller) &&
-                room.controller.my
-			));
 			
             if (this.isRoomColony(room)) {
 				this.memoryManager.save(this.createColony(room));
-				console.log(JSON.stringify(this.memoryManager.getAll(OBJECT_TYPE_COLONY)));
             }
         }
 
@@ -118,20 +117,30 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 	};
 
 	// this function performs all colony activities
-	this.run = function(colony) {
-		// start run colony
-		// Resource check
-		this.checkColonyResourceRequirements(colony);
+	this.processColony = function(colony) {
 
-		//process resources
-		this.processColonyResources(colony);
+		if(!colony){
+			return { result: RESULT_FAILED, message: "colonyManager.processColony() failed due to: " + ERR_MESSAGE_INVALID_ARGS };
+		}
+		else{
+			// start run colony
+			console.log("start processing" + colony.id);
+			// // Resource check
+			// this.checkColonyResourceRequirements(colony);
 
-		// check spawn queues and spawn creeps
-		this.processSpawning(colony);
-		// resource requests
-		this.processResourceRequests(colony);
-		// priorities
-		// resource out
+			// //process resources
+			// this.processColonyResources(colony);
+
+			// // check spawn queues and spawn creeps
+			// this.processSpawning(colony);
+			// // resource requests
+			// this.processResourceRequests(colony);
+			// // priorities
+			// // resource out
+
+			return {status:RESULT_OK, message: null}
+		}
+		
 	};
 
 	this.processColonyResources = function(colony) {
