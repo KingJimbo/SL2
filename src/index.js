@@ -5,7 +5,7 @@ module.exports.loop = function() {
 	var Helper = require("./common/helper.js");
 	global.helper = new Helper();
 	var logger = new Logger(new DateHelper());
-
+	global.logger = logger;
 	logger.log("loop start");
 	require("./common/constants");
 	

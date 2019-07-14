@@ -22,22 +22,125 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
         // }
 	}
 
+	
+
 	this.mapColonies = function() {
         for (const i in this.game.rooms) {
 			const room = this.game.rooms[i];
-			console.log((
-                helper.objExists(room.controller) &&
-                room.controller.my
-			));
 			
             if (this.isRoomColony(room)) {
-				this.memoryManager.save(this.createColony(room));
-				console.log(JSON.stringify(this.memoryManager.getAll(OBJECT_TYPE_COLONY)));
+				var colony = this.createColony(room)
+				if(colony){
+					this.assignColonyResources(colony);
+				}
+				else{
+					logger.logWarning("Failed to create colony for room " + room.name)
+				}
+
+
             }
         }
 
         return this.memoryManager.getAll(OBJECT_TYPE_COLONY);
-    };
+	};
+
+	this.assignColonyResources = function(colony) {
+		// verify last resource check
+		if (!colony.lastResourceCheck || 
+			colony.lastResourceCheck.level < this.game.rooms[colony.mainRoom].controller.level) {
+			// find rooms for colony
+			this.assignColonySources(colony);
+
+			// TODO
+			// not a problem until later levels
+			this.assignColonyMinerals(colony);
+
+			colony.lastResourceCheck = this.game.time;
+		}
+
+	}
+
+	// Function will assign sources to colony
+	this.assignColonySources = function(colony) {
+		const room = this.game.rooms[colony.roomName];
+
+		const sources = room.find(FIND_SOURCES);
+
+		for (let i = 0; i < sources.length; i++) {
+			const source = sources[i];
+			// add sources to colony
+			if(!this.addSourceToColony(colony, source)){
+				logger.logWarning("colonyManager.assignColonySources(colony) - Failed to add source to colony.")
+			}
+		}
+	};
+
+	this.assignColonyMinerals = function(colony){
+		if(colony){
+			const room = this.game.rooms[colony.roomName];
+
+			const minerals = room.find(FIND_MINERALS);
+	
+			for (let i = 0; i < minerals.length; i++) {
+				const mineral = minerals[i];
+				// add sources to colony
+				if(!this.addMineralToColony(colony, mineral)){
+					logger.logWarning("colonyManager.assignColonyMinerals(colony) - Failed to assign mineral " + mineral.id + 
+					" of type " + mineral.mineralType + " to colony " + colony.id);
+				}
+			}
+		}
+		else{
+			logger.logWarning("colonyManager.assignColonyMinerals(colony) - Invalid parameters passsed.");
+			logger.log("colony - " + JSON.stringify(colony));
+		}
+
+	}
+
+	//TODO
+	this.addMineralToColony = function(colony, mineral) {
+		// if (colony && mineral) {
+			
+
+		// 	var mineralMemory = this.createMineralMemory(source);
+
+		// 	if(mineralMemory){
+		// 		if (!colony.minerals) {
+		// 			colony.minerals = {};
+		// 		}
+	
+		// 		if(!colony.minerals[mineral.mineralType]){
+		// 			colony.minerals[mineral.mineralType] = [];
+		// 		}
+
+		// 		colony.minerals[mineral.mineralType].push(mineral.id);
+
+		// 		this.memoryManager.save(colony);
+
+		// 		var mineralOperation = this.assignSourceOperation(sourceMemory);
+		// 		if(sourceOperation){
+		// 			if(!helper.objExists(colony.operations.resourceOperations[RESOURCE_ENERGY])){
+		// 				colony.operations.resourceOperations[RESOURCE_ENERGY] = [];
+		// 			}
+		// 			colony.operations.resourceOperations[RESOURCE_ENERGY].push(sourceOperation.id);
+		// 			return memoryManager.save(colony);
+		// 		}
+		// 		else{
+		// 			logger.logWarning("colonyManager.addMineralToColony(colony, mineral) - Failed to assign Source Operation to source " + source.id);
+		// 		}
+		// 	}
+		// 	else{
+		// 		logger.logWarning("colonyManager.addMineralToColony(colony, mineral) - Failed to create source memory for source " + source.id);
+		// 	}
+		// }
+		// else{
+		// 	logger.logWarning("colonyManager.addMineralToColony(colony, mineral) - Invalid parameters given.");
+		// 	logger.log("colony - " + JSON.stringify(colony));
+		// 	logger.log("mineral - " + JSON.stringify(mineral));
+		// }
+
+		return false;
+	};
 
 
 
@@ -46,6 +149,7 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 		let colony = {
 			id: 0,
 			objectType: OBJECT_TYPE_COLONY,
+			operations: { resourceOperations: {} },
 			structureMap: this.createNewStructureMap(),
 			roomName: room.name,
 			remoteRoomNames: [],
@@ -58,9 +162,7 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 		};
 
 		// save colony to get colony id
-		colony = this.memoryManager.save(colony);
-
-		return colony;
+		return this.memoryManager.save(colony);
 	};
 
 	this.isRoomColony = function(room){
@@ -76,8 +178,6 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 
 			for(var i in spawns){
 				var spawn = spawns[i];
-				console.log("spawn " + i);
-				console.log(JSON.stringify(spawn));
 				if(spawn.my){
 					return true;
 				}
@@ -107,121 +207,168 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 				colony.sources = {};
 			}
 
-			if (!colony.sources[source.id]) {
+			var sourceMemory = this.createSourceMemory(source);
+
+			if(sourceMemory){
 				colony.sources[source.id] = { id: source.id };
-			}
-
-			this.memoryManager.save(colony);
-
-			return this.createSourceMemory(source);
-		}
-	};
-
-	// this function performs all colony activities
-	this.run = function(colony) {
-		// start run colony
-		// Resource check
-		this.checkColonyResourceRequirements(colony);
-
-		//process resources
-		this.processColonyResources(colony);
-
-		// check spawn queues and spawn creeps
-		this.processSpawning(colony);
-		// resource requests
-		this.processResourceRequests(colony);
-		// priorities
-		// resource out
-	};
-
-	this.processColonyResources = function(colony) {
-		// verify last resource check
-		if (!colony.lastResourceCheck || colony.lastResourceCheck.level < this.game.rooms[colony.mainRoom].controller.level) {
-			// find rooms for colony
-			this.addColonySources(colony);
-
-			// TODO
-			// not a problem until later levels
-			this.checkColonyMinerals(colony);
-
-			// assign operations to resources
-			this.addSourceOperations(colony);
-
-			//TODO
-			//this.addMineralOperations(colony);
-
-			colony.lastResourceCheck = this.game.time;
-		}
-
-		//TODO
-		// process sources for operations
-		this.processSourceOperations(colony);
-
-		// save colony
-		this.memoryManager.save();
-	};
-
-	// Function will assign sources to colony
-	this.addColonySources = function(colony) {
-		const rooms = this.getColonyRooms(colony);
-
-		for (let i = 0; i < rooms.length; i++) {
-			// find all resources in room
-			const room = rooms[i];
-			const sources = room.find(FIND_SOURCES);
-
-			for (let i = 0; i < sources.length; i++) {
-				const source = sources[i];
-				// add sources to colony
-				this.addSourceToColony(colony, source);
-			}
-		}
-	};
-
-	// Function will assign minerals to colony
-	this.checkColonyMinerals = function(colony) {
-		//TODO: add minderal logic
-		//const minerals = room.find(FIND_MINERALS);
-	};
-
-	this.addSourceOperations = function(colony) {
-		// cycle through all the sources and determine if they have an operation. If not create one.
-		for (const sourceId in colony.sources) {
-			let sourceMemory = this.memoryManager.getById(OBJECT_TYPE_SOURCE_MEMORY, sourceId);
-
-			// check source memory exists
-			if (!sourceMemory) {
-				const source = this.game.getObjectById(sourceId);
-				if (source) {
-					sourceMemory = this.createSourceMemory(source);
+				this.memoryManager.save(colony);
+				var sourceOperation = this.assignSourceOperation(sourceMemory);
+				if(sourceOperation){
+					if(!helper.objExists(colony.operations.resourceOperations[RESOURCE_ENERGY])){
+						colony.operations.resourceOperations[RESOURCE_ENERGY] = [];
+					}
+					colony.operations.resourceOperations[RESOURCE_ENERGY].push(sourceOperation.id);
+					return memoryManager.save(colony);
+				}
+				else{
+					logger.logWarning("colonyManager.addSourceToColony(colony, source) - Failed to assign Source Operation to source " + source.id);
 				}
 			}
+			else{
+				logger.logWarning("colonyManager.addSourceToColony(colony, source) - Failed to create source memory for source " + source.id);
+			}
+		}
+		else{
+			logger.logWarning("colonyManager.addSourceToColony(colony, source) - Invalid parameters given.");
+			logger.log("colony - " + JSON.stringify(colony));
+			logger.log("source - " + JSON.stringify(source));
+		}
 
-			// if no operation assigned
-			if (sourceMemory && !sourceMemory.operationId) {
-				//create operation
-				const source = this.game.getObjectById(sourceId);
-				let sourceOperation = this.operationManager.createSourceOperation(source);
+		return false;
+	};
 
+
+	this.assignSourceOperation = function (sourceMemory){
+		// if no operation assigned
+		if (sourceMemory && !sourceMemory.operationId) {
+			//create operation
+			const source = this.game.getObjectById(sourceMemory.id);
+			let colony = this.memoryManager.getById(OBJECT_TYPE_COLONY, sourceMemory.colonyId);
+			let sourceOperation = this.operationManager.createSourceOperation(source);
+
+			if(sourceOperation){
 				// save source memory with operation id
 				sourceMemory.operationId = sourceOperation.id;
 				memoryManager.save(sourceMemory);
+				
+				return sourceMemory;
+			}
+			else{
+				log.logWarning("colonyManager.assignSourceOperation(sourceMemory) - Failed to create source operation.");
 			}
 		}
-	};
+		else{
+			log.logWarning("colonyManager.assignSourceOperation(sourceMemory) - Invalid parameters passed.");
+			log.log("sourceMemory - " + JSON.stringify(sourceMemory));
+		}
+
+		return false;
+	}
+
+	// // this function performs all colony activities
+	// this.run = function(colony) {
+	// 	// start run colony
+	// 	// Resource check
+	// 	this.checkColonyResourceRequirements(colony);
+
+	// 	//process resources
+	// 	//this.processColonyResources(colony);
+
+	// 	// check spawn queues and spawn creeps
+	// 	this.processSpawning(colony);
+	// 	// resource requests
+	// 	this.processResourceRequests(colony);
+	// 	// priorities
+	// 	// resource out
+	// };
+
+	// this.processColonyResources = function(colony) {
+	// 	// verify last resource check
+	// 	if (!colony.lastResourceCheck || 
+	// 		colony.lastResourceCheck.level < this.game.rooms[colony.mainRoom].controller.level) {
+	// 		// find rooms for colony
+	// 		this.addColonySources(colony);
+
+	// 		// TODO
+	// 		// not a problem until later levels
+	// 		this.checkColonyMinerals(colony);
+
+	// 		// assign operations to resources
+	// 		this.addSourceOperations(colony);
+
+	// 		//TODO
+	// 		//this.addMineralOperations(colony);
+
+	// 		colony.lastResourceCheck = this.game.time;
+	// 	}
+
+	// 	//TODO
+	// 	// process sources for operations
+	// 	this.processSourceOperations(colony);
+
+	// 	// save colony
+	// 	this.memoryManager.save();
+	// };
+
+	
+
+	// // Function will assign minerals to colony
+	// this.checkColonyMinerals = function(colony) {
+	// 	//TODO: add minderal logic
+	// 	//const minerals = room.find(FIND_MINERALS);
+	// };
+
+	// this.addSourceOperations = function(colony) {
+	// 	// cycle through all the sources and determine if they have an operation. If not create one.
+	// 	for (const sourceId in colony.sources) {
+	// 		let sourceMemory = this.memoryManager.getById(OBJECT_TYPE_SOURCE_MEMORY, sourceId);
+
+	// 		// check source memory exists
+	// 		if (!sourceMemory) {
+	// 			const source = this.game.getObjectById(sourceId);
+	// 			if (source) {
+	// 				sourceMemory = this.createSourceMemory(source);
+	// 			}
+	// 		}
+
+	// 		// if no operation assigned
+	// 		if (sourceMemory && !sourceMemory.operationId) {
+	// 			//create operation
+	// 			const source = this.game.getObjectById(sourceId);
+	// 			let sourceOperation = this.operationManager.createSourceOperation(source);
+
+	// 			// save source memory with operation id
+	// 			sourceMemory.operationId = sourceOperation.id;
+	// 			memoryManager.save(sourceMemory);
+	// 		}
+	// 	}
+	// };
 
 	this.createSourceMemory = function(source) {
-		if (source.room.memory.colonyId) {
+		return this.createResourceMemory(source);
+	};
+
+	this.createMineralMemory = function(mineral) {
+		return this.createResourceMemory(mineral);
+	};
+
+	this.createResourceMemory = function(resource){
+		if (resource.room.memory.colonyId) {
+			var resourceType = RESOURCE_ENERGY;
+			if(resource.mineralType){
+				resourceType = resource.mineralType;
+			}
 			return this.memoryManager.save({
-				id: source.id,
-				objectType: OBJECT_TYPE_SOURCE_MEMORY,
+				id: resource.id,
+				objectType: OBJECT_TYPE_RESOURCE,
+				resourceType: resourceType,
 				operationId: 0,
 				colonyId: source.room.memory.colonyId
 			});
 		}
 
-		return null;
-	};
+		return false;
+	}
 
 	this.getColonyRooms = function(colony) {
 		if (!colony.rooms) {

@@ -98,8 +98,9 @@ global.COLONY_CREEP_QUEUE_BUSY = "busy";
 global.ERR_MESSAGE_INVALID_ARGS = "Invalid arguments have been found!";
 
 global.OBJECT_TYPE_COLONY = "colony";
+global.OBJECT_TYPE_RESOURCE = "resource";
 global.OBJECT_TYPE_SOURCE_OPERATION = "sourceOperation";
-global.OBJECT_TYPE_SOURCE_MEMORY = "sourceMemory";
+//global.OBJECT_TYPE_SOURCE_MEMORY = "sourceMemory";
 global.OBJECT_TYPE_CREEP_ID = "creepId";
 
 global.PRIORITY_LOW = "low";
@@ -108,6 +109,10 @@ global.PRIORITY_HIGH = "high";
 
 global.RESULT_FAILED = 0;
 global.RESULT_OK = 1;
+
+if(!RESOURCE_ENERGY){
+	global.RESOURCE_ENERGY = "energy";
+}
 
 
 
