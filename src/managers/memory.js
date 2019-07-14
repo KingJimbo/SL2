@@ -18,7 +18,7 @@ module.exports = function(memory) {
 
     this.save = function(object) {
         if (!object.objectType) {
-            throw "Error: object does not have a valid object type.";
+            throw new Error("Error: object does not have a valid object type.");
         }
         if (!this.memory[object.objectType]) {
             this.memory[object.objectType] = {};
