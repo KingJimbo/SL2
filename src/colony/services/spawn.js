@@ -1,9 +1,9 @@
 // spawn-manager.js
 
-module.exports = function(game, memoryManager, resourceManager) {
-	this.game = game;
-	this.memoryManager = memoryManager;
-	this.resourceManager = resourceManager;
+module.exports = function(args) {
+	this.game = args.game;
+	this.memoryManager = args.memoryManager;
+	this.resourceManager = args.resourceManager;
 
 	this.spawnCreeps = function() {
 		// cycle all colony spawners and spawn creeps
@@ -91,8 +91,9 @@ module.exports = function(game, memoryManager, resourceManager) {
 				return OK;
 			}
 		}
-
-		// invalid parameters
-		return ERR_INVALID_ARGS;
+		else{
+			logger.logWarning("Invalid parameter spawn: ");
+			logger.log(JSON.stringify(spawn));
+		}
 	};
 };

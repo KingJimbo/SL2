@@ -100,8 +100,11 @@ global.ERR_MESSAGE_INVALID_ARGS = "Invalid arguments have been found!";
 global.OBJECT_TYPE_COLONY = "colony";
 global.OBJECT_TYPE_RESOURCE = "resource";
 global.OBJECT_TYPE_SOURCE_OPERATION = "sourceOperation";
+global.OBJECT_TYPE_OPERATION = "operation";
 //global.OBJECT_TYPE_SOURCE_MEMORY = "sourceMemory";
 global.OBJECT_TYPE_CREEP_ID = "creepId";
+
+global.OPERATION_TYPE_SOURCE = "source";
 
 global.PRIORITY_LOW = "low";
 global.PRIORITY_MEDIUM = "medium";

@@ -4,32 +4,34 @@ module.exports = function(memoryManager, game) {
 	this.memoryManager = memoryManager;
 	this.game = game;
 
-	this.createResourceRequest = function(colonyId, pos, amount, type, priority) {
+	this.createResourceRequest = function(args){//colonyId, pos, amount, type, priority) {
 		// validate parameters
-		if ((colonyId, pos, amount, type, priority)) {
-			let colony = this.memoryManager.getById(OBJECT_TYPE_COLONY, colonyId);
-			if (!priority) {
-				priority = PRIORITY_LOW;
+		if (args.colonyId && args.pos && args.type && args.priority) {
+			let colony = this.memoryManager.getById(OBJECT_TYPE_COLONY, args.colonyId);
+			if (!args.priority) {
+				args.priority = PRIORITY_LOW;
 			}
-			this.checkColonyResourceRequests(colony, type, priority);
+			this.checkColonyResourceRequests(colony, args.type, args.priority);
 
-			colony.resourceRequests[type][priority].push({
-				destinationPos: pos,
-				amount: amount
+			colony.resourceRequests[args.type][args.priority].push({
+				destinationPos: args.pos,
+				amount: args.amount
 			});
 
 			return this.memoryManager.save(colony);
 		} else {
-			return ERR_INVALID_ARGS;
+			logger.logWarning("Invalid parameters passed");
+			logger.log("args: " + JSON.stringify(args));
 		}
 	};
 
-	this.assignCreepsToResourceRequests = function(colony, creepNames) {
-		//TODO
-		let resourceRequests;
+	
+	// this.assignCreepsToResourceRequests = function(colony, creepNames) {
+	// 	//TODO
+	// 	let resourceRequests;
 
-		while (creepNames.length > 0) {}
-	};
+	// 	while (creepNames.length > 0) {}
+	// };
 
 	this.checkColonyResourceRequests = function(colony, type, priority) {
 		if (!colony.resourceRequests) {
@@ -67,15 +69,9 @@ module.exports = function(memoryManager, game) {
 							break;
 					}
 
-					// if resource request exists add request
-					if (resourceRequest) {
-						resourceRequest = this.addResourceRequest(resourceRequest);
-
-						// null check
-						if (!colony.resourceRequests[resourceRequest.priority]) {
-							colony.resourceRequests[resourceRequest.priority] = [];
-						}
-						colony.resourceRequests[resourceRequest.priority].push(resourceRequest.id);
+					if(!resourceRequest){
+						logger.logWarning("Failed to determine resource requirements for.")
+						logger.log("structure: " + JSON.stringify(structure));
 					}
 				}
 			}
@@ -95,7 +91,7 @@ module.exports = function(memoryManager, game) {
 	this.determineControllerRequirements = function(controller) {
 		// check if controller is max level
 		if (controller.level < 8) {
-			return this.createResourceRequest(controller.room.colonyId, controller.pos, 0, RESOURCE_ENERGY, "low");
+			return this.createResourceRequest(controller.room.colonyId, controller.pos, 0, RESOURCE_ENERGY, PRIORITY_LOW);
 		}
 		//
 	};

@@ -1,15 +1,16 @@
 // colony-manager.js
 
-module.exports = function(game, memoryManager, resourceManager, operationManager, structureMapper, creepManager) {
-	this.game = game;	
-	this.memoryManager = memoryManager;
-	this.resourceManager = resourceManager;
-	this.operationManager = operationManager;
-	this.structureMapper = structureMapper;
-	this.creepManager = creepManager;
+module.exports = function(args){//game, memoryManager, operationManager, resourceManager, structureMapper, creepManager) {
+	this.game = args.game;	
+	this.memory = args.memoryManager;
+	this.operationManager = args.operationManager;
+	this.resourceManager = args.resourceManager;
+	this.spawnManager = args.spawnManager;
+	// this.structureMapper = args.structureMapper;
+	// this.creepManager = args.creepManager;
 
 	this.processColonies = function(){
-		let colonies = this.memoryManager.getAll(OBJECT_TYPE_COLONY);
+		let colonies = this.memory.getAll(OBJECT_TYPE_COLONY);
 
 		// if no colonies map existing owned rooms
         if (!colonies) {
@@ -18,15 +19,9 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 
         for (const i in colonies) {
 			let colony = colonies[i];
-			var result = this.processColony(colony)
-
-            if(!result.status){
-				logger.logWarning(result.message);
-			}
+			var result = this.runColony(colony);
         }
 	}
-
-	
 
 	this.mapColonies = function() {
         for (const i in this.game.rooms) {
@@ -37,7 +32,7 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 				if(colony){
 					colony.roomName = room.name;
 					room.memory.colonyId = colony.id;
-					this.memoryManager.save(colony);
+					this.memory.save(colony);
 					this.assignColonyResources(colony);
 				}
 				else{
@@ -49,7 +44,7 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 			}
         }
 
-        return this.memoryManager.getAll(OBJECT_TYPE_COLONY);
+        return this.memory.getAll(OBJECT_TYPE_COLONY);
 	};
 
 	this.assignColonyResources = function(colony) {
@@ -123,7 +118,7 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 
 		// 		colony.minerals[mineral.mineralType].push(mineral.id);
 
-		// 		this.memoryManager.save(colony);
+		// 		this.memory.save(colony);
 
 		// 		var mineralOperation = this.assignSourceOperation(sourceMemory);
 		// 		if(sourceOperation){
@@ -131,7 +126,7 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 		// 				colony.operations.resourceOperations[RESOURCE_ENERGY] = [];
 		// 			}
 		// 			colony.operations.resourceOperations[RESOURCE_ENERGY].push(sourceOperation.id);
-		// 			return memoryManager.save(colony);
+		// 			return memory.save(colony);
 		// 		}
 		// 		else{
 		// 			logger.logWarning("colonyManager.addMineralToColony(colony, mineral) - Failed to assign Source Operation to source " + source.id);
@@ -170,7 +165,7 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 		};
 
 		// save colony to get colony id
-		return this.memoryManager.save(colony);
+		return this.memory.save(colony);
 	};
 
 	this.isRoomColony = function(room){
@@ -196,11 +191,11 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 
 	this.addRoomToColony = function(colony, room) {
 		// add if it doesn't exist
-		//this.memoryManager(OBJECT_TYPE_ROOMS, this.room.name)
+		//this.memory(OBJECT_TYPE_ROOMS, this.room.name)
 		if (!room.memory.colonyId) {
 			room.memory.colonyId = colony.id;
 			colony.rooms.push(room);
-			this.memoryManager.save(colony);
+			this.memory.save(colony);
 		} else {
 			console.log("Warning: this room is already assigned to a colony " + room.memory.colonyId + " cannot assign to " + colony.id);
 			//TODO: Add logic to handle room transfer
@@ -215,18 +210,18 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 				colony.sources = {};
 			}
 
-			var sourceMemory = this.createSourceMemory(source);
+			var sourceMemory = this.createResourceMemory(source);
 
 			if(sourceMemory){
 				colony.sources[source.id] = { id: source.id };
-				this.memoryManager.save(colony);
+				this.memory.save(colony);
 				var sourceOperation = this.assignSourceOperation(sourceMemory);
 				if(sourceOperation){
 					if(!helper.objExists(colony.operations.resourceOperations[RESOURCE_ENERGY])){
 						colony.operations.resourceOperations[RESOURCE_ENERGY] = [];
 					}
 					colony.operations.resourceOperations[RESOURCE_ENERGY].push(sourceOperation.id);
-					return memoryManager.save(colony);
+					return this.memory.save(colony);
 				}
 				else{
 					logger.logWarning("colonyManager.addSourceToColony(colony, source) - Failed to assign Source Operation to source " + source.id);
@@ -252,31 +247,42 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 			//create operation
 			const source = this.game.getObjectById(sourceMemory.id);
 			if(source){
-				let colony = this.memoryManager.getById(OBJECT_TYPE_COLONY, sourceMemory.colonyId);
+				let colony = this.memory.getById(OBJECT_TYPE_COLONY, sourceMemory.colonyId);
 				let sourceOperation = this.operationManager.createSourceOperation(source);
 
 				if(sourceOperation){
 					// save source memory with operation id
 					sourceMemory.operationId = sourceOperation.id;
-					memoryManager.save(sourceMemory);
+					this.memory.save(sourceMemory);
 					
 					return sourceMemory;
 				}
 				else{
-					log.logWarning("colonyManager.assignSourceOperation(sourceMemory) - Failed to create source operation.");
+					log.logWarning("Failed to create source operation.");
 				}
 			}
 			else{
-				log.logWarning("Couldn't find source.")
+				log.logWarning("Couldn't find source with id " + sourceMemory.id);
 			}
 			
 		}
 		else{
-			log.logWarning("colonyManager.assignSourceOperation(sourceMemory) - Invalid parameters passed.");
+			log.logWarning("Invalid parameters passed.");
 			log.log("sourceMemory - " + JSON.stringify(sourceMemory));
 		}
 
 		return false;
+	}
+
+	this.runColony = function(colony){
+		// start run colony
+		// Resource check
+		this.checkColonyResourceRequirements(colony);
+
+		// check spawn queues and spawn creeps
+		this.processSpawning(colony);
+
+		this.processResourceRequestsType(colony);
 	}
 
 	// // this function performs all colony activities
@@ -294,37 +300,7 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 	// 	this.processResourceRequests(colony);
 	// 	// priorities
 	// 	// resource out
-	// };
-
-	// this.processColonyResources = function(colony) {
-	// 	// verify last resource check
-	// 	if (!colony.lastResourceCheck || 
-	// 		colony.lastResourceCheck.level < this.game.rooms[colony.mainRoom].controller.level) {
-	// 		// find rooms for colony
-	// 		this.addColonySources(colony);
-
-	// 		// TODO
-	// 		// not a problem until later levels
-	// 		this.checkColonyMinerals(colony);
-
-	// 		// assign operations to resources
-	// 		this.addSourceOperations(colony);
-
-	// 		//TODO
-	// 		//this.addMineralOperations(colony);
-
-	// 		colony.lastResourceCheck = this.game.time;
-	// 	}
-
-	// 	//TODO
-	// 	// process sources for operations
-	// 	this.processSourceOperations(colony);
-
-	// 	// save colony
-	// 	this.memoryManager.save();
-	// };
-
-	
+	// };	
 
 	// // Function will assign minerals to colony
 	// this.checkColonyMinerals = function(colony) {
@@ -335,7 +311,7 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 	// this.addSourceOperations = function(colony) {
 	// 	// cycle through all the sources and determine if they have an operation. If not create one.
 	// 	for (const sourceId in colony.sources) {
-	// 		let sourceMemory = this.memoryManager.getById(OBJECT_TYPE_SOURCE_MEMORY, sourceId);
+	// 		let sourceMemory = this.memory.getById(OBJECT_TYPE_SOURCE_MEMORY, sourceId);
 
 	// 		// check source memory exists
 	// 		if (!sourceMemory) {
@@ -353,18 +329,10 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 
 	// 			// save source memory with operation id
 	// 			sourceMemory.operationId = sourceOperation.id;
-	// 			memoryManager.save(sourceMemory);
+	// 			memory.save(sourceMemory);
 	// 		}
 	// 	}
 	// };
-
-	this.createSourceMemory = function(source) {
-		return this.createResourceMemory(source);
-	};
-
-	this.createMineralMemory = function(mineral) {
-		return this.createResourceMemory(mineral);
-	};
 
 	this.createResourceMemory = function(resource){
 		if (resource.room.memory.colonyId) {
@@ -373,7 +341,7 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 				resourceType = resource.mineralType;
 			}
 
-			return this.memoryManager.save({
+			return this.memory.save({
 				id: resource.id,
 				objectType: OBJECT_TYPE_RESOURCE,
 				resourceType: resourceType,
@@ -422,26 +390,56 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 
 		if (spawns.length > 0) {
 			// check colony spawn queues
-			for (let j = 0; j < spawns.length; j++) {
+			let areCreepsToSpawn = true;
+			for (let j = 0; j < spawns.length && areCreepsToSpawn; j++) {
 				let spawn = spawns[j];
-
-				for (const i in colony.spawnQueues) {
-					let spawnQueue = colony.spawnQueues[i];
-					// check if any creeps are to be spawned.
-					if (spawnQueue.length > 0) {
-						spawn.memory.creepToSpawn = spawnQueue.shift();
-					}
+				let creepToSpawn = this.getNextCreepFromSpawnQueue(colony);
+				// assign to spawn
+				if(creepToSpawn){
+					spawn.memory.creepToSpawn = creepToSpawn;
+					this.spawnManager.spawnCreep(spawn);
+				}
+				else{
+					// ran out of creeps to spawn so bail
+					areCreepsToSpawn = false;
 				}
 			}
 		}
 	};
 
+	this.getNextCreepFromSpawnQueue = function(colony){
+		if(colony){
+			// get spawn queues
+			// high
+			let highQueue = colony.spawnQueue[PRIORITY_HIGH];
+			if(highQueue){
+				return highQueue.shift();
+			}
+			
+			// medium
+			let medQueue = colony.spawnQueue[PRIORITY_MEDIUM];
+			if(medQueue){
+				return medQueue.shift();
+			}
+			
+			// low
+			let lowQueue = colony.spawnQueue[PRIORITY_LOW];
+			if(lowQueue){
+				return lowQueue.shift();
+			}
+		}
+		else{
+			logger.logWarning("Invalid parameter Colony:");
+			logger.log(JSON.stringify(colony));
+		}
+	}
+
 	this.processSourceOperations = function(colony) {
 		// cycle sources
 		for (const id in colony.sources) {
-			let sourceMemory = this.memoryManager.getById(OBJECT_TYPE_SOURCE_MEMORY, id);
+			let sourceMemory = this.memory.getById(OBJECT_TYPE_SOURCE_MEMORY, id);
 			if (sourceMemory.operationId) {
-				let sourceOperation = this.memoryManager.getById(OBJECT_TYPE_SOURCE_OPERATION, sourceMemory.operationId);
+				let sourceOperation = this.memory.getById(OBJECT_TYPE_SOURCE_OPERATION, sourceMemory.operationId);
 				this.operationManager.processSourceOperation(sourceOperation);
 			}
 		}
@@ -509,23 +507,85 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 	};
 
 	// function that will check all resource requests and assign any available creeps
-	this.processResourceRequests = function(colony) {
-		// find any available creeps
-		// prioritise transport creeps then utility creeps
-		let creepType = null;
-		//TODO
-		if (this.areAnyCreepsFree(colony, CREEP_TYPE_TRANSPORTER) === true) {
-			creepType = CREEP_TYPE_TRANSPORTER;
-		} else if (this.areAnyCreepsFree(colony, CREEP_TYPE_UTILITY) === true) {
-			creepType = CREEP_TYPE_UTILITY;
+	this.processResourceRequestsType = function(colony) {
+		
+		for(var type in colony.resourceRequests){
+			var resourceRequestType = colony.resourceRequests[type];
+			
+			var highPriorityRequests = resourceRequestType[PRIORITY_HIGH];
+			this.processResourceRequests(highPriorityRequests);
+			var mediumPriorityRequests = resourceRequestType[PRIORITY_MEDIUM];
+			this.processResourceRequests(mediumPriorityRequests);
+			var lowPriorityRequests = resourceRequestType[PRIORITY_LOW];
+			this.processResourceRequests(lowPriorityRequests);
 		}
-
-		if (creepType) {
-		}
-
-		// find all resource requests
-		// assign available creeps to resource requests
 	};
+
+	this.processResourceRequests = function(resourceRequests){
+		if(resourceRequests){
+			for(const i in resourceRequests){
+				var resourceRequest = resourceRequests[i];
+
+				// prefer a transporter over utility
+				var creep = this.getNextAvailableCreep(colony, CREEP_TYPE_TRANSPORTER);
+
+				if(!creep){
+					creep = this.getNextAvailableCreep(colony, CREEP_TYPE_UTILITY);
+				}
+
+				if(creep){
+					this.assignResourceRequestToCreep(resourceRequest, creep);
+				}
+				else{
+					// TODO no creeps so create a spawning request
+				}
+				
+				throw new Error("TODO");
+			}
+		}
+		else{
+			logger.logWarning("Invalid parameter resourceRequests");
+			logger.log(JSON.stringify(resourceRequests));
+		}
+	}
+
+	this.getNextAvailableCreep = function(colony, creepType){
+		if(colony){
+			let creepFound = false,
+				noCreeps = false;
+			while(!creepFound){
+				var creepName = this.getNextFreeCreepFrom(colony, creepType);
+
+				// creepName found in queue
+				if(creepName){
+					var creep = this.game.creeps[creepName];
+					if(creep){
+						return creep;
+					}
+					else{
+						logger.logWarning("Missing Creep detected name: " + creepName);
+						// TODO need a missing creep handler
+					}
+				}
+				else{
+					// no creep name found so queue empty
+					return;
+				}
+			}
+		}
+		else{
+			logger.logWarning("Invalid parameter colony");
+			logger.log(JSON.stringify(colony));
+		}
+	}
+
+
+
+	this.assignResourceRequestToCreep= function(resourceRequest, creep){
+
+		throw new Error("TODO")
+	}
+
 	// function to check if there are any available creeps in the free queue
 	this.areAnyCreepsFree = function(colony, creepType) {
 		// initialise creepQueues
@@ -542,4 +602,27 @@ module.exports = function(game, memoryManager, resourceManager, operationManager
 
 		return colony.creepQueues[creepType][COLONY_CREEP_QUEUE_FREE].length > 0;
 	};
+
+	this.getNextFreeCreepFrom = function(colony, creepType){
+		// initialise creepQueues
+		if (!colony.creepQueues) {
+			colony.creepQueues = {};
+		}
+
+		if (!colony.creepQueues[creepType]) {
+			colony.creepQueues[creepType] = {
+				COLONY_CREEP_QUEUE_FREE: [],
+				COLONY_CREEP_QUEUE_BUSY: []
+			};
+		}
+
+		if(colony.creepQueues[creepType][COLONY_CREEP_QUEUE_FREE]){
+			var creep = colony.creepQueues[creepType][COLONY_CREEP_QUEUE_FREE].shift();
+			colony.creepQueues[creepType][COLONY_CREEP_QUEUE_FREE].push(creep);
+			this.memory.save(colony);
+			return creep;
+		}
+
+		return;
+	}
 };
