@@ -11,20 +11,20 @@ module.exports = function(memory, game) {
     const OperationManager = require("./colony/services/operation.js");
     this.operationManager = new OperationManager(this.memoryManager, game);
 
-    const ResourceManager = require("./colony/resource.js");
+    const ResourceManager = require("./colony/services/resource.js");
     this.resourceManager = new ResourceManager(this.memoryManager, game);
 
-    const SpawnManager = require("./colony/resource.js");
+    const SpawnManager = require("./colony/services/resource.js");
     this.spawnManager = new SpawnManager({game: game, memoryManager: this.memoryManager, resourceManager: this.resourceManager});
 
     const ColonyManager = require("./colony/colony.js");
-    this.colonyManager = new ColonyManager(
-        {game: game,
+    this.colonyManager = new ColonyManager({
+        game: game,
         resourceManager: this.resourceManager,
         memoryManager: this.memoryManager,
         operationManager: this.operationManager,
         spawnManager = this.spawnManager
-        });
+    });
 
     // run function will activate every loop
     this.run = function() {
