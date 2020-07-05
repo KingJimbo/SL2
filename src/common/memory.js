@@ -1,50 +1,60 @@
 // memory-manager.js
-module.exports = function(memory) {
+module.exports = function () {
+	if (!Memory) {
+		throw ERR_MESSAGE_INVALID_ARGS;
+	}
 
-    if(!memory){
-        throw ERR_MESSAGE_INVALID_ARGS;
-    }
+	if (!Memory.cmdr) {
+		Memory.cmdr = {};
+	}
 
-    this.memory = memory;
+	this.getAll = function (objectType) {
+		return Memory.cmdr[objectType];
+	};
 
-    this.getAll = function(objectType) {
-        return this.memory[objectType];
-    };
+	this.getById = function (objectType, id) {
+		if (!Memory.cmdr[objectType]) {
+			Memory.cmdr[objectType] = {};
+		}
+		return Memory.cmdr[objectType][id];
+	};
+	// add function calls to memory here
 
-    this.getById = function(objectType, id) {
-        return this.memory[objectType][id];
-    };
-    // add function calls to memory here
+	this.save = function (object) {
+		if (!object.objectType) {
+			throw new Error('Error: object does not have a valid object type.');
+		}
+		if (!Memory.cmdr[object.objectType]) {
+			Memory.cmdr[object.objectType] = {};
+		}
 
-    this.save = function(object) {
-        if (!object.objectType) {
-            throw new Error("Error: object does not have a valid object type.");
-        }
-        if (!this.memory[object.objectType]) {
-            this.memory[object.objectType] = {};
-        }
+		// new object
+		if (!object.id) {
+			// generate id
+			object.id = this.getNextId(object.objectType);
+		}
+		Memory.cmdr[object.objectType][object.id] = object;
 
-        // new object
-        if (!object.id) {
-            // generate id
-            object.id = this.getNextId(object.objectType);
-        }
-        this.memory[object.objectType][object.id] = object;
-        return object;
-    };
+		// if (object.objectType === OBJECT_TYPE_SETTING) {
+		logger.log('memory save');
+		logger.stringify(Memory.cmdr[object.objectType][object.id]);
+		// }
 
-    this.getNextId = function(objectType) {
-        if (!this.memory.objectIds) {
-            this.memory.objectIds = {};
-        }
-        if (!this.memory.objectIds[objectType]) {
-            this.memory.objectIds[objectType] = 0;
-        }
-        this.memory.objectIds[objectType]++;
-        return this.memory.objectIds[objectType];
-    };
+		return object;
+	};
 
-    this.getNextCreepName = function() {
-        return "Creep_" + this.getNextId(OBJECT_TYPE_CREEP_ID);
-    };
+	this.getNextId = function (objectType) {
+		if (!Memory.cmdr.objectIds) {
+			Memory.cmdr.objectIds = {};
+		}
+		if (!Memory.cmdr.objectIds[objectType]) {
+			Memory.cmdr.objectIds[objectType] = 0;
+		}
+		Memory.cmdr.objectIds[objectType]++;
+		return Memory.cmdr.objectIds[objectType];
+	};
+
+	this.getNextCreepName = function () {
+		return 'Creep_' + this.getNextId(OBJECT_TYPE_CREEP_ID);
+	};
 };

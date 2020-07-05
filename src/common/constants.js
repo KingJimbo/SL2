@@ -1,26 +1,45 @@
 /** constants.js **/
-global.CREEP_TEMPLATES = {
-	CREEP_TYPE_UTILITY: {
-		MOVE: 0.3,
-		WORK: 0.3,
-		CARRY: 0.3,
-		ATTACK: 0,
-		RANGED_ATTACK: 0,
-		TOUGH: 0,
-		HEAL: 0,
-		CLAIM: 0
+
+global.COORDINATES_MAX_SIZE = 49;
+
+global.CREEP_ROLES = {
+	HARVESTER: 'harvester',
+	SCOUT: 'scout',
+};
+
+global.CREEP_TYPES = {
+	UTILITY: 'utility',
+	MINER: 'miner',
+	HAULER: 'hauler',
+	CLAIMER: 'claimer',
+	MELEE: 'melee',
+	RANGED: 'ranged',
+	TANK: 'tank',
+	HEALER: 'healer',
+};
+
+global.CREEP_BODIES = {
+	[CREEP_TYPES.UTILITY]: {
+		move: { value: 1 },
+		work: { value: 1 },
+		carry: { value: 1 },
+		attack: { value: 0 },
+		ranged_attack: { value: 0 },
+		tough: { value: 0 },
+		heal: { value: 0 },
+		claim: { value: 0 },
 	},
-	CREEP_TYPE_MINER: {
+	[CREEP_TYPES.MINER]: {
 		MOVE: 0.1,
-		WORK: 0.9,
+		WORK: { value: 0.9, max: 5 },
 		CARRY: 0,
 		ATTACK: 0,
 		RANGED_ATTACK: 0,
 		TOUGH: 0,
 		HEAL: 0,
-		CLAIM: 0
+		CLAIM: 0,
 	},
-	CREEP_TYPE_TRANSPORTER: {
+	[CREEP_TYPES.HAULER]: {
 		MOVE: 0.5,
 		WORK: 0,
 		CARRY: 0.5,
@@ -28,9 +47,9 @@ global.CREEP_TEMPLATES = {
 		RANGED_ATTACK: 0,
 		TOUGH: 0,
 		HEAL: 0,
-		CLAIM: 0
+		CLAIM: 0,
 	},
-	CREEP_TYPE_CLAIMER: {
+	[CREEP_TYPES.CLAIMER]: {
 		MOVE: 0.5,
 		WORK: 0,
 		CARRY: 0,
@@ -38,9 +57,9 @@ global.CREEP_TEMPLATES = {
 		RANGED_ATTACK: 0,
 		TOUGH: 0,
 		HEAL: 0,
-		CLAIM: 0.5
+		CLAIM: 0.5,
 	},
-	CREEP_TYPE_MELEE: {
+	[CREEP_TYPES.MELEE]: {
 		MOVE: 0.5,
 		WORK: 0,
 		CARRY: 0,
@@ -48,9 +67,9 @@ global.CREEP_TEMPLATES = {
 		RANGED_ATTACK: 0,
 		TOUGH: 0,
 		HEAL: 0,
-		CLAIM: 0
+		CLAIM: 0,
 	},
-	CREEP_TYPE_RANGED: {
+	[CREEP_TYPES.RANGED]: {
 		MOVE: 0.5,
 		WORK: 0,
 		CARRY: 0,
@@ -58,9 +77,9 @@ global.CREEP_TEMPLATES = {
 		RANGED_ATTACK: 0.5,
 		TOUGH: 0,
 		HEAL: 0,
-		CLAIM: 0
+		CLAIM: 0,
 	},
-	CREEP_TYPE_TANK: {
+	[CREEP_TYPES.TANK]: {
 		MOVE: 0.5,
 		WORK: 0,
 		CARRY: 0,
@@ -68,9 +87,9 @@ global.CREEP_TEMPLATES = {
 		RANGED_ATTACK: 0,
 		TOUGH: 0.25,
 		HEAL: 0,
-		CLAIM: 0
+		CLAIM: 0,
 	},
-	CREEP_TYPE_HEALER: {
+	[CREEP_TYPES.HEALER]: {
 		MOVE: 0.5,
 		WORK: 0,
 		CARRY: 0,
@@ -78,52 +97,32 @@ global.CREEP_TEMPLATES = {
 		RANGED_ATTACK: 0,
 		TOUGH: 0,
 		HEAL: 0.5,
-		CLAIM: 0
-	}
+		CLAIM: 0,
+	},
 };
 
+global.RESOURCE_ORDER_STRUCTURE_PRIORITY = [
+	STRUCTURE_SPAWN,
+	STRUCTURE_EXTENSION,
+	STRUCTURE_ROAD,
+	STRUCTURE_WALL,
+	STRUCTURE_RAMPART,
+	STRUCTURE_TOWER,
+	STRUCTURE_STORAGE,
+	//STRUCTURE_CONTAINER,
+	//STRUCTURE_KEEPER_LAIR: "keeperLair",
+	//STRUCTURE_PORTAL,
+	//STRUCTURE_CONTROLLER,
+	//STRUCTURE_LINK,
 
-global.CREEP_TYPE_UTILITY = "utility";
-global.CREEP_TYPE_MINER = "miner";
-global.CREEP_TYPE_TRANSPORTER = "transporter";
-global.CREEP_TYPE_CLAIMER = "claimer";
-global.CREEP_TYPE_MELEE = "melee";
-global.CREEP_TYPE_RANGED = "ranged";
-global.CREEP_TYPE_TANK = "tank";
-global.CREEP_TYPE_HEALER = "healer";
+	//STRUCTURE_OBSERVER,
+	//STRUCTURE_POWER_BANK: "powerBank",
+	//STRUCTURE_POWER_SPAWN: "powerSpawn",
+	//STRUCTURE_EXTRACTOR: "extractor",
+	//STRUCTURE_LAB: "lab",
+	//STRUCTURE_TERMINAL: "terminal",
 
-global.COLONY_CREEP_QUEUE_FREE = "free";
-global.COLONY_CREEP_QUEUE_BUSY = "busy";
-
-global.ERR_MESSAGE_INVALID_ARGS = "Invalid arguments have been found!";
-
-global.OBJECT_TYPE_COLONY = "colony";
-global.OBJECT_TYPE_RESOURCE = "resource";
-global.OBJECT_TYPE_SOURCE_OPERATION = "sourceOperation";
-global.OBJECT_TYPE_OPERATION = "operation";
-//global.OBJECT_TYPE_SOURCE_MEMORY = "sourceMemory";
-global.OBJECT_TYPE_CREEP_ID = "creepId";
-
-global.OPERATION_TYPE_SOURCE = "source";
-
-global.PRIORITY_LOW = "low";
-global.PRIORITY_MEDIUM = "medium";
-global.PRIORITY_HIGH = "high";
-
-global.RESULT_FAILED = 0;
-global.RESULT_OK = 1;
-
-if(!RESOURCE_ENERGY){
-	global.RESOURCE_ENERGY = "energy";
-}
-
-
-
-//     MOVE: "move",
-//     WORK: "work",
-//     CARRY: "carry",
-//     ATTACK: "attack",
-//     RANGED_ATTACK: "ranged_attack",
-//     TOUGH: "tough",
-//     HEAL: "heal",
-//     CLAIM: "claim",
+	//STRUCTURE_NUKER: "nuker",
+	//STRUCTURE_FACTORY: "factory",
+	//STRUCTURE_INVADER_CORE: "invaderCore",
+];

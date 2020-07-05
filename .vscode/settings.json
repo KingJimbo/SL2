@@ -1,6 +1,5 @@
 {
   "prettier.tabWidth": 4,
-  "editor.defaultFormatter": "vscode.configuration-editing",
   "editor.formatOnSave": true,
   "prettier.printWidth": 150,
   "prettier.useTabs": true

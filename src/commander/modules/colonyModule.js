@@ -1,31 +1,25 @@
 // colony-manager.js
 
-module.exports = function ({ game, memoryManager, operationManager, resourceManager, spawnManager, commandManager, roomManager }) {
-	this.game = game;
-	this.memory = memoryManager;
-	this.operationManager = operationManager;
-	this.resourceManager = resourceManager;
-	this.spawnManager = spawnManager;
-	this.commandManager = commandManager;
-	this.roomManager = roomManager;
-	// this.structureMapper = structureMapper;
-	// this.creepManager = creepManager;
+module.exports = function () {
+	this.runColonies = () => {
+		let colonies = _Modules.memory.getAll(OBJECT_TYPE_COLONY);
 
-	/**
-	 * Function: Process Colonies
-	 * Description: Gets all colonies in memory and runs them
-	 */
-	this.processColonies = function () {
-		let colonies = this.memory.getAll(OBJECT_TYPE_COLONY);
-
-		// if no colonies map existing owned rooms
 		if (!colonies) {
-			colonies = this.mapColonies();
-		}
+			_Modules.command.pushDataToQueue(COMMANDS.INITIALISE_COLONIES);
 
-		for (const i in colonies) {
-			let colony = colonies[i];
-			var result = this.runColony(colony);
+			return false;
+		} else {
+			for (const i in colonies) {
+				let colony = colonies[i];
+
+				if (!colony) {
+					// need to add a command to investigate or clean it from memory
+				}
+
+				_Modules.command.pushDataToQueue(COMMANDS.RUN_COLONY, { colony });
+			}
+
+			return true;
 		}
 	};
 
@@ -33,25 +27,78 @@ module.exports = function ({ game, memoryManager, operationManager, resourceMana
 	 * Function: Map Colonies
 	 * Description: Function that cycles all rooms in game and generates a colony in memory.
 	 */
-	this.mapColonies = function () {
-		for (const i in this.game.rooms) {
-			const room = this.game.rooms[i];
+	this.initialiseColonies = () => {
+		for (const i in _Modules.game.rooms) {
+			let room = _Modules.game.rooms[i];
+			_Modules.command.pushDataToQueue(COMMANDS.INITIALISE_COLONY, { room });
 
-			this.roomManager.mapRoomToColony(room);
+			//this.roomManager.mapRoomToColony(room);
 		}
 
-		return this.memory.getAll(OBJECT_TYPE_COLONY);
+		//return this.memory.getAll(OBJECT_TYPE_COLONY);
 	};
 
-	this.runColony = function (colony) {
-		// start run colony
-		// Resource check
-		this.roomManager.checkColonyResourceRequirements(colony);
+	this.initialiseColony = ({ room }) => {
+		if (_Modules.room.isRoomColony(room)) {
+			var colony = _Modules.room.createColony(room);
+			if (colony) {
+				colony.roomName = room.name;
+				room.memory.colonyId = colony.id;
+				colony = _Modules.memory.save(colony);
 
-		// check spawn queues and spawn creeps
-		this.processSpawning(colony);
+				logger.debug(`ColonyModule.initialiseColony: colonyId ${colony.id}`);
+				_Modules.command.pushDataToQueue(COMMANDS.INITIALISE_COLONY_OPERATIONS, { colonyId: colony.id });
 
-		this.processResourceRequestsType(colony);
+				return colony;
+			} else {
+				logger.warning('Failed to create colony for room ' + room.name);
+			}
+		} else {
+			logger.warning('Room ' + room.name + ' is not a colony.');
+		}
+	};
+
+	this.initialiseColonyOperations = ({ colonyId }) => {
+		if (!colonyId) {
+			logger.warning('Invalid Colony Id!');
+			return;
+		}
+
+		//get colony
+		var colony = _Modules.memory.getById(OBJECT_TYPE_COLONY, colonyId);
+
+		if (!colony) {
+			logger.warning(`No colony found with id: ${colonyId}!`);
+			return;
+		}
+
+		// TODO add all different types of operations here
+		_Modules.command.pushDataToQueue(COMMANDS.INITIALISE_COLONY_SOURCE_OPERATIONS, { colonyId: colony.id });
+	};
+
+	this.initialiseColonySourceOperations = ({ colonyId }) => {
+		let colony = _Modules.memory.getById(OBJECT_TYPE_COLONY, colonyId);
+
+		if (!colony) return;
+
+		const room = _Modules.game.rooms[colony.roomName];
+
+		const sources = room.find(FIND_SOURCES);
+
+		for (let i = 0; i < sources.length; i++) {
+			const source = sources[i];
+			// add sources to colony
+			_Modules.command.pushDataToQueue(COMMANDS.INITIALISE_SOURCE_OPERATION, { colonyId: colony.id, sourceId: source.id });
+		}
+	};
+
+	this.runColony = function ({ colony }) {
+		// // start run colony
+		// // Resource check
+		// this.roomManager.checkColonyResourceRequirements(colony);
+		// // check spawn queues and spawn creeps
+		// this.processSpawning(colony);
+		// this.processResourceRequestsType(colony);
 	};
 
 	this.getColonyRooms = function (colony) {
@@ -94,32 +141,6 @@ module.exports = function ({ game, memoryManager, operationManager, resourceMana
 			}
 		} else {
 			logger.warning('no spawns to process');
-		}
-	};
-
-	this.getNextCreepFromSpawnQueue = function (colony) {
-		if (colony) {
-			// get spawn queues
-			// high
-			let highQueue = colony.spawnQueue[PRIORITY_HIGH];
-			if (highQueue) {
-				return highQueue.shift();
-			}
-
-			// medium
-			let medQueue = colony.spawnQueue[PRIORITY_MEDIUM];
-			if (medQueue) {
-				return medQueue.shift();
-			}
-
-			// low
-			let lowQueue = colony.spawnQueue[PRIORITY_LOW];
-			if (lowQueue) {
-				return lowQueue.shift();
-			}
-		} else {
-			logger.warning('Invalid parameter Colony:');
-			logger.log(JSON.stringify(colony));
 		}
 	};
 

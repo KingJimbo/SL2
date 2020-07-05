@@ -1,24 +1,57 @@
-module.exports.loop = function() {
+module.exports.loop = function () {
+	require('./common/constants.js');
 
-	var Logger = require("./common/logger.js");
-	var DateHelper = require("./common/dateHelper.js");
-	var Helper = require("./common/helper.js");
-	global.helper = new Helper();
-	global.logger = new Logger(new DateHelper());
+	this.attachLogger = (obj) => {
+		let name, fn;
+		for (name in obj) {
+			fn = obj[name];
+			if (typeof fn === 'function') {
+				obj[name] = (function (name, fn) {
+					var args = arguments;
+					return function () {
+						(function (name, fn) {
+							console.log('calling ' + name);
+						}.apply(this, args));
+						return fn.apply(this, arguments);
+					};
+				})(name, fn);
+			} else if (typeof fn === 'object') {
+				this.attachLogger(fn, true);
+			}
+		}
+	};
 
-	logger.log("loop start");
-	require("./common/constants");
-	
-	var App = require("./app");
-	var app = new App(Memory, Game, logger);
+	console.settings = { debug: true };
 
-	try{
-		logger.attachLogger(app);
+	const App = require('./app.js');
+	let app = new App();
+
+	if (console.settings.debug) {
+		console._log = console.log;
+		console.log = (message) => {
+			if (console.settings.debug) {
+				console._log(message);
+			}
+		};
+		this.attachLogger(app);
+	}
+
+	console.debug = (func) => {
+		func();
+	};
+
+	console.log('loop start');
+
+	try {
 		app.run();
-	}
-	catch(error){
-		logger.logException(error);
+	} catch (error) {
+		console.log('An error has occured!');
+		console.log('message: ' + error.message);
+		console.log('name: ' + error.name);
+		console.log('error occured on file: ' + error.filename + ' line: ' + error.lineNumber + ' column: ' + error.columnNumber);
+		console.log('stacktrace ' + error.stack);
+		//console.log(JSON.stringify(error));
 	}
 
-	logger.log("loop end");
+	console.log('loop end');
 };

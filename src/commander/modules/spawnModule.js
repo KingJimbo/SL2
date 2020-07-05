@@ -1,10 +1,6 @@
 // spawn-manager.js
 
-module.exports = function (args) {
-	this.game = args.game;
-	this.memoryManager = args.memoryManager;
-	this.resourceManager = args.resourceManager;
-
+module.exports = function () {
 	this.spawnCreeps = function () {
 		// cycle all colony spawners and spawn creeps
 		let colonies = this.memoryManager.getAll(OBJECT_TYPE_COLONY);
@@ -25,7 +21,7 @@ module.exports = function (args) {
 		let bodyCostTotal = 0,
 			creepBodyResponse = {
 				creepBody: [],
-				creepBodyCounts: {
+				bodyCounts: {
 					move: 0,
 					work: 0,
 					carry: 0,
@@ -34,7 +30,9 @@ module.exports = function (args) {
 					tough: 0,
 					heal: 0,
 					claim: 0,
+					total: 0,
 				},
+				bodyTotal: 0,
 				cost: 0,
 			};
 		for (const bodyPart in creepTemplate) {
@@ -53,7 +51,8 @@ module.exports = function (args) {
 
 				for (let i = 0; i < bodyNo; i++) {
 					creepBodyResponse.creepBody.push(bodyPart);
-					creepBodyResponse[bodyPart]++;
+					creepBodyResponse.bodyCounts[bodyPart]++;
+					creepBodyResponse.bodyTotal++;
 					creepBodyResponse.cost += bodyCost;
 				}
 			}
