@@ -1,6 +1,14 @@
 // app.js
 
 module.exports = function () {
+	if (!Memory.sources) {
+		Memory.sources = {};
+	}
+
+	if (!Memory.counts) {
+		Memory.counts = {};
+	}
+
 	const Move = require('./modules/move.js');
 	this.move = new Move();
 
@@ -12,14 +20,6 @@ module.exports = function () {
 
 	// run function will activate every loop
 	this.run = () => {
-		if (!Memory.sources) {
-			Memory.sources = {};
-		}
-
-		if (!Memory.counts) {
-			Memory.counts = {};
-		}
-
 		this.runRooms();
 
 		this.runCreeps();
@@ -28,122 +28,184 @@ module.exports = function () {
 	this.runRooms = () => {
 		for (const i in Game.rooms) {
 			let room = Game.rooms[i];
-			//console.log(`runRooms room: ${room.name}`);
 
-			let sources = room.find(FIND_SOURCES);
-			//console.log('after finding sources');
-			if (!sources) {
-				console.log(`runRooms: no sources found! room: ${room.name}`);
-			} else {
-				//console.log(`runRooms: no. sources found: ${sources.length}`);
-				for (let j = 0; j < sources.length; j++) {
-					let source = sources[j];
-					//console.log(`runRooms | source: ${source.id}`);
+			if (room.controller.my) {
+				//console.log(`runRooms room: ${room.name}`);
 
-					if (!Memory.sources[source.id]) {
-						const accessPos = this.getAccessiblePositions(source.pos);
-						Memory.sources[source.id] = {
-							noOfAccessPos: accessPos.length,
-							creepsAssigned: 0,
-							creepsPending: 0,
-							creepIds: {},
-						};
-					}
+				if (room.memory.spawnQueue && room.memory.spawnQueue.length) {
+					let spawnQueueCopy = [];
 
-					var sourceMemory = Memory.sources[source.id];
-
-					if (!sourceMemory.creepIds) {
-						sourceMemory.creepIds = {};
-					}
-
-					// clean up dead creeps from source memory
-					for (const name in sourceMemory.creepIds) {
-						var creepname = sourceMemory.creepIds[name];
-						let creep = Game.creeps[creepname];
-
-						if (!creep) {
-							delete sourceMemory.creepIds[name];
+					room.memory.spawnQueue.forEach((id) => {
+						if (Memory.spawnQueueItems[id]) {
+							spawnQueueCopy.push(id);
 						}
-					}
+					});
 
-					var noCreepIds = Object.keys(sourceMemory.creepIds).length;
-					sourceMemory.creepsPending = sourceMemory.noOfAccessPos - noCreepIds;
-					var creepsPending = sourceMemory.creepsPending;
+					room.memory.spawnQueue = spawnQueueCopy;
+				}
 
-					for (var q = 0; q < creepsPending; q++) {
-						let creep = this.creepRequisitioner.getIdleCreep(source.room, CREEP_TYPES.UTILITY, {
-							role: CREEP_ROLES.HARVESTER,
-							sourceId: source.id,
-						});
+				let sources = room.find(FIND_SOURCES);
+				//console.log('after finding sources');
+				if (!sources) {
+					console.log(`runRooms: no sources found! room: ${room.name}`);
+				} else {
+					//console.log(`runRooms: no. sources found: ${sources.length}`);
+					for (let j = 0; j < sources.length; j++) {
+						let source = sources[j];
+						//console.log(`runRooms | source: ${source.id}`);
 
-						if (creep) {
-							sourceMemory.creepIds[creep.name] = creep.name;
-							noCreepIds++;
-							sourceMemory.creepsPending--;
+						if (!Memory.sources[source.id]) {
+							const accessPos = this.getAccessiblePositions(source.pos);
+							Memory.sources[source.id] = {
+								noOfAccessPos: accessPos.length,
+								creepsAssigned: 0,
+								creepsPending: 0,
+								creepIds: {},
+								pendingCreepIds: {},
+							};
+						}
+
+						var sourceMemory = Memory.sources[source.id];
+
+						if (!sourceMemory.creepIds) {
+							sourceMemory.creepIds = {};
+						}
+
+						// clean up dead creeps from source memory
+						for (const name in sourceMemory.creepIds) {
+							var creepname = sourceMemory.creepIds[name];
+							let creep = Game.creeps[creepname];
+
+							if (!creep) {
+								delete sourceMemory.creepIds[name];
+							}
+						}
+
+						var noCreepIds = Object.keys(sourceMemory.creepIds).length;
+
+						if (!sourceMemory.pendingCreepIds) {
+							sourceMemory.pendingCreepIds = {};
 						} else {
-							break;
+							// check for any defunct pending creeps
+							for (const id in sourceMemory.pendingCreepIds) {
+								if (!Memory.spawnQueueItems[sourceMemory.pendingCreepIds[id]]) {
+									delete sourceMemory.pendingCreepIds[id];
+								}
+							}
 						}
-					}
 
-					if (sourceMemory.noOfAccessPos > sourceMemory.creepsPending + noCreepIds) {
+						var creepsPending = Object.keys(sourceMemory.pendingCreepIds),
+							noCreepsRequired = sourceMemory.noOfAccessPos - noCreepIds;
+
 						// console.log(
-						// 	`sourceMemory.noOfAccessPos:${sourceMemory.noOfAccessPos} > sourceMemory.creepsPending:${sourceMemory.creepsPending}`
+						// 	`source run. noCreepsRequired ${noCreepsRequired} | noOfAccessPos ${sourceMemory.noOfAccessPos} | noCreepIds ${noCreepIds} | creepsPending ${creepsPending}`
 						// );
 
-						while (sourceMemory.creepsPending + noCreepIds < sourceMemory.noOfAccessPos) {
-							let creep = this.creepRequisitioner.addCreepToRoomSpawnQueue(source.room, CREEP_TYPES.UTILITY, {
+						for (var q = 0; q < noCreepsRequired; q++) {
+							let creep = this.creepRequisitioner.getIdleCreep(source.room, CREEP_TYPES.UTILITY, {
 								role: CREEP_ROLES.HARVESTER,
 								sourceId: source.id,
 							});
 
-							// if response exists but isn't spawning resonse (1) must have found idle creep
 							if (creep) {
-								sourceMemory.creepsPending++;
+								sourceMemory.creepIds[creep.name] = creep.name;
+								noCreepIds++;
+								let spawnQueueItemId = creepsPending.shift(); //get first pending id
+								if (Memory.spawnQueueItems[spawnQueueItemId]) {
+									delete sourceMemory.pendingCreepIds[spawnQueueItemId];
+									delete Memory.spawnQueueItems[spawnQueueItemId];
+								}
+							} else {
+								break;
 							}
 						}
-					}
 
-					Memory.sources[source.id] = sourceMemory;
-				}
-			}
+						let noCreepsPending = creepsPending.length;
 
-			let spawns = room.find(FIND_MY_STRUCTURES, {
-				filter: { structureType: STRUCTURE_SPAWN },
-			});
+						if (sourceMemory.noOfAccessPos > noCreepsPending + noCreepIds) {
+							// console.log(
+							// 	`sourceMemory.noOfAccessPos:${sourceMemory.noOfAccessPos} > sourceMemory.creepsPending:${sourceMemory.creepsPending}`
+							// );
 
-			if (!spawns) {
-				console.log(`runRooms: No spawns found! room: ${room.name}`);
-			} else {
-				if (room.memory.spawnQueue && room.memory.spawnQueue.length) {
-					for (let i = 0; i < spawns.length; i++) {
-						let spawn = spawns[i];
-						if (!spawn.memory.creepToSpawn && room.memory.spawnQueue && room.memory.spawnQueue.length) {
-							spawn.memory.creepToSpawn = room.memory.spawnQueue.shift();
-						}
-						if (spawn.memory.creepToSpawn) {
-							const creepBodyResponse = this.getCreepBody(spawn.memory.creepToSpawn.bodyType, spawn.room.energyCapacityAvailable);
-							// console.log('creep body type result:');
-							// console.log(JSON.stringify(creepBodyResponse));
-
-							const spawnCapacityUsed = spawn.store.getUsedCapacity(RESOURCE_ENERGY);
-							if (creepBodyResponse.cost > spawnCapacityUsed) {
-								//console.log(`not enough energy to spawnCreep | cost:${creepBodyResponse.cost} | energy:${spawnCapacityUsed}`);
-
-								if (!this.resource.getStructureResourceOrderId(spawn, RESOURCE_ENERGY)) {
-									this.resource.createResourceOrder(room, spawn.id, RESOURCE_ENERGY, creepBodyResponse.cost - spawnCapacityUsed);
-								}
-								// if (!room.memory.energyRequests) {
-								// 	room.memory.energyRequests = [];
-								// }
-
-								// room.memory.energyRequests.push({ requesterId: spawn.id, amount: creepBodyResponse.cost - spawnCapacityUsed });
-							} else {
-								spawn.memory.creepToSpawn.memory.type = spawn.memory.creepToSpawn.bodyType;
-								var spawnCreepResult = spawn.spawnCreep(creepBodyResponse.creepBody, this.getNextCreepName(), {
-									memory: spawn.memory.creepToSpawn.memory,
+							while (noCreepsPending + noCreepIds < sourceMemory.noOfAccessPos) {
+								let spawnQueueItem = this.creepRequisitioner.addCreepToRoomSpawnQueue(source.room, CREEP_TYPES.UTILITY, {
+									role: CREEP_ROLES.HARVESTER,
+									sourceId: source.id,
 								});
 
-								//console.log(`spawnCreepResult: ${spawnCreepResult}`);
+								// if response exists but isn't spawning resonse (1) must have found idle creep
+								if (spawnQueueItem) {
+									//console.log(`spawnQueueItem: ${JSON.stringify(spawnQueueItem)}`);
+									if (!sourceMemory.pendingCreepIds) {
+										sourceMemory.pendingCreepIds = {};
+									}
+
+									sourceMemory.pendingCreepIds[spawnQueueItem.id] = spawnQueueItem.id;
+									noCreepsPending++;
+								} else {
+									console.log(`No spawn queue Item found!`);
+								}
+							}
+						}
+
+						Memory.sources[source.id] = sourceMemory;
+					}
+				}
+
+				let spawns = room.find(FIND_MY_STRUCTURES, {
+					filter: { structureType: STRUCTURE_SPAWN },
+				});
+
+				if (!spawns) {
+					console.log(`runRooms: No spawns found! room: ${room.name}`);
+				} else {
+					if (room.memory.spawnQueue && room.memory.spawnQueue.length) {
+						console.log('spawn queue logic');
+						for (let i = 0; i < spawns.length; i++) {
+							let spawn = spawns[i];
+
+							console.log(`found spawn ${spawn.id}`);
+
+							if (!spawn.memory.creepToSpawn && room.memory.spawnQueue && room.memory.spawnQueue.length) {
+								console.log('adding creepToSpawn from spawn Queue');
+								spawn.memory.creepToSpawn = room.memory.spawnQueue.shift();
+							}
+
+							if (spawn.memory.creepToSpawn) {
+								console.log(`spawn memory creepToSpawn ${spawn.memory.creepToSpawn}`);
+								let spawnQueueItem = Memory.spawnQueueItems[spawn.memory.creepToSpawn];
+
+								if (spawnQueueItem) {
+									console.log(`processing creep to spawn: ${JSON.stringify(spawn.memory.creepToSpawn)}`);
+									const creepBodyResponse = this.getCreepBody(spawnQueueItem.type, spawn.room.energyCapacityAvailable);
+									// console.log('creep body type result:');
+									// console.log(JSON.stringify(creepBodyResponse));
+
+									const spawnCapacityUsed = spawn.store.getUsedCapacity(RESOURCE_ENERGY);
+									if (creepBodyResponse.cost > spawnCapacityUsed) {
+										console.log(`not enough energy to spawnCreep | cost:${creepBodyResponse.cost} | energy:${spawnCapacityUsed}`);
+
+										if (!this.resource.getStructureResourceOrderId(spawn, RESOURCE_ENERGY)) {
+											this.resource.createResourceOrder(
+												room,
+												spawn.id,
+												RESOURCE_ENERGY,
+												creepBodyResponse.cost - spawnCapacityUsed
+											);
+										}
+									} else {
+										spawnQueueItem.memory.type = spawnQueueItem.type;
+										var spawnCreepResult = spawn.spawnCreep(creepBodyResponse.creepBody, this.getNextCreepName(), {
+											memory: spawnQueueItem.memory,
+										});
+
+										console.log(`spawnCreepResult: ${spawnCreepResult}`);
+									}
+								} else {
+									// doesn't exist any more to delete
+									console.log('Did not find creep to spawn');
+									delete spawn.memory.creepToSpawn;
+								}
 							}
 						}
 					}
@@ -159,6 +221,7 @@ module.exports = function () {
 			let creep = Game.creeps[name];
 			if (!creep.memory.role) {
 				//do somehting to reassign creep
+				console.log('No creep role found in memory adding to idle pool');
 				this.creepRequisitioner.addCreepToIdlePool(creep.room, creep);
 			}
 
@@ -167,7 +230,10 @@ module.exports = function () {
 			}
 			switch (creep.memory.role) {
 				case 'idle':
-					this.creepRequisitioner.addCreepToIdlePool(creep.room, creep);
+					if (!Memory.idleCreeps[creep.name]) {
+						console.log('No creep name found idle creep memory adding to idle pool');
+						this.creepRequisitioner.addCreepToIdlePool(creep.room, creep);
+					}
 					creep.moveTo(0, 0);
 					break;
 				case CREEP_ROLES.HARVESTER:
@@ -182,17 +248,31 @@ module.exports = function () {
 							let source = Game.getObjectById(creep.memory.sourceId);
 
 							if (!source) {
+								console.log(`No source found belonging to id ${creep.memory.sourceId}!`);
 								this.creepRequisitioner.addCreepToIdlePool(creep.room, creep);
 							} else {
 								// check source
 								let sourceMemory = Memory.sources[source.id];
 								if (!sourceMemory.creepIds[creep.name]) {
-									if (Object.keys(sourceMemory.creepIds) < sourceMemory.noOfAccessPos) {
+									if (Object.keys(sourceMemory.creepIds).length < sourceMemory.noOfAccessPos) {
 										sourceMemory.creepIds[creep.name] = creep.name;
+										if (!sourceMemory.pendingCreepIds) {
+											sourceMemory.pendingCreepIds = {};
+										}
+
+										if (creep.memory.spawnQueueItemId) {
+											if (sourceMemory.pendingCreepIds[creep.memory.spawnQueueItemId]) {
+												delete sourceMemory.pendingCreepIds[creep.memory.spawnQueueItemId];
+											}
+
+											delete creep.memory.spawnQueueItemId;
+										}
 									} else {
 										this.creepRequisitioner.addCreepToIdlePool(creep.room, creep);
 									}
 								}
+
+								Memory.sources[source.id] = sourceMemory;
 							}
 
 							creep.moveTo(source.pos);
@@ -241,10 +321,24 @@ module.exports = function () {
 								let isNear = creep.pos.isNearTo(destination.pos);
 
 								if (isNear) {
+									if (destination.structureType === STRUCTURE_CONTROLLER) {
+										let controller = destination;
+
+										if (controller.progress >= controller.progressTotal) {
+											let upgradeResult = creep.upgradeController(controller);
+
+											switch (upgradeResult) {
+												case OK:
+													console.log(`controller upgrade scheduled successfully in room ${creep.room.name}`);
+													break;
+											}
+										}
+									}
+
 									let transferResult = this.resource.fulfillResourceOrderItem(creep);
 
 									if (transferResult !== OK) {
-										console.log(`transferResult: ${tranferResult}`);
+										console.log(`transferResult: ${transferResult}`);
 									}
 
 									creep.memory.currentAction = 'goToSource';
@@ -257,10 +351,18 @@ module.exports = function () {
 					break;
 			}
 		}
+
+		//clean up creep memory
+		for (const name in Memory.creeps) {
+			if (!Game.creeps[name]) {
+				delete Memory.creeps[name];
+			}
+		}
 	};
 
 	this.getAccessiblePositions = (pos) => {
 		//console.log('Start App.getAccessiblePositions');
+		//test
 		if (!pos) {
 			console.log('getAccessiblePositions invalid parameter');
 		}

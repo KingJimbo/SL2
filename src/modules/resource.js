@@ -1,15 +1,11 @@
 /* resource.js */
 module.exports = function () {
 	if (!Memory.resourceOrders) {
-		Memory.resourceOrders = {
-			count: 0,
-		};
+		Memory.resourceOrders = {};
 	}
 
 	if (!Memory.resourceOrderItems) {
-		Memory.resourceOrderItems = {
-			count: 0,
-		};
+		Memory.resourceOrderItems = {};
 	}
 
 	for (const i in Memory.resourceOrders) {
@@ -19,7 +15,10 @@ module.exports = function () {
 	this.createResourceOrder = (room, destinationId, type, amount) => {
 		if (!room || !type || !amount) {
 			console.log('createResourceOrder: Invalid parameters');
+			return false;
 		}
+
+		//console.log(`createResourceOrder: ${JSON.stringify({ room, destinationId, type, amount })})`);
 
 		const destination = Game.getObjectById(destinationId);
 
@@ -27,7 +26,7 @@ module.exports = function () {
 			console.log(`createResourceOrder: Couldn't find destination for id: ${destinationId}`);
 		}
 
-		if (room.memory.resourceOrders) {
+		if (!room.memory.resourceOrders) {
 			room.memory.resourceOrders = {};
 		}
 
@@ -44,13 +43,11 @@ module.exports = function () {
 			destinationId,
 			type,
 			amount,
-			amountPending,
-			amountFulfilled,
+			amountPending: 0,
+			amountFulfilled: 0,
 			orderItemIds: {},
 			createdTime: Game.time,
 		};
-
-		room.memory.resourceOrders[type][destination.structureType].push(resourceOrder.id);
 
 		if (!Memory[destination.structureType]) {
 			Memory[destination.structureType] = {};
@@ -64,19 +61,22 @@ module.exports = function () {
 			Memory[destination.structureType][destination.id].resourceOrderIds = {};
 		}
 
-		if (Memory[destination.structureType][destination.id].resourceOrderIds[type]) {
+		if (destination.structureType !== STRUCTURE_CONTROLLER && Memory[destination.structureType][destination.id].resourceOrderIds[type]) {
 			let orderId = Memory[destination.structureType][destination.id].resourceOrderIds[type];
 			let existingOrder = Memory.resourceOrders[orderId];
 
 			// if it exists there has been an issue with making another order at the structure side
 			if (existingOrder) {
-				return false;
+				console.log(`found existing resource order id: ${existingOrder.id}`);
+				return existingOrder;
 			} //else continue as normal as it will be overridden anyways
 		}
 
-		Memory[destination.structureType][destination.id].resourceOrderIds[type] = resourceOrder.id;
-
 		Memory.resourceOrders[resourceOrder.id] = resourceOrder;
+
+		room.memory.resourceOrders[type][destination.structureType].push(resourceOrder.id);
+
+		Memory[destination.structureType][destination.id].resourceOrderIds[type] = resourceOrder.id;
 
 		return resourceOrder;
 	};
@@ -90,21 +90,36 @@ module.exports = function () {
 
 		var strucIndex = 0,
 			order = null;
+		console.log(`looking for strucIndex: ${strucIndex}, RESOURCE_ORDER_STRUCTURE_PRIORITY length: ${RESOURCE_ORDER_STRUCTURE_PRIORITY.length}`);
 
-		while (!order || strucIndex < RESOURCE_ORDER_STRUCTURE_PRIORITY.length) {
+		//for(var strucIndex = 0; strucIndex < RESOURCE_ORDER_STRUCTURE_PRIORITY.length )
+
+		while (!order && strucIndex < RESOURCE_ORDER_STRUCTURE_PRIORITY.length) {
 			const structure = RESOURCE_ORDER_STRUCTURE_PRIORITY[strucIndex];
+
+			console.log(
+				`looking for ${structure}, strucIndex: ${strucIndex}, RESOURCE_ORDER_STRUCTURE_PRIORITY length: ${RESOURCE_ORDER_STRUCTURE_PRIORITY.length}`
+			);
+
 			if (!room.memory.resourceOrders[type][structure]) {
 				room.memory.resourceOrders[type][structure] = [];
 			}
 
 			if (room.memory.resourceOrders[type][structure].length) {
-				var queueindex = 0;
-				while (!order || index < room.memory.resourceOrders[type][structure].length) {
-					var orderId = room.memory.resourceOrders[type][structure][queueindex];
+				console.log(
+					`room resourceOrder of type: ${type}, of struc: ${structure}, length: ${room.memory.resourceOrders[type][structure].length}`
+				);
+				var queueIndex = 0;
+				while (!order && queueIndex < room.memory.resourceOrders[type][structure].length) {
+					var orderId = room.memory.resourceOrders[type][structure][queueIndex];
+
+					console.log(`looking for order with id ${orderId}, queueIndex: ${queueIndex}`);
 
 					var currentOrder = Memory.resourceOrders[orderId];
 
-					if (currentOrder.amountPending + currentOrder.amountFulfilled < currentOrder.amount) {
+					if (!currentOrder) {
+						room.memory.resourceOrders[type][structure].shift();
+					} else if (currentOrder.amountPending + currentOrder.amountFulfilled < currentOrder.amount) {
 						order = currentOrder;
 					}
 
@@ -112,11 +127,11 @@ module.exports = function () {
 				}
 				queue = room.memory.resourceOrders[type][structure];
 			}
-
+			//test
 			strucIndex++;
 		}
 
-		if (!order && type === RESOURCE_ENERGY) {
+		if (!order) {
 			if (type === RESOURCE_ENERGY) {
 				// for now go to controller this will probably need to chnage to include other destinations
 				order = this.createResourceOrder(room, room.controller.id, type, amount);
@@ -125,14 +140,31 @@ module.exports = function () {
 			}
 		}
 
+		console.log(`findNextResourceOrderToFulfill: order: ${JSON.stringify(order)}`);
+
 		let item = this.createResourceOrderItem(creep, type, amount, order);
 
 		return item;
 	};
 
+	this.checkRoomForResourceOrder = (room, type) => {
+		if (!room || !type) {
+			console.log('checkRoomForResourceOrder: Invalid parameters');
+		}
+
+		if (!room.memory.resourceOrders) {
+			room.memory.resourceOrders = {};
+		}
+
+		if (!room.memory.resourceOrders[type]) {
+			room.memory.resourceOrders[type] = {};
+		}
+	};
+
 	this.createResourceOrderItem = (creep, type, amount, order) => {
 		if (!creep || !type || !amount || !order) {
 			console.log('createResourceOrderItem: Invalid parameters');
+			return false;
 		}
 
 		const amountLeft = order.amount - (order.amountPending + order.amountFulfilled);
@@ -156,8 +188,10 @@ module.exports = function () {
 			createdTime: Game.time,
 		};
 
+		console.log(`createResourceOrderItem: order: ${JSON.stringify(order)}`);
+
 		order.amountPending += amountToUpdate;
-		order.orderItemIds.push(resourceOrderItem.id);
+		order.orderItemIds[resourceOrderItem.id] = resourceOrderItem.id;
 
 		Memory.resourceOrders[order.id] = order;
 		Memory.resourceOrderItems[resourceOrderItem.id] = resourceOrderItem;
@@ -248,17 +282,33 @@ module.exports = function () {
 	};
 
 	this.getNextResourceOrderId = () => {
-		return `rq${Memory.resourceOrders.count++}`;
+		if (!Memory.counts.resourceOrders) {
+			Memory.counts.resourceOrders = 0;
+		}
+		return `ro${Memory.counts.resourceOrders++}`;
 	};
 
 	this.getNextResourceOrderItemId = () => {
-		return `rq${Memory.resourceOrderItems.count++}`;
+		if (!Memory.counts.resourceOrderItems) {
+			Memory.counts.resourceOrderItems = 0;
+		}
+		return `roi${Memory.counts.resourceOrderItems++}`;
 	};
 
 	this.deleteOrderItem = (orderItem) => {
 		if (!orderItem) {
 			console.log('deleteOrderItem: Invalid Parameters!');
 			return false;
+		}
+
+		let resourceOrder = Memory.resourceOrders[orderItem.orderId];
+
+		if (resourceOrder) {
+			if (!resourceOrder.fulfilled) {
+				resourceOrder.pendingAmount -= orderItem.amount;
+				delete resourceOrder.orderItemIds[orderItem.id];
+				Memory.resourceOrders[orderItem.orderId] = resourceOrder;
+			}
 		}
 
 		let creep = Game.creeps[orderItem.creepName];
@@ -303,8 +353,8 @@ module.exports = function () {
 			}
 		}
 
-		if (Memory.resouceOrders[order.id]) {
-			delete Memory.resouceOrders[order.id];
+		if (Memory.resourceOrders[order.id]) {
+			delete Memory.resourceOrders[order.id];
 		}
 
 		return true;
@@ -338,14 +388,14 @@ module.exports = function () {
 			return false;
 		}
 
-		let resourceOrderItem = Memory.resourceOrderItem[resourceOrderItemId];
+		let resourceOrderItem = Memory.resourceOrderItems[resourceOrderItemId];
 
 		if (!resourceOrderItem) {
 			console.log(`getResourceOrderItemDestination: No resource order item found belonging to id: ${resourceOrderItemId}`);
 			return false;
 		}
 
-		let resourceOrder = Memory.resourceOrder[resourceOrderItem.orderId];
+		let resourceOrder = Memory.resourceOrders[resourceOrderItem.orderId];
 
 		if (!resourceOrder) {
 			console.log(`getResourceOrderItemDestination: No resource order found belonging to id: ${resourceOrderItem.orderId}`);
@@ -365,4 +415,12 @@ module.exports = function () {
 
 		return destination;
 	};
+
+	// find and remove any roi belonging to dead creeps
+	for (const roi in Memory.resourceOrderItems) {
+		let orderItem = Memory.resourceOrderItems[roi];
+		if (!Game.creeps[orderItem.creepName]) {
+			this.deleteOrderItem(orderItem);
+		}
+	}
 };

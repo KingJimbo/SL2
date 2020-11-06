@@ -20,7 +20,7 @@ global.CREEP_TYPES = {
 
 global.CREEP_BODIES = {
 	[CREEP_TYPES.UTILITY]: {
-		move: { value: 1 },
+		move: { value: 2 },
 		work: { value: 1 },
 		carry: { value: 1 },
 		attack: { value: 0 },
