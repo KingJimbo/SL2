@@ -1,4 +1,4 @@
-module.exports = function(memory, game) {
+module.exports = function (memory, game) {
 	this.memory = memory;
 	this.game = game;
 
@@ -10,7 +10,7 @@ module.exports = function(memory, game) {
 	var Helper = require("../common/helper");
 	this.helper = new Helper();
 
-	this.surveyRoom = function(room) {
+	this.surveyRoom = function (room) {
 		/*
         grade a room on
         - resources (sources, minerals)
@@ -37,7 +37,7 @@ module.exports = function(memory, game) {
 					progressPos: { x: 0, y: 0 },
 					exitPathPosCounts: {},
 					positionData: {},
-					totalExits: 0
+					totalExits: 0,
 				};
 			}
 
@@ -99,24 +99,24 @@ module.exports = function(memory, game) {
 			}
 
 			//console.log("setting structure map");
-			this.roomSurveyData.structureMap = this.generateStructureMap(this.roomSurveyData);
+			this.generateStructureMap(this.roomSurveyData);
 
 			this.memory.roomSurveyData = this.roomSurveyData;
 
 			room.memory.surveyData = this.roomSurveyData;
 		}
 
-		//console.log(`roomSurveyData = ${JSON.stringify(this.roomSurveyData)}`);
+		console.log(`roomSurveyData = ${JSON.stringify(this.roomSurveyData)}`);
 		return this.roomSurveyData;
 	};
 
-	this.checkPosition = function(pos) {
+	this.checkPosition = function (pos) {
 		//console.log(`checkPostitionStart pos = ${JSON.stringify(pos)}`);
 		let posSurveyData = {
 			canBuild: true,
 			canTravel: true,
 			x: pos.x,
-			y: pos.y
+			y: pos.y,
 		};
 
 		var terrainData = this.checkPositionTerrain(pos);
@@ -132,7 +132,7 @@ module.exports = function(memory, game) {
 		return posSurveyData;
 	};
 
-	this.checkPositionTerrain = function(pos) {
+	this.checkPositionTerrain = function (pos) {
 		//console.log("checkPositionTerrain");
 		const posTerrain = this.roomTerrain.get(pos.x, pos.y);
 		//console.log(`posTerrain: ${JSON.stringify(posTerrain)}`);
@@ -149,7 +149,7 @@ module.exports = function(memory, game) {
 		}
 	};
 
-	this.getPositionDistanceData = function(pos) {
+	this.getPositionDistanceData = function (pos) {
 		//console.log("getPositionDistanceData");
 		let room = this.game.rooms[pos.roomName];
 
@@ -158,13 +158,13 @@ module.exports = function(memory, game) {
 				sources: [],
 				mineral: [],
 				controller: [],
-				exits: []
+				exits: [],
 			},
 			totalDistance: 0,
-			closestExit: 0
+			closestExit: 0,
 		};
 
-		this.sources.forEach(function(source) {
+		this.sources.forEach(function (source) {
 			var ret = PathFinder.search(pos, { pos: source.pos, range: 1 });
 			positionDistanceData.distances.sources.push({ id: source.id, cost: ret.cost });
 			positionDistanceData.totalDistance += ret.cost;
@@ -172,7 +172,7 @@ module.exports = function(memory, game) {
 
 		//console.log("getPositionDistanceData got sources");
 
-		this.minerals.forEach(function(mineral) {
+		this.minerals.forEach(function (mineral) {
 			var ret = PathFinder.search(pos, { pos: mineral.pos, range: 1 });
 			positionDistanceData.distances.mineral = { id: mineral.id, cost: ret.cost };
 			positionDistanceData.totalDistance += ret.cost;
@@ -243,9 +243,9 @@ module.exports = function(memory, game) {
 		return positionDistanceData;
 	};
 
-	this.generateStructureMap = surveyData => {
+	this.generateStructureMap = (surveyData) => {
 		const weights = {
-			spawn: { nearSource: 0.3, nearSources: 0.3, defendability: 0.3, nearController: 0.3 }
+			spawn: { nearSource: 0.3, nearSources: 0.3, defendability: 0.3, nearController: 0.3 },
 		};
 		// how to determine best placement
 		// find best placement for
@@ -265,7 +265,7 @@ module.exports = function(memory, game) {
 
 			if (positionData.canTravel && positionData.canBuild) {
 				//console.log(`positionData = ${JSON.stringify(positionData)}`);
-				positionData.distances.sources.forEach(distance => {
+				positionData.distances.sources.forEach((distance) => {
 					// checking globally nearest source distance
 					if (distance.cost < nearestSourceDistance) {
 						nearestSourceDistance = distance.cost;
@@ -303,47 +303,60 @@ module.exports = function(memory, game) {
 			return;
 		}
 
-		surveyData.structureMap = this.createNewStructureMap();
+		//surveyData.structureMap = this.createNewStructureMap();
+		surveyData.structureMap = {};
 
 		let structureArray = [];
 		//console.log(`RESOURCE_ORDER_STRUCTURE_PRIORITY: ${JSON.stringify(RESOURCE_ORDER_STRUCTURE_PRIORITY)}`);
-		for (const type in RESOURCE_ORDER_STRUCTURE_PRIORITY) {
+		for (const j in RESOURCE_ORDER_STRUCTURE_PRIORITY) {
 			//console.log(`type: ${JSON.stringify(type)}`);
 			//console.log(`CONTROLLER_STRUCTURES: ${JSON.stringify(CONTROLLER_STRUCTURES)}`);
-			let structureMax = CONTROLLER_STRUCTURES[RESOURCE_ORDER_STRUCTURE_PRIORITY[type]][8];
+			const type = RESOURCE_ORDER_STRUCTURE_PRIORITY[j];
+			let structureMax = CONTROLLER_STRUCTURES[type][8];
 
 			for (var i = 0; i < structureMax; i++) {
 				structureArray.push(type);
 			}
 		}
 
-		let variance = 1,
+		this.structureArray = structureArray;
+		console.log(`structureArray: ${JSON.stringify(structureArray)}`);
+
+		let variance = 0,
 			structuresPlacedCount = 0,
 			currentX = idealSpawnPosition.x,
 			currentY = idealSpawnPosition.y,
 			startX = idealSpawnPosition.x,
 			startY = idealSpawnPosition.y,
-			possiblePos = [];
+			possiblePos = [],
+			allPosTraversed = [];
 
-		console.log(`structureArray: ${JSON.stringify(structureArray)}`);
-		console.log(`idealSpawnPosition: ${JSON.stringify(idealSpawnPosition)}`);
-		if (structureArray && idealSpawnPosition) {
+		//console.log(`structureArray: ${JSON.stringify(structureArray)}`);
+		//console.log(`idealSpawnPosition: ${JSON.stringify(idealSpawnPosition)}`);
+
+		//this.assessPosForStructure(currentX, currentY);
+		//allPosTraversed.push({ x: idealSpawnPosition.x, y: idealSpawnPosition.y });
+		//possiblePos.push({ x: idealSpawnPosition.x, y: idealSpawnPosition.y });
+		structuresPlacedCount++;
+
+		if (this.structureArray && idealSpawnPosition) {
 			while (
 				//structuresPlacedCount < structureArray.length &&
-				variance < COORDINATES_MAX_SIZE //&&
-				//(startX < COORDINATES_MAX_SIZE || startY < COORDINATES_MAX_SIZE)
+				variance < COORDINATES_MAX_SIZE &&
+				this.structureArray
 			) {
 				// get corner pos
 				startX++;
 				startY++;
 				currentX = startX;
 				currentY = startY;
-				variance++;
+				variance = variance + 2;
+				//allPosTraversed.push({ x: currentX, y: currentY });
 
 				if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
-					console.log(`${currentX},${currentY}`);
-					//this.assessPosForStructure(currentX, currentY);
-					possiblePos.push({ x: currentX, y: currentY });
+					//console.log(`${currentX},${currentY}`);
+					this.assessPosForStructure(currentX, currentY);
+					//possiblePos.push({ x: currentX, y: currentY });
 					structuresPlacedCount++;
 				}
 
@@ -351,50 +364,58 @@ module.exports = function(memory, game) {
 
 				for (var x = 0; x < variance; x++) {
 					currentX--;
-
+					//allPosTraversed.push({ x: currentX, y: currentY });
 					if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
-						console.log(`${currentX},${currentY}`);
-						//this.assessPosForStructure(currentX, currentY);
-						possiblePos.push({ x: currentX, y: currentY });
+						//console.log(`${currentX},${currentY}`);
+						this.assessPosForStructure(currentX, currentY);
+						//possiblePos.push({ x: currentX, y: currentY });
 						structuresPlacedCount++;
 					}
 				}
+
 				for (var y = 0; y < variance; y++) {
 					currentY--;
-
+					//allPosTraversed.push({ x: currentX, y: currentY });
 					if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
-						console.log(`${currentX},${currentY}`);
-						//this.assessPosForStructure(currentX, currentY);
-						possiblePos.push({ x: currentX, y: currentY });
+						//console.log(`${currentX},${currentY}`);
+						this.assessPosForStructure(currentX, currentY);
+						//possiblePos.push({ x: currentX, y: currentY });
 						structuresPlacedCount++;
 					}
 				}
+
 				for (var x = 0; x < variance; x++) {
 					currentX++;
-
+					//allPosTraversed.push({ x: currentX, y: currentY });
 					if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
-						console.log(`${currentX},${currentY}`);
-						//this.assessPosForStructure(currentX, currentY);
-						possiblePos.push({ x: currentX, y: currentY });
+						//console.log(`${currentX},${currentY}`);
+						this.assessPosForStructure(currentX, currentY);
+						//possiblePos.push({ x: currentX, y: currentY });
 						structuresPlacedCount++;
 					}
 				}
+
 				for (var y = 1; y < variance; y++) {
 					currentY++;
-
+					//allPosTraversed.push({ x: currentX, y: currentY });
 					if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
-						console.log(`${currentX},${currentY}`);
-						//this.assessPosForStructure(currentX, currentY);
-						possiblePos.push({ x: currentX, y: currentY });
+						//console.log(`${currentX},${currentY}`);
+						this.assessPosForStructure(currentX, currentY);
+						//possiblePos.push({ x: currentX, y: currentY });
 						structuresPlacedCount++;
 					}
 				}
 			}
 		}
-		if (possiblePos) {
-			console.log(`possiblePos: ${JSON.stringify(possiblePos)}`);
-			console.log(`possiblePos length: ${JSON.stringify(possiblePos.length)}`);
-		}
+		// if (possiblePos) {
+		// 	console.log(`possiblePos: ${JSON.stringify(possiblePos)}`);
+		// 	console.log(`possiblePos length: ${JSON.stringify(possiblePos.length)}`);
+		// }
+
+		// if (allPosTraversed) {
+		// 	console.log(`allPosTraversed: ${JSON.stringify(allPosTraversed)}`);
+		// 	console.log(`allPosTraversed length: ${JSON.stringify(allPosTraversed.length)}`);
+		// }
 
 		//
 		// STRUCTURE_POWER_SPAWN: "powerSpawn",
@@ -440,84 +461,107 @@ module.exports = function(memory, game) {
 	};
 
 	this.assessPosForStructure = (x, y) => {
-		console.log(`x: ${JSON.stringify(x)}, y:${JSON.stringify(y)}`);
-		switch (this.canStructureBePlaced(x, y)) {
-			case 1:
-				break;
-			case 2:
-				break;
-		}
+		//console.log(`x: ${JSON.stringify(x)}, y:${JSON.stringify(y)}`);
+		const canBePlaced = this.canStructureBePlaced(x, y);
+		//console.log(`canBePlaced: ${JSON.stringify(canBePlaced)}`);
+		return canBePlaced;
 	};
 
 	this.canStructureBePlaced = (x, y) => {
 		let surroundingPositions = this.getSurroundingPositions(x, y),
-			canBePlaced = true;
+			canBePlaced = true,
+			id = this.helper.getPosName(x, y),
+			positionData = this.roomSurveyData.positionData[id];
 
-		// check each surrounding pos to see if you  can build on it
-		// need to think of a better way of doing this. Checking surrounding positions to see where the current position is.
+		//console.log(`positionData = ${JSON.stringify(positionData)}`);
 
-		surroundingPositions.every(pos => {
-			let id = this.helper.getPosName(pos.x, pos.y),
-				positionData = this.roomSurveyData.positionData[id];
-			if (!this.doesPositionHaveOtherAccess(pos.x, pos.y)) {
-				canBePlaced = false;
-				return false;
+		if (positionData) {
+			// check each surrounding pos to see if you  can build on it
+			// need to think of a better way of doing this. Checking surrounding positions to see where the current position is.
+
+			for (const i in surroundingPositions) {
+				const pos = surroundingPositions[i];
+				if (!this.doesPositionHaveOtherAccess(pos.x, pos.y)) {
+					canBePlaced = false;
+					break;
+				}
 			}
-		});
+			// surroundingPositions.every((pos) => {
+			// 	if (this.doesPositionHaveOtherAccess(pos.x, pos.y)) {
+			// 		canBePlaced = true;
+			// 		return true;
+			// 	}
+			// });
 
-		if (canBePlaced) {
-			// current pos is the top right
-			let strucType = structureArray.shift();
+			if (canBePlaced) {
+				// current pos is the top right
+				let strucType = this.structureArray.shift();
 
-			if (!this.roomSurveyData.structureMap[strucType]) {
-				this.roomSurveyData.structureMap[strucType] = [];
+				if (!this.roomSurveyData.structureMap[strucType]) {
+					this.roomSurveyData.structureMap[strucType] = [];
+				}
+
+				this.roomSurveyData.structureMap[strucType].push({ x, y });
+				//console.log(`positionData = ${JSON.stringify(this.roomSurveyData.positionData)}`);
+				//console.log(`structureMap = ${JSON.stringify(this.roomSurveyData.structureMap)}`);
+				positionData.hasStructure = true;
+				this.roomSurveyData.positionData[id] = positionData;
 			}
-
-			this.roomSurveyData.structureMap[strucType].push({ x, y });
-			positionData.hasStructure = true;
-
-			this.roomSurveyData.positionData[id] = positionData;
+		} else {
+			canBePlaced = false;
 		}
 
 		return canBePlaced;
 	};
 
-	this.doesPositionHaveOtherAccess = (x, y, originX, originY) => {
+	this.doesPositionHaveOtherAccess = (x, y) => {
 		let surroundingPositions = this.getSurroundingPositions(x, y),
 			hasOtherAccess = false;
 
-		console.log(`surroundingPositions: ${JSON.stringify(surroundingPositions)}`);
+		//console.log(`surroundingPositions: ${JSON.stringify(surroundingPositions)}`);
 
-		surroundingPositions.every(pos => {
+		for (const i in surroundingPositions) {
+			let pos = surroundingPositions[i];
 			let id = this.helper.getPosName(pos.x, pos.y),
 				positionData = this.roomSurveyData.positionData[id];
 
 			// position that you can travel over , doens't have
-			if (positionData && positionData.canTravel && !positionData.hasStructure && pos.x != originX && pos.y != originY) {
+			if (positionData && positionData.canTravel && !positionData.hasStructure) {
 				hasOtherAccess = true;
-				return false;
+				break;
 			}
-		});
+		}
+
+		// surroundingPositions.every((pos) => {
+		// 	let id = this.helper.getPosName(pos.x, pos.y),
+		// 		positionData = this.roomSurveyData.positionData[id];
+
+		// 	// position that you can travel over , doens't have
+		// 	if (positionData && positionData.canTravel && !positionData.hasStructure && pos.x != originX && pos.y != originY) {
+		// 		hasOtherAccess = true;
+		// 		return false;
+		// 	}
+		// });
 
 		return hasOtherAccess;
 	};
 
 	this.getSurroundingPositions = (x, y) => {
-		let topPos = { x: x, y: +1 },
-			topRightPos = { x: x + 1, y: +1 },
-			topLeftPos = { x: x - 1, y: +1 },
+		let topPos = { x: x, y: y + 1 },
+			topRightPos = { x: x + 1, y: y + 1 },
+			topLeftPos = { x: x - 1, y: y + 1 },
 			leftPos = { x: x - 1, y },
-			rightPos = { x: x, y: +1 },
-			bottomPos = { x: x, y: -1 },
-			bottomLeftPos = { x: x - 1, y: -1 },
-			bottomRightPos = { x: x + 1, y: -1 };
+			rightPos = { x: x, y: y + 1 },
+			bottomPos = { x: x, y: y - 1 },
+			bottomLeftPos = { x: x - 1, y: y - 1 },
+			bottomRightPos = { x: x + 1, y: y - 1 };
 
 		//const primaryPositions = [topPos, rightPos, bottomPos, leftPos];
 		//const secondaryPositions = [topLeftPos, topRightPos, bottomLeftPos, bottomRightPos];
 		return [topPos, rightPos, bottomPos, leftPos, topLeftPos, topRightPos, bottomLeftPos, bottomRightPos];
 	};
 
-	this.createNewStructureMap = function() {
+	this.createNewStructureMap = function () {
 		return {
 			spawn: {},
 			extension: {},
@@ -534,7 +578,7 @@ module.exports = function(memory, game) {
 			lab: {},
 			terminal: {},
 			container: {},
-			nuker: {}
+			nuker: {},
 		};
 	};
 
@@ -547,17 +591,17 @@ module.exports = function(memory, game) {
 			{ x: x + 1, y },
 			{ x: x - 1, y: +1 },
 			{ x: x, y: +1 },
-			{ x: x + 1, y: +1 }
+			{ x: x + 1, y: +1 },
 		];
 
 		let count = 0;
 
-		this.exitPositions.forEach(pos => {
-			console.log(`pos: ${JSON.stringify(pos)}`);
+		this.exitPositions.forEach((pos) => {
+			//console.log(`pos: ${JSON.stringify(pos)}`);
 			let id = this.helper.getPosName(pos.x, pos.y),
 				positionData = this.roomSurveyData.positionData[id];
-			console.log(`id: ${JSON.stringify(id)}`);
-			console.log(`roomSurveyData.positionData: ${JSON.stringify(this.roomSurveyData.positionData)}`);
+			//console.log(`id: ${JSON.stringify(id)}`);
+			//console.log(`roomSurveyData.positionData: ${JSON.stringify(this.roomSurveyData.positionData)}`);
 
 			if (positionData && positionData.canBuild) {
 				count += this.roomSurveyData.exitPathPosCounts[id];
@@ -567,11 +611,11 @@ module.exports = function(memory, game) {
 		return count;
 	};
 
-	this.identifyRoads = function(room) {
+	this.identifyRoads = function (room) {
 		// find sources and path to controller
 	};
 
-	this.structurePlacement = function(structure) {
+	this.structurePlacement = function (structure) {
 		/* structure can only be placed if it's accessible
         what is accessible patterns
         how to define accessible?
