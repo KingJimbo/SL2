@@ -1,15 +1,15 @@
-module.exports.loop = function() {
+module.exports.loop = function () {
 	require("./common/constants.js");
 
-	this.attachLogger = obj => {
+	this.attachLogger = (obj) => {
 		let name, fn;
 		for (name in obj) {
 			fn = obj[name];
 			if (typeof fn === "function") {
-				obj[name] = (function(name, fn) {
+				obj[name] = (function (name, fn) {
 					var args = arguments;
-					return function() {
-						(function(name, fn) {
+					return function () {
+						(function (name, fn) {
 							console.log("calling " + name);
 						}.apply(this, args));
 						return fn.apply(this, arguments);
@@ -23,6 +23,8 @@ module.exports.loop = function() {
 
 	console.settings = { debug: true };
 
+	global.debug = require("./common/debug");
+
 	const App = require("./app.js");
 	let app = new App();
 
@@ -31,7 +33,7 @@ module.exports.loop = function() {
 
 	if (console.settings.debug) {
 		console._log = console.log;
-		console.log = message => {
+		console.log = (message) => {
 			if (console.settings.debug) {
 				console._log(message);
 			}
@@ -40,7 +42,7 @@ module.exports.loop = function() {
 		//this.attachLogger(roomSurveyor);
 	}
 
-	console.debug = func => {
+	console.debug = (func) => {
 		func();
 	};
 

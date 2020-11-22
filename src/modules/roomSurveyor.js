@@ -284,7 +284,7 @@ module.exports = function (memory, game) {
 
 				if (spawnWeight < bestSpawnWeight) {
 					bestSpawnWeight = spawnWeight;
-					idealSpawnPosition = { id: i, x: positionData.x, y: positionData.y };
+					idealSpawnPosition = { id: i, x: positionData.x, y: positionData.y, basePositionType: BASE_POSITION_TYPES.CROSS_ROAD };
 				}
 			}
 		}
@@ -313,12 +313,16 @@ module.exports = function (memory, game) {
 		this.structureArray = structureArray;
 		console.log(`structureArray: ${JSON.stringify(structureArray)}`);
 
-		let positionsToCheck = [idealSpawnPosition];
+		let roadPositionsToCheck = [idealSpawnPosition];
 		let positionsChecked = {};
 
+		if (!this.roomSurveyData.structureMap[STRUCTURE_ROAD]) {
+			this.roomSurveyData.structureMap[STRUCTURE_ROAD] = [];
+		}
+
 		if (this.structureArray && idealSpawnPosition) {
-			while (this.structureArray && positionsToCheck && positionsToCheck.length > 0) {
-				console.log(`positionsToCheck = ${JSON.stringify(positionsToCheck)}`);
+			while (this.structureArray && roadPositionsToCheck && roadPositionsToCheck.length > 0) {
+				//console.log(`positionsToCheck = ${JSON.stringify(positionsToCheck)}`);
 				// let surroundingPositions = this.getSurroundingPositions(idealSpawnPosition.x, idealSpawnPosition.y);
 
 				// for (const i in surroundingPositions) {
@@ -326,10 +330,10 @@ module.exports = function (memory, game) {
 				//     this.assessPosForStructure(idealSpawnPosition.x, idealSpawnPosition.y);
 				// }
 
-				const positionToCheck = positionsToCheck.shift();
+				const positionToCheck = roadPositionsToCheck.shift();
 
 				if (positionToCheck) {
-					console.log(`positionToCheck = ${JSON.stringify(positionToCheck)}`);
+					//console.log(`positionToCheck = ${JSON.stringify(positionToCheck)}`);
 
 					let canBePlaced = true,
 						id = this.helper.getPosName(positionToCheck.x, positionToCheck.y),
@@ -338,11 +342,16 @@ module.exports = function (memory, game) {
 					if (!positionsChecked[id]) {
 						positionsChecked[id] = id;
 
-						console.log(`positionData = ${JSON.stringify(positionData)}`);
+						//console.log(`positionData = ${JSON.stringify(positionData)}`);
 
 						if (positionData) {
 							// check each surrounding pos to see if you  can build on it
-							// need to think of a better way of doing this. Checking surrounding positions to see where the current position is.
+
+							this.roomSurveyData.structureMap[STRUCTURE_ROAD].push({ x: positionToCheck.x, y: positionToCheck.y });
+							global.debug.colorPositionByStructure(
+								new RoomPosition(positionToCheck.x, positionToCheck.y, this.roomSurveyData.room),
+								STRUCTURE_ROAD
+							);
 
 							const surroundingPositions = this.getSurroundingPositions(positionToCheck.x, positionToCheck.y);
 
@@ -354,30 +363,65 @@ module.exports = function (memory, game) {
 								if (!positionsChecked[surroundingPosId]) {
 									const surroundingPosData = this.roomSurveyData.positionData[surroundingPosId];
 
-									if (surroundingPosData && surroundingPosData.canTravel) {
-										positionsToCheck.push(surroundingPos);
+									if (this.isLinearDirection(surroundingPos.direction)) {
+										// Structure
+										if (surroundingPosData && surroundingPosData.canBuild) {
+											let strucType = this.structureArray.shift();
+
+											if (!this.roomSurveyData.structureMap[strucType]) {
+												this.roomSurveyData.structureMap[strucType] = [];
+											}
+
+											this.roomSurveyData.structureMap[strucType].push({ x: surroundingPos.x, y: surroundingPos.y });
+											global.debug.colorPositionByStructure(
+												new RoomPosition(surroundingPos.x, surroundingPos.y, this.roomSurveyData.room),
+												strucType
+											);
+										}
+									}
+									if (positionToCheck.basePositionType === BASE_POSITION_TYPES.CONNECTING_ROAD_TWO) {
+									} else {
+										// Road
+										if (surroundingPosData && surroundingPosData.canTravel) {
+											switch (positionToCheck.basePositionType) {
+												case BASE_POSITION_TYPES.CROSS_ROAD:
+													surroundingPos.basePositionType = BASE_POSITION_TYPES.CONNECTING_ROAD_ONE;
+													break;
+												case BASE_POSITION_TYPES.CONNECTING_ROAD_ONE:
+													surroundingPos.basePositionType = BASE_POSITION_TYPES.CONNECTING_ROAD_TWO;
+													break;
+												default:
+													surroundingPos.basePositionType = BASE_POSITION_TYPES.CROSS_ROAD;
+													break;
+											}
+											positionsToCheck.push(surroundingPos);
+										}
 									}
 								}
 
-								if (!this.doesPositionHaveOtherAccess(surroundingPos.x, surroundingPos.y)) {
-									canBePlaced = false;
-									break;
-								}
+								// if (!this.doesPositionHaveOtherAccess(surroundingPos.x, surroundingPos.y)) {
+								// 	canBePlaced = false;
+								// 	break;
+								// }
 							}
 
-							if (canBePlaced) {
-								let strucType = this.structureArray.shift();
+							// if (canBePlaced) {
+							// 	let strucType = this.structureArray.shift();
 
-								if (!this.roomSurveyData.structureMap[strucType]) {
-									this.roomSurveyData.structureMap[strucType] = [];
-								}
+							// 	if (!this.roomSurveyData.structureMap[strucType]) {
+							// 		this.roomSurveyData.structureMap[strucType] = [];
+							// 	}
 
-								this.roomSurveyData.structureMap[strucType].push({ x: positionToCheck.x, y: positionToCheck.y });
-								//console.log(`positionData = ${JSON.stringify(this.roomSurveyData.positionData)}`);
-								//console.log(`structureMap = ${JSON.stringify(this.roomSurveyData.structureMap)}`);
-								positionData.hasStructure = true;
-								this.roomSurveyData.positionData[id] = positionData;
-							}
+							// 	this.roomSurveyData.structureMap[strucType].push({ x: positionToCheck.x, y: positionToCheck.y });
+							// 	global.debug.colorPositionByStructure(
+							// 		new RoomPosition(positionToCheck.x, positionToCheck.y, this.roomSurveyData.room),
+							// 		strucType
+							// 	);
+							// 	//console.log(`positionData = ${JSON.stringify(this.roomSurveyData.positionData)}`);
+							// 	//console.log(`structureMap = ${JSON.stringify(this.roomSurveyData.structureMap)}`);
+							// 	positionData.hasStructure = true;
+							// 	this.roomSurveyData.positionData[id] = positionData;
+							// }
 						}
 					}
 				}
@@ -564,10 +608,12 @@ module.exports = function (memory, game) {
 				}
 
 				this.roomSurveyData.structureMap[strucType].push({ x, y });
-				//console.log(`positionData = ${JSON.stringify(this.roomSurveyData.positionData)}`);
+				console.log(`positionData = ${JSON.stringify(this.roomSurveyData.positionData)}`);
 				//console.log(`structureMap = ${JSON.stringify(this.roomSurveyData.structureMap)}`);
 				positionData.hasStructure = true;
 				this.roomSurveyData.positionData[id] = positionData;
+
+				global.debug.colorPositionByStructure(new RoomPosition(x, y, this.roomSurveyData.room), strucType);
 			}
 		} else {
 			canBePlaced = false;
@@ -609,18 +655,57 @@ module.exports = function (memory, game) {
 	};
 
 	this.getSurroundingPositions = (x, y) => {
-		let topPos = { x: x, y: y + 1 },
-			topRightPos = { x: x + 1, y: y + 1 },
-			topLeftPos = { x: x - 1, y: y + 1 },
-			leftPos = { x: x - 1, y },
-			rightPos = { x: x, y: y + 1 },
-			bottomPos = { x: x, y: y - 1 },
-			bottomLeftPos = { x: x - 1, y: y - 1 },
-			bottomRightPos = { x: x + 1, y: y - 1 };
+		let topPos = { x: x, y: y + 1, direction: TOP },
+			leftPos = { x: x - 1, y, direction: LEFT },
+			rightPos = { x: x, y: y + 1, direction: RIGHT },
+			bottomPos = { x: x, y: y - 1, direction: BOTTOM },
+			topRightPos = { x: x + 1, y: y + 1, direction: TOP_RIGHT },
+			topLeftPos = { x: x - 1, y: y + 1, direction: TOP_LEFT },
+			bottomLeftPos = { x: x - 1, y: y - 1, direction: BOTTOM_LEFT },
+			bottomRightPos = { x: x + 1, y: y - 1, direction: BOTTOM_RIGHT };
 
-		//const primaryPositions = [topPos, rightPos, bottomPos, leftPos];
-		//const secondaryPositions = [topLeftPos, topRightPos, bottomLeftPos, bottomRightPos];
 		return [topPos, rightPos, bottomPos, leftPos, topLeftPos, topRightPos, bottomLeftPos, bottomRightPos];
+	};
+
+	this.getStructurePositions = (x, y) => {
+		let topPos = { x: x, y: y + 1, direction: TOP },
+			leftPos = { x: x - 1, y, direction: LEFT },
+			rightPos = { x: x, y: y + 1, direction: RIGHT },
+			bottomPos = { x: x, y: y - 1, direction: BOTTOM };
+
+		return [topPos, rightPos, bottomPos, leftPos];
+	};
+
+	this.getRoadPositions = (x, y) => {
+		let topRightPos = { x: x + 1, y: y + 1, direction: TOP_RIGHT },
+			topLeftPos = { x: x - 1, y: y + 1, direction: TOP_LEFT },
+			bottomLeftPos = { x: x - 1, y: y - 1, direction: BOTTOM_LEFT },
+			bottomRightPos = { x: x + 1, y: y - 1, direction: BOTTOM_RIGHT };
+
+		return [topLeftPos, topRightPos, bottomLeftPos, bottomRightPos];
+	};
+
+	this.isLinearDirection = (direction) => {
+		switch (direction) {
+			case TOP:
+				return true;
+			case TOP_RIGHT:
+				return false;
+			case RIGHT:
+				return true;
+			case BOTTOM_RIGHT:
+				return false;
+			case BOTTOM:
+				return true;
+			case BOTTOM_LEFT:
+				return false;
+			case LEFT:
+				return true;
+			case TOP_LEFT:
+				return false;
+			default:
+				return false;
+		}
 	};
 
 	this.createNewStructureMap = function () {
@@ -665,8 +750,11 @@ module.exports = function (memory, game) {
 			//console.log(`id: ${JSON.stringify(id)}`);
 			//console.log(`roomSurveyData.positionData: ${JSON.stringify(this.roomSurveyData.positionData)}`);
 
-			if (positionData && positionData.canBuild) {
-				count += this.roomSurveyData.exitPathPosCounts[id];
+			if (positionData && positionData.canTravel) {
+				var exitPathPosCount = this.roomSurveyData.exitPathPosCounts[id];
+				if (exitPathPosCount) {
+					count += exitPathPosCount;
+				}
 			}
 		});
 
