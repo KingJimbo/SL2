@@ -213,35 +213,6 @@ module.exports = function (memory, game) {
 			}
 		}
 
-		// this.exits.forEach(function(exit) {
-		// 	console.log(`exit: ${JSON.stringify(exit)}`);
-		// 	var ret = PathFinder.search(pos, { pos: exit, range: 0 });
-		// 	positionDistanceData.distances.exits.push({ id: `${exit.x}-${exit.y}`, cost: ret.cost });
-		// 	positionDistanceData.totalExitDistance += ret.cost;
-
-		// 	if (positionDistanceData.closestExit > ret.cost) {
-		// 		positionDistanceData.closestExit = ret.cost;
-		// 	}
-
-		// 	if (ret.path) {
-		// 		for (const pathPos in ret.path) {
-		// 			let id = `${pathPos.x}-${pathPos.y}`;
-		// 			this.roomSurveyData.exitPathPosCounts[id]
-		// 				? this.roomSurveyData.exitPathPosCounts[id]++
-		// 				: (this.roomSurveyData.exitPathPosCounts[id] = 0);
-		// 		}
-
-		// 		// ret.path.forEach(pathPos => {
-		// 		// 	let id = `${pathPos.x}-${pathPos.y}`;
-		// 		// 	this.roomSurveyData.exitPathPosCounts[id]
-		// 		// 		? this.roomSurveyData.exitPathPosCounts[id]++
-		// 		// 		: (this.roomSurveyData.exitPathPosCounts[id] = 0);
-		// 		// });
-		// 	} else {
-		// 		console.log(`No path found to exit for ${JSON.stringify(exit)}`);
-		// 	}
-		// });
-
 		//console.log("getPositionDistanceData got exits");
 
 		//console.log(`pos: ${JSON.stringify(pos)}`);
@@ -298,11 +269,18 @@ module.exports = function (memory, game) {
 
 				let exitPathCount = this.getSurroundingPositionExitPathCounts(positionData.x, positionData.y);
 
-				let spawnWeight =
-					weights.spawn.nearSource * posNearestSourceDistance +
-					weights.spawn.nearSources * totalSourceDistance +
-					weights.spawn.nearController * controllerDistance +
-					weights.spawn.defendability * exitPathCount;
+				const weightNearestSourceDistance = weights.spawn.nearSource * posNearestSourceDistance,
+					weightTotalNearestSourceDistance = weights.spawn.nearSources * totalSourceDistance,
+					weightControllerDistance = weights.spawn.nearController * controllerDistance,
+					weightDefendability = weights.spawn.defendability * exitPathCount;
+
+				let spawnWeight = weightNearestSourceDistance + weightTotalNearestSourceDistance + weightControllerDistance + weightDefendability;
+
+				positionData.weightNearestSourceDistance = weightNearestSourceDistance;
+				positionData.weightTotalNearestSourceDistance = weightTotalNearestSourceDistance;
+				positionData.weightControllerDistance = weightControllerDistance;
+				positionData.weightDefendability = weightDefendability;
+				positionData.spawnWeight = spawnWeight;
 
 				if (spawnWeight < bestSpawnWeight) {
 					bestSpawnWeight = spawnWeight;
