@@ -180,24 +180,37 @@ module.exports = function (memory, game) {
 
 		//console.log("getPositionDistanceData got minerals");
 
-		for (let exit in this.exits) {
+		for (const i in this.exits) {
+			const exit = this.exits[i];
 			console.log(`exit: ${JSON.stringify(exit)}`);
-			// var ret = PathFinder.search(pos, { pos: exit, range: 1 });
-			// positionDistanceData.distances.exits.push({ id: `${exit.x}-${exit.y}`, cost: ret.cost });
-			// positionDistanceData.totalExitDistance += ret.cost;
-			// if (positionDistanceData.closestExit > ret.cost) {
-			// 	positionDistanceData.closestExit = ret.cost;
-			// }
-			// if (ret.path) {
-			// 	for (let pathPos in ret.path) {
-			// 		let id = `${pathPos.x}-${pathPos.y}`;
-			// 		this.roomSurveyData.exitPathPosCounts[id]
-			// 			? this.roomSurveyData.exitPathPosCounts[id]++
-			// 			: (this.roomSurveyData.exitPathPosCounts[id] = 0);
-			// 	}
-			// } else {
-			// 	console.log(`No path found to exit for ${JSON.stringify(exit)}`);
-			// }
+			var ret = PathFinder.search(pos, { pos: exit, range: 1 });
+
+			if (ret) {
+				positionDistanceData.distances.exits.push({ id: this.helper.getPosName(exit.x, exit.y), cost: ret.cost });
+
+				if (!positionDistanceData.totalExitDistance) {
+					positionDistanceData.totalExitDistance = 0;
+				}
+				positionDistanceData.totalExitDistance += ret.cost;
+
+				if (positionDistanceData.closestExit === 0) {
+					positionDistanceData.closestExit = ret.cost;
+				} else if (positionDistanceData.closestExit > ret.cost) {
+					positionDistanceData.closestExit = ret.cost;
+				}
+
+				if (ret.path) {
+					for (let j in ret.path) {
+						const pathPos = ret.path[j];
+						let id = this.helper.getPosName(pathPos.x, pathPos.y);
+						this.roomSurveyData.exitPathPosCounts[id]
+							? this.roomSurveyData.exitPathPosCounts[id]++
+							: (this.roomSurveyData.exitPathPosCounts[id] = 1);
+					}
+				} else {
+					console.log(`No path found to exit for ${JSON.stringify(exit)}`);
+				}
+			}
 		}
 
 		// this.exits.forEach(function(exit) {
