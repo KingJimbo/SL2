@@ -139,13 +139,13 @@ module.exports = function (memory, game) {
 		switch (posTerrain) {
 			case 0: //plain
 				//console.log("checkPositionTerrain Plain");
-				return { terrain: "Plain" };
+				return { canBuild: this.helper.isPosNearEdge(pos.x, pos.y), terrain: "Plain" };
 			case TERRAIN_MASK_WALL: //wall
 				//console.log("checkPositionTerrain Wall");
 				return { canBuild: false, canTravel: false, terrain: "Wall" };
 			case TERRAIN_MASK_SWAMP: //swamp
 				//console.log("checkPositionTerrain Swamp");
-				return { canTravel: false, terrain: "Swamp" };
+				return { canBuild: this.helper.isPosNearEdge(pos.x, pos.y), canTravel: false, terrain: "Swamp" };
 		}
 	};
 
@@ -182,7 +182,7 @@ module.exports = function (memory, game) {
 
 		for (const i in this.exits) {
 			const exit = this.exits[i];
-			console.log(`exit: ${JSON.stringify(exit)}`);
+			//console.log(`exit: ${JSON.stringify(exit)}`);
 			var ret = PathFinder.search(pos, { pos: exit, range: 1 });
 
 			if (ret) {
@@ -313,91 +313,162 @@ module.exports = function (memory, game) {
 		this.structureArray = structureArray;
 		console.log(`structureArray: ${JSON.stringify(structureArray)}`);
 
-		let variance = 0,
-			structuresPlacedCount = 0,
-			currentX = idealSpawnPosition.x,
-			currentY = idealSpawnPosition.y,
-			startX = idealSpawnPosition.x,
-			startY = idealSpawnPosition.y,
-			possiblePos = [],
-			allPosTraversed = [];
-
-		//console.log(`structureArray: ${JSON.stringify(structureArray)}`);
-		//console.log(`idealSpawnPosition: ${JSON.stringify(idealSpawnPosition)}`);
-
-		//this.assessPosForStructure(currentX, currentY);
-		//allPosTraversed.push({ x: idealSpawnPosition.x, y: idealSpawnPosition.y });
-		//possiblePos.push({ x: idealSpawnPosition.x, y: idealSpawnPosition.y });
-		structuresPlacedCount++;
+		let positionsToCheck = [idealSpawnPosition];
+		let positionsChecked = {};
 
 		if (this.structureArray && idealSpawnPosition) {
-			while (
-				//structuresPlacedCount < structureArray.length &&
-				variance < COORDINATES_MAX_SIZE &&
-				this.structureArray
-			) {
-				// get corner pos
-				startX++;
-				startY++;
-				currentX = startX;
-				currentY = startY;
-				variance = variance + 2;
-				//allPosTraversed.push({ x: currentX, y: currentY });
+			while (this.structureArray && positionsToCheck && positionsToCheck.length > 0) {
+				console.log(`positionsToCheck = ${JSON.stringify(positionsToCheck)}`);
+				// let surroundingPositions = this.getSurroundingPositions(idealSpawnPosition.x, idealSpawnPosition.y);
 
-				if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
-					//console.log(`${currentX},${currentY}`);
-					this.assessPosForStructure(currentX, currentY);
-					//possiblePos.push({ x: currentX, y: currentY });
-					structuresPlacedCount++;
-				}
+				// for (const i in surroundingPositions) {
+				//     var position = surroundingPositions[i];
+				//     this.assessPosForStructure(idealSpawnPosition.x, idealSpawnPosition.y);
+				// }
 
-				//increase side length
+				const positionToCheck = positionsToCheck.shift();
 
-				for (var x = 0; x < variance; x++) {
-					currentX--;
-					//allPosTraversed.push({ x: currentX, y: currentY });
-					if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
-						//console.log(`${currentX},${currentY}`);
-						this.assessPosForStructure(currentX, currentY);
-						//possiblePos.push({ x: currentX, y: currentY });
-						structuresPlacedCount++;
-					}
-				}
+				if (positionToCheck) {
+					console.log(`positionToCheck = ${JSON.stringify(positionToCheck)}`);
 
-				for (var y = 0; y < variance; y++) {
-					currentY--;
-					//allPosTraversed.push({ x: currentX, y: currentY });
-					if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
-						//console.log(`${currentX},${currentY}`);
-						this.assessPosForStructure(currentX, currentY);
-						//possiblePos.push({ x: currentX, y: currentY });
-						structuresPlacedCount++;
-					}
-				}
+					let canBePlaced = true,
+						id = this.helper.getPosName(positionToCheck.x, positionToCheck.y),
+						positionData = this.roomSurveyData.positionData[id];
 
-				for (var x = 0; x < variance; x++) {
-					currentX++;
-					//allPosTraversed.push({ x: currentX, y: currentY });
-					if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
-						//console.log(`${currentX},${currentY}`);
-						this.assessPosForStructure(currentX, currentY);
-						//possiblePos.push({ x: currentX, y: currentY });
-						structuresPlacedCount++;
-					}
-				}
+					if (!positionsChecked[id]) {
+						positionsChecked[id] = id;
 
-				for (var y = 1; y < variance; y++) {
-					currentY++;
-					//allPosTraversed.push({ x: currentX, y: currentY });
-					if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
-						//console.log(`${currentX},${currentY}`);
-						this.assessPosForStructure(currentX, currentY);
-						//possiblePos.push({ x: currentX, y: currentY });
-						structuresPlacedCount++;
+						console.log(`positionData = ${JSON.stringify(positionData)}`);
+
+						if (positionData) {
+							// check each surrounding pos to see if you  can build on it
+							// need to think of a better way of doing this. Checking surrounding positions to see where the current position is.
+
+							const surroundingPositions = this.getSurroundingPositions(positionToCheck.x, positionToCheck.y);
+
+							for (const i in surroundingPositions) {
+								// check is position has been checked or not and add to array to be checked if not
+								const surroundingPos = surroundingPositions[i],
+									surroundingPosId = this.helper.getPosName(surroundingPos.x, surroundingPos.y);
+
+								if (!positionsChecked[surroundingPosId]) {
+									const surroundingPosData = this.roomSurveyData.positionData[surroundingPosId];
+
+									if (surroundingPosData && surroundingPosData.canTravel) {
+										positionsToCheck.push(surroundingPos);
+									}
+								}
+
+								if (!this.doesPositionHaveOtherAccess(surroundingPos.x, surroundingPos.y)) {
+									canBePlaced = false;
+									break;
+								}
+							}
+
+							if (canBePlaced) {
+								let strucType = this.structureArray.shift();
+
+								if (!this.roomSurveyData.structureMap[strucType]) {
+									this.roomSurveyData.structureMap[strucType] = [];
+								}
+
+								this.roomSurveyData.structureMap[strucType].push({ x: positionToCheck.x, y: positionToCheck.y });
+								//console.log(`positionData = ${JSON.stringify(this.roomSurveyData.positionData)}`);
+								//console.log(`structureMap = ${JSON.stringify(this.roomSurveyData.structureMap)}`);
+								positionData.hasStructure = true;
+								this.roomSurveyData.positionData[id] = positionData;
+							}
+						}
 					}
 				}
 			}
 		}
+
+		// let variance = 0,
+		// 	structuresPlacedCount = 0,
+		// 	currentX = idealSpawnPosition.x,
+		// 	currentY = idealSpawnPosition.y,
+		// 	startX = idealSpawnPosition.x,
+		// 	startY = idealSpawnPosition.y,
+		// 	possiblePos = [],
+		// 	allPosTraversed = [];
+
+		// //console.log(`structureArray: ${JSON.stringify(structureArray)}`);
+		// //console.log(`idealSpawnPosition: ${JSON.stringify(idealSpawnPosition)}`);
+
+		// //this.assessPosForStructure(currentX, currentY);
+		// //allPosTraversed.push({ x: idealSpawnPosition.x, y: idealSpawnPosition.y });
+		// //possiblePos.push({ x: idealSpawnPosition.x, y: idealSpawnPosition.y });
+		// structuresPlacedCount++;
+
+		// if (this.structureArray && idealSpawnPosition) {
+		// 	while (
+		// 		//structuresPlacedCount < structureArray.length &&
+		// 		variance < COORDINATES_MAX_SIZE &&
+		// 		this.structureArray
+		// 	) {
+		// 		// get corner pos
+		// 		startX++;
+		// 		startY++;
+		// 		currentX = startX;
+		// 		currentY = startY;
+		// 		variance = variance + 2;
+		// 		//allPosTraversed.push({ x: currentX, y: currentY });
+
+		// 		if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
+		// 			//console.log(`${currentX},${currentY}`);
+		// 			this.assessPosForStructure(currentX, currentY);
+		// 			//possiblePos.push({ x: currentX, y: currentY });
+		// 			structuresPlacedCount++;
+		// 		}
+
+		// 		//increase side length
+
+		// 		for (var x = 0; x < variance; x++) {
+		// 			currentX--;
+		// 			//allPosTraversed.push({ x: currentX, y: currentY });
+		// 			if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
+		// 				//console.log(`${currentX},${currentY}`);
+		// 				this.assessPosForStructure(currentX, currentY);
+		// 				//possiblePos.push({ x: currentX, y: currentY });
+		// 				structuresPlacedCount++;
+		// 			}
+		// 		}
+
+		// 		for (var y = 0; y < variance; y++) {
+		// 			currentY--;
+		// 			//allPosTraversed.push({ x: currentX, y: currentY });
+		// 			if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
+		// 				//console.log(`${currentX},${currentY}`);
+		// 				this.assessPosForStructure(currentX, currentY);
+		// 				//possiblePos.push({ x: currentX, y: currentY });
+		// 				structuresPlacedCount++;
+		// 			}
+		// 		}
+
+		// 		for (var x = 0; x < variance; x++) {
+		// 			currentX++;
+		// 			//allPosTraversed.push({ x: currentX, y: currentY });
+		// 			if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
+		// 				//console.log(`${currentX},${currentY}`);
+		// 				this.assessPosForStructure(currentX, currentY);
+		// 				//possiblePos.push({ x: currentX, y: currentY });
+		// 				structuresPlacedCount++;
+		// 			}
+		// 		}
+
+		// 		for (var y = 1; y < variance; y++) {
+		// 			currentY++;
+		// 			//allPosTraversed.push({ x: currentX, y: currentY });
+		// 			if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
+		// 				//console.log(`${currentX},${currentY}`);
+		// 				this.assessPosForStructure(currentX, currentY);
+		// 				//possiblePos.push({ x: currentX, y: currentY });
+		// 				structuresPlacedCount++;
+		// 			}
+		// 		}
+		// 	}
+		// }
 		// if (possiblePos) {
 		// 	console.log(`possiblePos: ${JSON.stringify(possiblePos)}`);
 		// 	console.log(`possiblePos length: ${JSON.stringify(possiblePos.length)}`);

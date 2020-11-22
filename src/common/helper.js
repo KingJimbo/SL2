@@ -1,9 +1,9 @@
-module.exports = function() {
-	this.objExists = function(obj) {
+module.exports = function () {
+	this.objExists = function (obj) {
 		return typeof obj !== "undefined" && obj !== null;
 	};
 
-	this.getCurrentDateTimeAsString = function() {
+	this.getCurrentDateTimeAsString = function () {
 		var date = new Date();
 		var sp = "-";
 		var dd = date.getDate();
@@ -15,13 +15,17 @@ module.exports = function() {
 		return mm + sp + dd + sp + yyyy;
 	};
 
-	this.getFuncName = function(fn) {
+	this.getFuncName = function (fn) {
 		var f = typeof fn == "function";
 		var s = f && ((fn.name && ["", fn.name]) || fn.toString().match(/function ([^\(]+)/));
-		return (!f && "not a function") || ((s && s[1]) || "anonymous");
+		return (!f && "not a function") || (s && s[1]) || "anonymous";
 	};
 
 	this.getPosName = (x, y) => {
 		return `${x}-${y}`;
+	};
+
+	this.isPosNearEdge = (x, y) => {
+		return x !== 0 && x !== COORDINATES_MAX_SIZE && y !== 0 && y !== COORDINATES_MAX_SIZE;
 	};
 };
