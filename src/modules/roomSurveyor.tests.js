@@ -3,23 +3,43 @@ var sinon = require("sinon");
 require("../testing/constants");
 require("../common/constants");
 var RoomSurveyor = require("./roomSurveyor");
+const TOP_LEFT = 8;
 
 var obj = { rooms: {} };
-describe("Room Surveyor Tests", function() {
-	describe("surveyRoom() Tests", function() {
-		var objUnderTest = new RoomSurveyor();
+describe("Room Surveyor Tests", function () {
+	describe("getDirectionOfPositionFromPosition() Tests", function () {
+		describe("getDirectionOfPositionFromPosition() TOP_LEFT Tests", function () {
+			var objUnderTest = new RoomSurveyor();
 
-		it("Should exist", function() {
-			expect(objUnderTest.surveyRoom).to.exist;
+			var originalPos = { x: 1, y: 1 };
+			var followingPos = { x: 0, y: 0 };
+
+			var direction = objUnderTest.getDirectionOfPositionFromPosition(originalPos, followingPos);
+
+			it("Should exist", function () {
+				expect(objUnderTest.surveyRoom).to.equal(TOP_LEFT);
+			});
 		});
 
-		it("Should return object", function() {
-			var testRoom = require("../testing/room");
-			var memory = {};
-			var game = require("../testing/data/gameData");
-			objUnderTest = new RoomSurveyor(memory, game);
-			expect(objUnderTest.surveyRoom(testRoom)).to.equal({});
-		});
+		// it("Should exist", function() {
+		// 	expect(objUnderTest.surveyRoom).to.exist;
+		// });
+
+		// it("Should return object", function() {
+		// 	var testRoom = require("../testing/room");
+		// 	var memory = {};
+		// 	var game = require("../testing/data/gameData");
+		// 	objUnderTest = new RoomSurveyor(memory, game);
+		// 	expect(objUnderTest.surveyRoom(testRoom)).to.equal({});
+		// });
+
+		// it("Should return object", function() {
+		// 	var testRoom = require("../testing/room");
+		// 	var memory = {};
+		// 	var game = require("../testing/data/gameData");
+		// 	objUnderTest = new RoomSurveyor(memory, game);
+		// 	expect(objUnderTest.surveyRoom(testRoom)).to.equal({});
+		// });
 	});
 
 	// this.getAll = function(objectType) {

@@ -755,6 +755,14 @@ module.exports = function (memory, game) {
 			return TOP_RIGHT;
 		} else if (x === 0 && y === 1) {
 			return BOTTOM;
+		} else if (x === 0 && y === -1) {
+			return TOP;
+		} else if (x === -1 && y === -1) {
+			return TOP_LEFT;
+		} else if (x === -1 && y === 0) {
+			return LEFT;
+		} else if (x === -1 && y === 1) {
+			return BOTTOM_LEFT;
 		}
 	};
 
