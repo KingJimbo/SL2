@@ -363,7 +363,25 @@ module.exports = function (memory, game) {
 								if (!positionsChecked[surroundingPosId]) {
 									const surroundingPosData = this.roomSurveyData.positionData[surroundingPosId];
 
-									if (this.isLinearDirection(surroundingPos.direction)) {
+									if (this.isRoadPosition(positionToCheck, surroundingPos)) {
+										// Road
+										if (surroundingPosData && surroundingPosData.canTravel) {
+											switch (positionToCheck.basePositionType) {
+												case BASE_POSITION_TYPES.CROSS_ROAD:
+													surroundingPos.basePositionType = BASE_POSITION_TYPES.CONNECTING_ROAD_ONE;
+													break;
+												case BASE_POSITION_TYPES.CONNECTING_ROAD_ONE:
+													surroundingPos.basePositionType = BASE_POSITION_TYPES.CONNECTING_ROAD_TWO;
+													break;
+												default:
+													surroundingPos.basePositionType = BASE_POSITION_TYPES.CROSS_ROAD;
+													break;
+											}
+
+											positionsToCheck.parentPos = positionToCheck;
+											positionsToCheck.push(surroundingPos);
+										}
+									} else {
 										// Structure
 										if (surroundingPosData && surroundingPosData.canBuild) {
 											let strucType = this.structureArray.shift();
@@ -379,30 +397,7 @@ module.exports = function (memory, game) {
 											);
 										}
 									}
-									if (positionToCheck.basePositionType === BASE_POSITION_TYPES.CONNECTING_ROAD_TWO) {
-									} else {
-										// Road
-										if (surroundingPosData && surroundingPosData.canTravel) {
-											switch (positionToCheck.basePositionType) {
-												case BASE_POSITION_TYPES.CROSS_ROAD:
-													surroundingPos.basePositionType = BASE_POSITION_TYPES.CONNECTING_ROAD_ONE;
-													break;
-												case BASE_POSITION_TYPES.CONNECTING_ROAD_ONE:
-													surroundingPos.basePositionType = BASE_POSITION_TYPES.CONNECTING_ROAD_TWO;
-													break;
-												default:
-													surroundingPos.basePositionType = BASE_POSITION_TYPES.CROSS_ROAD;
-													break;
-											}
-											positionsToCheck.push(surroundingPos);
-										}
-									}
 								}
-
-								// if (!this.doesPositionHaveOtherAccess(surroundingPos.x, surroundingPos.y)) {
-								// 	canBePlaced = false;
-								// 	break;
-								// }
 							}
 
 							// if (canBePlaced) {
@@ -705,6 +700,61 @@ module.exports = function (memory, game) {
 				return false;
 			default:
 				return false;
+		}
+	};
+
+	this.isRoadPosition = (originalPosition, positionToBeChecked) => {
+		// check what type of road
+		if (originalPosition.basePositionType === BASE_POSITION_TYPES.CROSS_ROAD) {
+			return this.isLinearDirection(positionToBeChecked.direction);
+		}
+
+		// if not cross road find previous parent else return true
+
+		// determine previous parent direction
+		// use direction to determine next road positions
+
+		// switch (originalPosition.basePositionType) {
+		// 	case BASE_POSITION_TYPES.CROSS_ROAD:
+		//         return this.isLinearDirection(positionToBeChecked.direction);
+		//     case BASE_POSITION_TYPES.CONNECTING_ROAD_ONE:
+
+		// }
+
+		switch (direction) {
+			case TOP:
+				return true;
+			case TOP_RIGHT:
+				return false;
+			case RIGHT:
+				return true;
+			case BOTTOM_RIGHT:
+				return false;
+			case BOTTOM:
+				return true;
+			case BOTTOM_LEFT:
+				return false;
+			case LEFT:
+				return true;
+			case TOP_LEFT:
+				return false;
+			default:
+				return false;
+		}
+	};
+
+	this.getDirectionOfPositionFromPosition = (originalPosition, positionToBeChecked) => {
+		const x = originalPosition.x - positionToBeChecked.x,
+			y = originalPosition.y - positionToBeChecked.y;
+
+		if (x === 1 && y === 1) {
+			return BOTTOM_RIGHT;
+		} else if (x === 1 && y === 0) {
+			return RIGHT;
+		} else if (x === 1 && y === -1) {
+			return TOP_RIGHT;
+		} else if (x === 0 && y === 1) {
+			return BOTTOM;
 		}
 	};
 
