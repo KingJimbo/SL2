@@ -710,7 +710,14 @@ module.exports = function (memory, game) {
 		}
 
 		// determine previous parent direction
-		var direction = this.getDirectionOfPositionFromPosition(originalPosition, positionToBeChecked);
+		//var direction = this.getDirectionOfPositionFromPosition(originalPosition, positionToBeChecked);
+
+		switch (originalPosition.basePositionType) {
+			case BASE_POSITION_TYPES.CROSS_ROAD:
+				return this.isLinearDirection(positionToBeChecked.direction);
+			case BASE_POSITION_TYPES.CONNECTING_ROAD_ONE:
+				return this.IsConnectingRoadOneRoad();
+		}
 
 		switch (direction) {
 			case TOP:
