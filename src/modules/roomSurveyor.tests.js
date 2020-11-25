@@ -1,23 +1,127 @@
 var expect = require("chai").expect;
 var sinon = require("sinon");
-require("../testing/constants");
-require("../common/constants");
+var testingConstants = require("../testing/constants");
+//this = Object.assign(this, testingConstants);
+//Object.assign(exports, testingConstants);
+
+var appConstants = require("../common/constants");
+appConstants = Object.assign(appConstants, testingConstants);
+global = Object.assign(global, appConstants);
+// Object.assign(exports, appConstants);
+
 var RoomSurveyor = require("./roomSurveyor");
-const TOP_LEFT = 8;
+
+function createObjectUnderTest() {
+	var objUnderTest = new RoomSurveyor();
+	//Object.assign(objUnderTest, testingConstants);
+	objUnderTest = Object.assign(objUnderTest, appConstants);
+	return objUnderTest;
+}
 
 var obj = { rooms: {} };
 describe("Room Surveyor Tests", function () {
 	describe("getDirectionOfPositionFromPosition() Tests", function () {
-		describe("getDirectionOfPositionFromPosition() TOP_LEFT Tests", function () {
-			var objUnderTest = new RoomSurveyor();
+		describe("getDirectionOfPositionFromPosition() BOTTOM_LEFT Test", function () {
+			var objUnderTest = createObjectUnderTest();
 
 			var originalPos = { x: 1, y: 1 };
 			var followingPos = { x: 0, y: 0 };
 
 			var direction = objUnderTest.getDirectionOfPositionFromPosition(originalPos, followingPos);
 
-			it("Should exist", function () {
-				expect(objUnderTest.surveyRoom).to.equal(TOP_LEFT);
+			it("Should equal BOTTOM_LEFT", function () {
+				expect(direction).to.equal(BOTTOM_LEFT);
+			});
+		});
+
+		describe("getDirectionOfPositionFromPosition() LEFT Test", function () {
+			var objUnderTest = createObjectUnderTest();
+
+			var originalPos = { x: 1, y: 1 };
+			var followingPos = { x: 0, y: 1 };
+
+			var direction = objUnderTest.getDirectionOfPositionFromPosition(originalPos, followingPos);
+
+			it("Should equal LEFT", function () {
+				expect(direction).to.equal(LEFT);
+			});
+		});
+
+		describe("getDirectionOfPositionFromPosition() TOP_LEFT Test", function () {
+			var objUnderTest = createObjectUnderTest();
+
+			var originalPos = { x: 1, y: 1 };
+			var followingPos = { x: 0, y: 2 };
+
+			var direction = objUnderTest.getDirectionOfPositionFromPosition(originalPos, followingPos);
+
+			it("Should equal TOP_LEFT", function () {
+				expect(direction).to.equal(TOP_LEFT);
+			});
+		});
+
+		describe("getDirectionOfPositionFromPosition() TOP Test", function () {
+			var objUnderTest = createObjectUnderTest();
+
+			var originalPos = { x: 1, y: 1 };
+			var followingPos = { x: 1, y: 2 };
+
+			var direction = objUnderTest.getDirectionOfPositionFromPosition(originalPos, followingPos);
+
+			it("Should equal TOP", function () {
+				expect(direction).to.equal(TOP);
+			});
+		});
+
+		describe("getDirectionOfPositionFromPosition() BOTTOM Test", function () {
+			var objUnderTest = createObjectUnderTest();
+
+			var originalPos = { x: 1, y: 1 };
+			var followingPos = { x: 1, y: 0 };
+
+			var direction = objUnderTest.getDirectionOfPositionFromPosition(originalPos, followingPos);
+
+			it("Should equal BOTTOM", function () {
+				expect(direction).to.equal(BOTTOM);
+			});
+		});
+
+		describe("getDirectionOfPositionFromPosition() BOTTOM_RIGHT Test", function () {
+			var objUnderTest = createObjectUnderTest();
+
+			var originalPos = { x: 1, y: 1 };
+			var followingPos = { x: 2, y: 0 };
+
+			var direction = objUnderTest.getDirectionOfPositionFromPosition(originalPos, followingPos);
+
+			it("Should equal BOTTOM_RIGHT", function () {
+				expect(direction).to.equal(BOTTOM_RIGHT);
+			});
+		});
+
+		describe("getDirectionOfPositionFromPosition() RIGHT Test", function () {
+			var objUnderTest = createObjectUnderTest();
+
+			var originalPos = { x: 1, y: 1 };
+			var followingPos = { x: 2, y: 1 };
+
+			var direction = objUnderTest.getDirectionOfPositionFromPosition(originalPos, followingPos);
+
+			it("Should equal RIGHT", function () {
+				expect(direction).to.equal(RIGHT);
+			});
+		});
+
+		describe("getDirectionOfPositionFromPosition() TOP_RIGHT Test", function () {
+			var objUnderTest = createObjectUnderTest();
+
+			var originalPos = { x: 1, y: 1 };
+			var followingPos = { x: 2, y: 2 };
+
+			var direction = objUnderTest.getDirectionOfPositionFromPosition(originalPos, followingPos);
+
+			it("Should equal TOP_RIGHT", function () {
+				expect(direction).to.equal(TOP_RIGHT);
 			});
 		});
 

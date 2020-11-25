@@ -378,8 +378,8 @@ module.exports = function (memory, game) {
 													break;
 											}
 
-											positionsToCheck.parentPos = positionToCheck;
-											positionsToCheck.push(surroundingPos);
+											surroundingPos.parentPos = positionToCheck;
+											roadPositionsToCheck.push(surroundingPos);
 										}
 									} else {
 										// Structure
@@ -709,17 +709,8 @@ module.exports = function (memory, game) {
 			return this.isLinearDirection(positionToBeChecked.direction);
 		}
 
-		// if not cross road find previous parent else return true
-
 		// determine previous parent direction
-		// use direction to determine next road positions
-
-		// switch (originalPosition.basePositionType) {
-		// 	case BASE_POSITION_TYPES.CROSS_ROAD:
-		//         return this.isLinearDirection(positionToBeChecked.direction);
-		//     case BASE_POSITION_TYPES.CONNECTING_ROAD_ONE:
-
-		// }
+		var direction = this.getDirectionOfPositionFromPosition(originalPosition, positionToBeChecked);
 
 		switch (direction) {
 			case TOP:
@@ -741,6 +732,14 @@ module.exports = function (memory, game) {
 			default:
 				return false;
 		}
+		// use direction to determine next road positions
+
+		// switch (originalPosition.basePositionType) {
+		// 	case BASE_POSITION_TYPES.CROSS_ROAD:
+		//         return this.isLinearDirection(positionToBeChecked.direction);
+		//     case BASE_POSITION_TYPES.CONNECTING_ROAD_ONE:
+
+		// }
 	};
 
 	this.getDirectionOfPositionFromPosition = (originalPosition, positionToBeChecked) => {
@@ -748,21 +747,23 @@ module.exports = function (memory, game) {
 			y = originalPosition.y - positionToBeChecked.y;
 
 		if (x === 1 && y === 1) {
-			return BOTTOM_RIGHT;
+			return BOTTOM_LEFT;
 		} else if (x === 1 && y === 0) {
-			return RIGHT;
+			return LEFT;
 		} else if (x === 1 && y === -1) {
-			return TOP_RIGHT;
+			return TOP_LEFT;
 		} else if (x === 0 && y === 1) {
 			return BOTTOM;
 		} else if (x === 0 && y === -1) {
 			return TOP;
 		} else if (x === -1 && y === -1) {
-			return TOP_LEFT;
+			return TOP_RIGHT;
 		} else if (x === -1 && y === 0) {
-			return LEFT;
+			return RIGHT;
 		} else if (x === -1 && y === 1) {
-			return BOTTOM_LEFT;
+			return BOTTOM_RIGHT;
+		} else {
+			return -1;
 		}
 	};
 
