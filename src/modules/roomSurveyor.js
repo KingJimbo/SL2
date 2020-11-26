@@ -573,7 +573,12 @@ module.exports = function (memory, game) {
 			let centrePosition = centrePositions.shift();
 			const centrePositionId = this.helper.getPosName(centrePosition.x, centrePosition.y);
 
+			console.log(`centrePositions: ${JSON.stringify(centrePositions)}`);
+			console.log(`centrePosition: ${JSON.stringify(centrePosition)}`);
+
 			const centrePositionData = this.roomSurveyData.positionData[centrePositionId];
+			console.log(`positionData: ${JSON.stringify(this.roomSurveyData.positionData)}`);
+			console.log(`centrePositionData: ${JSON.stringify(centrePositionData)}`);
 
 			if (centrePositionData && centrePositionData.canTravel) {
 				if (!this.roomSurveyData.structureMap[STRUCTURE_ROAD]) {
@@ -613,12 +618,15 @@ module.exports = function (memory, game) {
 						console.log(`connectingBlockCentrePosition: ${JSON.stringify(connectingBlockCentrePosition)}`);
 
 						if (connectingBlockCentrePosition) {
+							connectingBlockCentrePosition.isRoad = true;
 							const connectingBlockCentrePositionId = this.helper.getPosName(blockPosition.x, blockPosition.y);
+							console.log(`connectingBlockCentrePositionId: ${JSON.stringify(connectingBlockCentrePositionId)}`);
 							if (!positionsChecked[connectingBlockCentrePositionId]) {
+								console.log(`connectingBlockCentrePosition: ${JSON.stringify(connectingBlockCentrePosition)}`);
 								centrePositions.push(connectingBlockCentrePosition);
 							}
 						}
-					} else if (blockPositionData && blockPosition.canBuild) {
+					} else if (blockPositionData && blockPositionData.canBuild) {
 						let strucType = this.structureArray.shift();
 
 						if (!this.roomSurveyData.structureMap[strucType]) {

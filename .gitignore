@@ -77,3 +77,4 @@ typings/
 
 # Custom
 dist/*
+dist/main.js
