@@ -26,6 +26,6 @@ module.exports = function () {
 	};
 
 	this.isPosNearEdge = (x, y) => {
-		return x !== 0 && x !== COORDINATES_MAX_SIZE && y !== 0 && y !== COORDINATES_MAX_SIZE;
+		return x === 0 || x === COORDINATES_MAX_SIZE || y === 0 || y === COORDINATES_MAX_SIZE;
 	};
 };
