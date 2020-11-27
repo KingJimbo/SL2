@@ -1,3 +1,4 @@
+const { COORDINATES_MAX_SIZE } = require("../common/constants");
 const { STRUCTURE_ROAD } = require("../testing/constants");
 
 module.exports = function (memory, game) {
@@ -8,43 +9,34 @@ module.exports = function (memory, game) {
 	this.minerals = [];
 	this.exits = [];
 	this.roomTerrain = null;
+	this.room = null;
 
 	var Helper = require("../common/helper");
 	this.helper = new Helper();
 
 	this.surveyRoom = function (room) {
-		/*
-        grade a room on
-        - resources (sources, minerals)
-        - resource placement (far apart)
-        - controller placement in conjunction with resources
-        - free space
-        - defendability (room accessibility, solid rock placement)
-
-        approach
-        - scan each block in the room
-        - determine the best path between resources and controller
-        - use that as a basis of base placement
-
-    */
-
-		// x, y 0 - 49
-
 		if (room) {
-			if (this.memory.roomSurveyData) {
-				this.roomSurveyData = this.memory.roomSurveyData;
-			} else {
-				this.roomSurveyData = {
-					room: room.name,
-					progressPos: { x: 0, y: 0 },
-					exitPathPosCounts: {},
-					positionData: {},
-					totalExits: 0,
-				};
-			}
+			this.room = room;
 
-			let x = this.roomSurveyData.progressPos.x,
-				y = this.roomSurveyData.progressPos.x;
+			// if (this.memory.roomSurveyData) {
+			// 	this.roomSurveyData = this.memory.roomSurveyData;
+			// } else {
+			// 	this.roomSurveyData = {
+			// 		room: room.name,
+			// 		progressPos: { x: 0, y: 0 },
+			// 		exitPathPosCounts: {},
+			// 		positionData: {},
+			// 		totalExits: 0,
+			// 	};
+			// }
+
+			this.roomSurveyData = {
+				room: room.name,
+				progressPos: { x: 0, y: 0 },
+				exitPathPosCounts: {},
+				positionData: {},
+				totalExits: 0,
+			};
 
 			if (!this.roomTerrain) {
 				this.roomTerrain = room.getTerrain();
@@ -66,46 +58,23 @@ module.exports = function (memory, game) {
 
 			this.roomSurveyData.totalExits = this.exits.length;
 
-			let increment = 0;
+			const lookAtArray = room.lookAtArea(0, 0, COORDINATES_MAX_SIZE, COORDINATES_MAX_SIZE, true); // as array
+			console.log(`lookAtArray = ${JSON.stringify(lookAtArray.length)}`);
 
-			// scan each position
-			while (increment < COORDINATES_MAX_SIZE) {
-				//console.log(`increment = ${JSON.stringify(increment)}`);
-				if (increment === 0) {
-					// check position
+			for (const i in lookAtArray) {
+				const lookAtItem = lookAtArray[i];
 
-					//console.log(`first coordinate ${x}:${y} `);
-					var roomPosition = room.getPositionAt(x, y);
-					//console.log(`roomPosition = ${JSON.stringify(roomPosition)}`);
-					this.roomSurveyData.positionData[this.helper.getPosName(x, y)] = this.checkPosition(room.getPositionAt(x, y));
+				if (lookAtItem.type === LOOK_TERRAIN) {
+					this.roomSurveyData.positionData[this.helper.getPosName(lookAtItem.x, lookAtItem.y)] = this.checkPosition(lookAtItem);
 				}
-
-				increment++;
-
-				x = increment;
-				// check position
-				//console.log(`first coordinate ${x}:${y} `);
-				var roomPosition = room.getPositionAt(x, y);
-				//console.log(`roomPosition = ${JSON.stringify(roomPosition)}`);
-				this.roomSurveyData.positionData[this.helper.getPosName(x, y)] = this.checkPosition(room.getPositionAt(x, y));
-
-				y = increment;
-				//console.log(`second coordinate ${x}:${y} `);
-				roomPosition = room.getPositionAt(x, y);
-				//console.log(`roomPosition = ${JSON.stringify(roomPosition)}`);
-				this.roomSurveyData.positionData[this.helper.getPosName(x, y)] = this.checkPosition(room.getPositionAt(x, y));
-
-				//console.log("setting memory");
-				//console.log(`increment = ${JSON.stringify(increment)}`);
-				this.memory.roomSurveyData = this.roomSurveyData;
 			}
 
 			//console.log("setting structure map");
 			this.generateStructureMap(this.roomSurveyData);
 
-			this.memory.roomSurveyData = this.roomSurveyData;
+			//this.memory.roomSurveyData = this.roomSurveyData;
 
-			room.memory.surveyData = this.roomSurveyData;
+			//room.memory.surveyData = this.roomSurveyData;
 		}
 
 		console.log(`roomSurveyData = ${JSON.stringify(this.roomSurveyData)}`);
@@ -126,7 +95,7 @@ module.exports = function (memory, game) {
 		posSurveyData = { ...posSurveyData, ...terrainData };
 
 		if (posSurveyData.canTravel) {
-			var distanceData = this.getPositionDistanceData(pos);
+			var distanceData = this.getPositionDistanceData(this.room.getPositionAt(pos.x, pos.y));
 
 			posSurveyData = { ...posSurveyData, ...distanceData };
 		}
@@ -151,9 +120,9 @@ module.exports = function (memory, game) {
 		}
 	};
 
-	this.getPositionDistanceData = function (pos) {
+	this.getPositionDistanceData = function (posToCheck) {
 		//console.log("getPositionDistanceData");
-		let room = this.game.rooms[pos.roomName];
+		let room = this.room;
 
 		let positionDistanceData = {
 			distances: {
@@ -166,65 +135,73 @@ module.exports = function (memory, game) {
 			closestExit: 0,
 		};
 
-		this.sources.forEach(function (source) {
-			var ret = PathFinder.search(pos, { pos: source.pos, range: 1 });
-			positionDistanceData.distances.sources.push({ id: source.id, cost: ret.cost });
-			positionDistanceData.totalDistance += ret.cost;
-		});
+		if (!this.helper.isPosNearEdge(posToCheck.x, posToCheck.y)) {
+			let pos = new RoomPosition(posToCheck.x, posToCheck.y, this.room.name);
 
-		//console.log("getPositionDistanceData got sources");
+			this.sources.forEach(function (source) {
+				const searchObject = { pos: source.pos, range: 1 };
+				// console.log(`pos: ${JSON.stringify(pos)}`);
+				// console.log(`searchObject: ${JSON.stringify(searchObject)}`);
+				var ret = PathFinder.search(pos, searchObject);
+				//var ret = PathFinder.search(pos, { pos: source, range: 1 });
+				//positionDistanceData.distances.sources.push({ id: source.id, cost: ret.cost });
+				//positionDistanceData.totalDistance += ret.cost;
+			});
 
-		this.minerals.forEach(function (mineral) {
-			var ret = PathFinder.search(pos, { pos: mineral.pos, range: 1 });
-			positionDistanceData.distances.mineral = { id: mineral.id, cost: ret.cost };
-			positionDistanceData.totalDistance += ret.cost;
-		});
+			// //console.log("getPositionDistanceData got sources");
 
-		//console.log("getPositionDistanceData got minerals");
+			// this.minerals.forEach(function (mineral) {
+			// 	var ret = PathFinder.search(pos, { pos: mineral.pos, range: 1 });
+			// 	positionDistanceData.distances.mineral = { id: mineral.id, cost: ret.cost };
+			// 	positionDistanceData.totalDistance += ret.cost;
+			// });
 
-		for (const i in this.exits) {
-			const exit = this.exits[i];
-			//console.log(`exit: ${JSON.stringify(exit)}`);
-			var ret = PathFinder.search(pos, { pos: exit, range: 1 });
+			//console.log("getPositionDistanceData got minerals");
 
-			if (ret) {
-				positionDistanceData.distances.exits.push({ id: this.helper.getPosName(exit.x, exit.y), cost: ret.cost });
+			// for (const i in this.exits) {
+			// 	const exit = this.exits[i];
+			// 	//console.log(`exit: ${JSON.stringify(exit)}`);
+			// 	var ret = PathFinder.search(pos, { pos: exit, range: 1 });
 
-				if (!positionDistanceData.totalExitDistance) {
-					positionDistanceData.totalExitDistance = 0;
-				}
-				positionDistanceData.totalExitDistance += ret.cost;
+			// 	if (ret) {
+			// 		positionDistanceData.distances.exits.push({ id: this.helper.getPosName(exit.x, exit.y), cost: ret.cost });
 
-				if (positionDistanceData.closestExit === 0) {
-					positionDistanceData.closestExit = ret.cost;
-				} else if (positionDistanceData.closestExit > ret.cost) {
-					positionDistanceData.closestExit = ret.cost;
-				}
+			// 		if (!positionDistanceData.totalExitDistance) {
+			// 			positionDistanceData.totalExitDistance = 0;
+			// 		}
+			// 		positionDistanceData.totalExitDistance += ret.cost;
 
-				if (ret.path) {
-					for (let j in ret.path) {
-						const pathPos = ret.path[j];
-						let id = this.helper.getPosName(pathPos.x, pathPos.y);
-						this.roomSurveyData.exitPathPosCounts[id]
-							? this.roomSurveyData.exitPathPosCounts[id]++
-							: (this.roomSurveyData.exitPathPosCounts[id] = 1);
-					}
-				} else {
-					console.log(`No path found to exit for ${JSON.stringify(exit)}`);
-				}
-			}
+			// 		if (positionDistanceData.closestExit === 0) {
+			// 			positionDistanceData.closestExit = ret.cost;
+			// 		} else if (positionDistanceData.closestExit > ret.cost) {
+			// 			positionDistanceData.closestExit = ret.cost;
+			// 		}
+
+			// 		if (ret.path) {
+			// 			for (let j in ret.path) {
+			// 				const pathPos = ret.path[j];
+			// 				let id = this.helper.getPosName(pathPos.x, pathPos.y);
+			// 				this.roomSurveyData.exitPathPosCounts[id]
+			// 					? this.roomSurveyData.exitPathPosCounts[id]++
+			// 					: (this.roomSurveyData.exitPathPosCounts[id] = 1);
+			// 			}
+			// 		} else {
+			// 			console.log(`No path found to exit for ${JSON.stringify(exit)}`);
+			// 		}
+			// 	}
+			// }
+
+			//console.log("getPositionDistanceData got exits");
+
+			//console.log(`pos: ${JSON.stringify(pos)}`);
+			//console.log(`roomController: ${JSON.stringify(room.controller)}`);
+
+			// var ret = PathFinder.search(pos, { pos: room.controller.pos, range: 1 });
+			// positionDistanceData.distances.controller = { id: room.controller.id, cost: ret.cost };
+			// positionDistanceData.totalDistance += ret.cost;
+
+			//console.log("getPositionDistanceData end");
 		}
-
-		//console.log("getPositionDistanceData got exits");
-
-		//console.log(`pos: ${JSON.stringify(pos)}`);
-		//console.log(`roomController: ${JSON.stringify(room.controller)}`);
-
-		var ret = PathFinder.search(pos, { pos: room.controller.pos, range: 1 });
-		positionDistanceData.distances.controller = { id: room.controller.id, cost: ret.cost };
-		positionDistanceData.totalDistance += ret.cost;
-
-		//console.log("getPositionDistanceData end");
 
 		return positionDistanceData;
 	};
@@ -246,10 +223,13 @@ module.exports = function (memory, game) {
 
 		for (const i in surveyData.positionData) {
 			let positionData = surveyData.positionData[i],
-				totalSourceDistance = 0,
-				posNearestSourceDistance = 1000;
+				totalSourceDistance = 1000,
+				posNearestSourceDistance = 1000,
+				exitPathCount = 10000,
+				controllerDistance = 1000;
 
 			if (positionData.canTravel && positionData.canBuild) {
+				let totalSourceDistancePossible = 0;
 				//console.log(`positionData = ${JSON.stringify(positionData)}`);
 				positionData.distances.sources.forEach((distance) => {
 					// checking globally nearest source distance
@@ -264,17 +244,34 @@ module.exports = function (memory, game) {
 					}
 
 					// finding total source distance
-					totalSourceDistance += distance.cost;
+					totalSourceDistancePossible += distance.cost;
 				});
 
-				let controllerDistance = positionData.distances.controller.cost;
+				if (totalSourceDistancePossible) {
+					totalSourceDistance = totalSourceDistancePossible;
+				}
 
-				let exitPathCount = this.getSurroundingPositionExitPathCounts(positionData.x, positionData.y);
+				let controllerDistancePossible = positionData.distances.controller.cost;
+
+				if (controllerDistancePossible) {
+					controllerDistance = controllerDistancePossible;
+				}
+
+				let exitPathCountPossible = this.getSurroundingPositionExitPathCounts(positionData.x, positionData.y);
+
+				if (exitPathCountPossible) {
+					exitPathCount = exitPathCountPossible;
+				}
 
 				const weightNearestSourceDistance = weights.spawn.nearSource * posNearestSourceDistance,
 					weightTotalNearestSourceDistance = weights.spawn.nearSources * totalSourceDistance,
 					weightControllerDistance = weights.spawn.nearController * controllerDistance,
 					weightDefendability = weights.spawn.defendability * exitPathCount;
+
+				console.log(`posNearestSourceDistance: ${JSON.stringify(posNearestSourceDistance)}`);
+				console.log(`totalSourceDistance: ${JSON.stringify(totalSourceDistance)}`);
+				console.log(`controllerDistance: ${JSON.stringify(controllerDistance)}`);
+				console.log(`exitPathCount: ${JSON.stringify(exitPathCount)}`);
 
 				let spawnWeight = weightNearestSourceDistance + weightTotalNearestSourceDistance + weightControllerDistance + weightDefendability;
 
@@ -283,6 +280,8 @@ module.exports = function (memory, game) {
 				positionData.weightControllerDistance = weightControllerDistance;
 				positionData.weightDefendability = weightDefendability;
 				positionData.spawnWeight = spawnWeight;
+
+				console.log(`spawnWeight: ${JSON.stringify(spawnWeight)}`);
 
 				if (spawnWeight < bestSpawnWeight) {
 					bestSpawnWeight = spawnWeight;
