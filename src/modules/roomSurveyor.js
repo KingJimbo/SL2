@@ -74,7 +74,7 @@ module.exports = function (memory, game) {
 
 			//this.memory.roomSurveyData = this.roomSurveyData;
 
-			//room.memory.surveyData = this.roomSurveyData;
+			room.memory.structureMap = this.roomSurveyData.structureMap;
 		}
 
 		console.log(`roomSurveyData = ${JSON.stringify(this.roomSurveyData)}`);
@@ -122,7 +122,7 @@ module.exports = function (memory, game) {
 
 	this.getPositionDistanceData = function (posToCheck) {
 		//console.log("getPositionDistanceData");
-		let room = this.room;
+		console.log(`posToCheck: ${JSON.stringify(posToCheck)}`);
 
 		let positionDistanceData = {
 			distances: {
@@ -138,23 +138,24 @@ module.exports = function (memory, game) {
 		if (!this.helper.isPosNearEdge(posToCheck.x, posToCheck.y)) {
 			let pos = new RoomPosition(posToCheck.x, posToCheck.y, this.room.name);
 
-			this.sources.forEach(function (source) {
+			for (const i in this.sources) {
+				const source = this.sources[i];
 				const searchObject = { pos: source.pos, range: 1 };
 				// console.log(`pos: ${JSON.stringify(pos)}`);
 				// console.log(`searchObject: ${JSON.stringify(searchObject)}`);
 				var ret = PathFinder.search(pos, searchObject);
-				//var ret = PathFinder.search(pos, { pos: source, range: 1 });
-				//positionDistanceData.distances.sources.push({ id: source.id, cost: ret.cost });
-				//positionDistanceData.totalDistance += ret.cost;
-			});
+				var ret = PathFinder.search(pos, { pos: source, range: 1 });
+				positionDistanceData.distances.sources.push({ id: source.id, cost: ret.cost });
+				positionDistanceData.totalDistance += ret.cost;
+			}
 
 			// //console.log("getPositionDistanceData got sources");
 
-			// this.minerals.forEach(function (mineral) {
-			// 	var ret = PathFinder.search(pos, { pos: mineral.pos, range: 1 });
-			// 	positionDistanceData.distances.mineral = { id: mineral.id, cost: ret.cost };
-			// 	positionDistanceData.totalDistance += ret.cost;
-			// });
+			this.minerals.forEach(function (mineral) {
+				var ret = PathFinder.search(pos, { pos: mineral.pos, range: 1 });
+				positionDistanceData.distances.mineral = { id: mineral.id, cost: ret.cost };
+				positionDistanceData.totalDistance += ret.cost;
+			});
 
 			//console.log("getPositionDistanceData got minerals");
 
@@ -210,15 +211,9 @@ module.exports = function (memory, game) {
 		const weights = {
 			spawn: { nearSource: 0.3, nearSources: 0.3, defendability: 0.3, nearController: 0.3 },
 		};
-		// how to determine best placement
-		// find best placement for
-		//
-		// STRUCTURE_SPAWN: "spawn",
-		// ideally between sources and preferably in a defensive position near controller
+
 		let nearestSourceDistance = 1000,
-			nearestSourceDistancePosId = null,
-			nearestTotalSourceDistance = 1000,
-			bestSpawnWeight = 1000,
+			bestSpawnWeight = 10000,
 			idealSpawnPosition = null;
 
 		for (const i in surveyData.positionData) {
@@ -268,10 +263,10 @@ module.exports = function (memory, game) {
 					weightControllerDistance = weights.spawn.nearController * controllerDistance,
 					weightDefendability = weights.spawn.defendability * exitPathCount;
 
-				console.log(`posNearestSourceDistance: ${JSON.stringify(posNearestSourceDistance)}`);
-				console.log(`totalSourceDistance: ${JSON.stringify(totalSourceDistance)}`);
-				console.log(`controllerDistance: ${JSON.stringify(controllerDistance)}`);
-				console.log(`exitPathCount: ${JSON.stringify(exitPathCount)}`);
+				// console.log(`posNearestSourceDistance: ${JSON.stringify(posNearestSourceDistance)}`);
+				// console.log(`totalSourceDistance: ${JSON.stringify(totalSourceDistance)}`);
+				// console.log(`controllerDistance: ${JSON.stringify(controllerDistance)}`);
+				// console.log(`exitPathCount: ${JSON.stringify(exitPathCount)}`);
 
 				let spawnWeight = weightNearestSourceDistance + weightTotalNearestSourceDistance + weightControllerDistance + weightDefendability;
 
@@ -281,7 +276,7 @@ module.exports = function (memory, game) {
 				positionData.weightDefendability = weightDefendability;
 				positionData.spawnWeight = spawnWeight;
 
-				console.log(`spawnWeight: ${JSON.stringify(spawnWeight)}`);
+				//console.log(`spawnWeight: ${JSON.stringify(spawnWeight)}`);
 
 				if (spawnWeight < bestSpawnWeight) {
 					bestSpawnWeight = spawnWeight;
@@ -315,253 +310,6 @@ module.exports = function (memory, game) {
 		console.log(`structureArray: ${JSON.stringify(structureArray)}`);
 
 		this.mapStructures(this.structureArray, idealSpawnPosition);
-
-		// let roadPositionsToCheck = [idealSpawnPosition];
-		// let positionsChecked = {};
-
-		// if (!this.roomSurveyData.structureMap[STRUCTURE_ROAD]) {
-		// 	this.roomSurveyData.structureMap[STRUCTURE_ROAD] = [];
-		// }
-
-		// if (this.structureArray && idealSpawnPosition) {
-		// 	while (this.structureArray && roadPositionsToCheck && roadPositionsToCheck.length > 0) {
-		// 		//console.log(`positionsToCheck = ${JSON.stringify(positionsToCheck)}`);
-		// 		// let surroundingPositions = this.getSurroundingPositions(idealSpawnPosition.x, idealSpawnPosition.y);
-
-		// 		// for (const i in surroundingPositions) {
-		// 		//     var position = surroundingPositions[i];
-		// 		//     this.assessPosForStructure(idealSpawnPosition.x, idealSpawnPosition.y);
-		// 		// }
-
-		// 		const positionToCheck = roadPositionsToCheck.shift();
-
-		// 		if (positionToCheck) {
-		// 			//console.log(`positionToCheck = ${JSON.stringify(positionToCheck)}`);
-
-		// 			let canBePlaced = true,
-		// 				id = this.helper.getPosName(positionToCheck.x, positionToCheck.y),
-		// 				positionData = this.roomSurveyData.positionData[id];
-
-		// 			if (!positionsChecked[id]) {
-		// 				positionsChecked[id] = id;
-
-		// 				//console.log(`positionData = ${JSON.stringify(positionData)}`);
-
-		// 				if (positionData) {
-		// 					// check each surrounding pos to see if you  can build on it
-
-		// 					this.roomSurveyData.structureMap[STRUCTURE_ROAD].push({ x: positionToCheck.x, y: positionToCheck.y });
-		// 					global.debug.colorPositionByStructure(
-		// 						new RoomPosition(positionToCheck.x, positionToCheck.y, this.roomSurveyData.room),
-		// 						STRUCTURE_ROAD
-		// 					);
-
-		// 					const surroundingPositions = this.getSurroundingPositions(positionToCheck.x, positionToCheck.y);
-
-		// 					for (const i in surroundingPositions) {
-		// 						// check is position has been checked or not and add to array to be checked if not
-		// 						const surroundingPos = surroundingPositions[i],
-		// 							surroundingPosId = this.helper.getPosName(surroundingPos.x, surroundingPos.y);
-
-		// 						if (!positionsChecked[surroundingPosId]) {
-		// 							const surroundingPosData = this.roomSurveyData.positionData[surroundingPosId];
-
-		// 							if (this.isRoadPosition(positionToCheck, surroundingPos)) {
-		// 								// Road
-		// 								if (surroundingPosData && surroundingPosData.canTravel) {
-		// 									switch (positionToCheck.basePositionType) {
-		// 										case BASE_POSITION_TYPES.CROSS_ROAD:
-		// 											surroundingPos.basePositionType = BASE_POSITION_TYPES.CONNECTING_ROAD_ONE;
-		// 											break;
-		// 										case BASE_POSITION_TYPES.CONNECTING_ROAD_ONE:
-		// 											surroundingPos.basePositionType = BASE_POSITION_TYPES.CONNECTING_ROAD_TWO;
-		// 											break;
-		// 										default:
-		// 											surroundingPos.basePositionType = BASE_POSITION_TYPES.CROSS_ROAD;
-		// 											break;
-		// 									}
-
-		// 									surroundingPos.parentPos = positionToCheck;
-		// 									roadPositionsToCheck.push(surroundingPos);
-		// 								}
-		// 							} else {
-		// 								// Structure
-		// 								if (surroundingPosData && surroundingPosData.canBuild) {
-		// 									let strucType = this.structureArray.shift();
-
-		// 									if (!this.roomSurveyData.structureMap[strucType]) {
-		// 										this.roomSurveyData.structureMap[strucType] = [];
-		// 									}
-
-		// 									this.roomSurveyData.structureMap[strucType].push({ x: surroundingPos.x, y: surroundingPos.y });
-		// 									global.debug.colorPositionByStructure(
-		// 										new RoomPosition(surroundingPos.x, surroundingPos.y, this.roomSurveyData.room),
-		// 										strucType
-		// 									);
-		// 								}
-		// 							}
-		// 						}
-		// 					}
-
-		// 					// if (canBePlaced) {
-		// 					// 	let strucType = this.structureArray.shift();
-
-		// 					// 	if (!this.roomSurveyData.structureMap[strucType]) {
-		// 					// 		this.roomSurveyData.structureMap[strucType] = [];
-		// 					// 	}
-
-		// 					// 	this.roomSurveyData.structureMap[strucType].push({ x: positionToCheck.x, y: positionToCheck.y });
-		// 					// 	global.debug.colorPositionByStructure(
-		// 					// 		new RoomPosition(positionToCheck.x, positionToCheck.y, this.roomSurveyData.room),
-		// 					// 		strucType
-		// 					// 	);
-		// 					// 	//console.log(`positionData = ${JSON.stringify(this.roomSurveyData.positionData)}`);
-		// 					// 	//console.log(`structureMap = ${JSON.stringify(this.roomSurveyData.structureMap)}`);
-		// 					// 	positionData.hasStructure = true;
-		// 					// 	this.roomSurveyData.positionData[id] = positionData;
-		// 					// }
-		// 				}
-		// 			}
-		// 		}
-		// 	}
-		// }
-
-		// let variance = 0,
-		// 	structuresPlacedCount = 0,
-		// 	currentX = idealSpawnPosition.x,
-		// 	currentY = idealSpawnPosition.y,
-		// 	startX = idealSpawnPosition.x,
-		// 	startY = idealSpawnPosition.y,
-		// 	possiblePos = [],
-		// 	allPosTraversed = [];
-
-		// //console.log(`structureArray: ${JSON.stringify(structureArray)}`);
-		// //console.log(`idealSpawnPosition: ${JSON.stringify(idealSpawnPosition)}`);
-
-		// //this.assessPosForStructure(currentX, currentY);
-		// //allPosTraversed.push({ x: idealSpawnPosition.x, y: idealSpawnPosition.y });
-		// //possiblePos.push({ x: idealSpawnPosition.x, y: idealSpawnPosition.y });
-		// structuresPlacedCount++;
-
-		// if (this.structureArray && idealSpawnPosition) {
-		// 	while (
-		// 		//structuresPlacedCount < structureArray.length &&
-		// 		variance < COORDINATES_MAX_SIZE &&
-		// 		this.structureArray
-		// 	) {
-		// 		// get corner pos
-		// 		startX++;
-		// 		startY++;
-		// 		currentX = startX;
-		// 		currentY = startY;
-		// 		variance = variance + 2;
-		// 		//allPosTraversed.push({ x: currentX, y: currentY });
-
-		// 		if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
-		// 			//console.log(`${currentX},${currentY}`);
-		// 			this.assessPosForStructure(currentX, currentY);
-		// 			//possiblePos.push({ x: currentX, y: currentY });
-		// 			structuresPlacedCount++;
-		// 		}
-
-		// 		//increase side length
-
-		// 		for (var x = 0; x < variance; x++) {
-		// 			currentX--;
-		// 			//allPosTraversed.push({ x: currentX, y: currentY });
-		// 			if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
-		// 				//console.log(`${currentX},${currentY}`);
-		// 				this.assessPosForStructure(currentX, currentY);
-		// 				//possiblePos.push({ x: currentX, y: currentY });
-		// 				structuresPlacedCount++;
-		// 			}
-		// 		}
-
-		// 		for (var y = 0; y < variance; y++) {
-		// 			currentY--;
-		// 			//allPosTraversed.push({ x: currentX, y: currentY });
-		// 			if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
-		// 				//console.log(`${currentX},${currentY}`);
-		// 				this.assessPosForStructure(currentX, currentY);
-		// 				//possiblePos.push({ x: currentX, y: currentY });
-		// 				structuresPlacedCount++;
-		// 			}
-		// 		}
-
-		// 		for (var x = 0; x < variance; x++) {
-		// 			currentX++;
-		// 			//allPosTraversed.push({ x: currentX, y: currentY });
-		// 			if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
-		// 				//console.log(`${currentX},${currentY}`);
-		// 				this.assessPosForStructure(currentX, currentY);
-		// 				//possiblePos.push({ x: currentX, y: currentY });
-		// 				structuresPlacedCount++;
-		// 			}
-		// 		}
-
-		// 		for (var y = 1; y < variance; y++) {
-		// 			currentY++;
-		// 			//allPosTraversed.push({ x: currentX, y: currentY });
-		// 			if (currentX <= COORDINATES_MAX_SIZE && currentY <= COORDINATES_MAX_SIZE) {
-		// 				//console.log(`${currentX},${currentY}`);
-		// 				this.assessPosForStructure(currentX, currentY);
-		// 				//possiblePos.push({ x: currentX, y: currentY });
-		// 				structuresPlacedCount++;
-		// 			}
-		// 		}
-		// 	}
-		// }
-		// if (possiblePos) {
-		// 	console.log(`possiblePos: ${JSON.stringify(possiblePos)}`);
-		// 	console.log(`possiblePos length: ${JSON.stringify(possiblePos.length)}`);
-		// }
-
-		// if (allPosTraversed) {
-		// 	console.log(`allPosTraversed: ${JSON.stringify(allPosTraversed)}`);
-		// 	console.log(`allPosTraversed length: ${JSON.stringify(allPosTraversed.length)}`);
-		// }
-
-		//
-		// STRUCTURE_POWER_SPAWN: "powerSpawn",
-		// near spawns
-		//
-		// STRUCTURE_STORAGE: "storage",
-		// near spawns
-		//
-		// STRUCTURE_TERMINAL: "terminal",
-		// near storage
-		//
-		// STRUCTURE_NUKER: "nuker",
-		// near storage
-		//
-		// STRUCTURE_LAB: "lab",
-		// near storage
-		//
-		// STRUCTURE_FACTORY: "factory",
-		// near labs
-		//
-		// STRUCTURE_EXTENSION: "extension",
-		// near spawns & sources
-		// STRUCTURE_TOWER: "tower",
-		// near spawns and extensions
-		//
-		// STRUCTURE_CONTAINER: "container",
-		// near source align to nearest storage
-		//
-		// STRUCTURE_LINK: "link",
-		// near container at source
-
-		// STRUCTURE_EXTRACTOR: "extractor",
-		// STRUCTURE_ROAD: "road",
-		// STRUCTURE_WALL: "constructedWall",
-		// STRUCTURE_RAMPART: "rampart",
-		//
-		// STRUCTURE_PORTAL: "portal",
-		// STRUCTURE_KEEPER_LAIR: "keeperLair",
-		// STRUCTURE_CONTROLLER: "controller",
-		// STRUCTURE_OBSERVER: "observer",
-		// STRUCTURE_POWER_BANK: "powerBank",
-		// STRUCTURE_INVADER_CORE: "invaderCore",
 	};
 
 	this.mapStructures = (structureArray, idealSpawnPosition) => {
@@ -572,12 +320,12 @@ module.exports = function (memory, game) {
 			let centrePosition = centrePositions.shift();
 			const centrePositionId = this.helper.getPosName(centrePosition.x, centrePosition.y);
 
-			console.log(`centrePositions: ${JSON.stringify(centrePositions)}`);
-			console.log(`centrePosition: ${JSON.stringify(centrePosition)}`);
+			// console.log(`centrePositions: ${JSON.stringify(centrePositions)}`);
+			// console.log(`centrePosition: ${JSON.stringify(centrePosition)}`);
 
 			const centrePositionData = this.roomSurveyData.positionData[centrePositionId];
-			console.log(`positionData: ${JSON.stringify(this.roomSurveyData.positionData)}`);
-			console.log(`centrePositionData: ${JSON.stringify(centrePositionData)}`);
+			// console.log(`positionData: ${JSON.stringify(this.roomSurveyData.positionData)}`);
+			// console.log(`centrePositionData: ${JSON.stringify(centrePositionData)}`);
 
 			if (centrePositionData && centrePositionData.canTravel) {
 				if (!this.roomSurveyData.structureMap[STRUCTURE_ROAD]) {
@@ -589,13 +337,13 @@ module.exports = function (memory, game) {
 
 			const blockPositions = this.getDefaultBaseTemplatePositionBlock(centrePosition);
 
-			console.log(`blockPositions: ${JSON.stringify(blockPositions)}`);
+			//console.log(`blockPositions: ${JSON.stringify(blockPositions)}`);
 
 			for (const i in blockPositions) {
 				const blockPosition = blockPositions[i],
 					blockPositionId = this.helper.getPosName(blockPosition.x, blockPosition.y);
 
-				console.log(`blockPosition: ${JSON.stringify(blockPosition)}`);
+				//console.log(`blockPosition: ${JSON.stringify(blockPosition)}`);
 
 				const blockPositionData = this.roomSurveyData.positionData[blockPositionId];
 
@@ -614,19 +362,23 @@ module.exports = function (memory, game) {
 						// find connecting block centre & add to centrePositions
 						let connectingBlockCentrePosition = this.getPositionFromDirection(blockPosition, blockPosition.direction, 2);
 
-						console.log(`connectingBlockCentrePosition: ${JSON.stringify(connectingBlockCentrePosition)}`);
+						//console.log(`connectingBlockCentrePosition: ${JSON.stringify(connectingBlockCentrePosition)}`);
 
 						if (connectingBlockCentrePosition) {
 							connectingBlockCentrePosition.isRoad = true;
 							const connectingBlockCentrePositionId = this.helper.getPosName(blockPosition.x, blockPosition.y);
-							console.log(`connectingBlockCentrePositionId: ${JSON.stringify(connectingBlockCentrePositionId)}`);
+							//console.log(`connectingBlockCentrePositionId: ${JSON.stringify(connectingBlockCentrePositionId)}`);
 							if (!positionsChecked[connectingBlockCentrePositionId]) {
-								console.log(`connectingBlockCentrePosition: ${JSON.stringify(connectingBlockCentrePosition)}`);
+								//console.log(`connectingBlockCentrePosition: ${JSON.stringify(connectingBlockCentrePosition)}`);
 								centrePositions.push(connectingBlockCentrePosition);
 							}
 						}
 					} else if (blockPositionData && blockPositionData.canBuild) {
 						let strucType = this.structureArray.shift();
+
+						if (!strucType) {
+							break;
+						}
 
 						if (!this.roomSurveyData.structureMap[strucType]) {
 							this.roomSurveyData.structureMap[strucType] = [];
@@ -700,54 +452,6 @@ module.exports = function (memory, game) {
 
 		return positionArray;
 	};
-
-	// this.getConnectingBlockCentrePosition = (position) => {
-	// 	if (!position) {
-	// 		return null;
-	// 	}
-
-	// 	let x = position.x,
-	// 		y = position.y;
-
-	// 	switch (position.direction) {
-	// 		case TOP:
-	// 			y + 2;
-	// 			break;
-	// 		case TOP_RIGHT:
-	// 			x + 2;
-	// 			y + 2;
-	// 			break;
-	// 		case RIGHT:
-	// 			x + 2;
-	// 			break;
-	// 		case BOTTOM_RIGHT:
-	// 			x + 2;
-	// 			y - 2;
-	// 			break;
-	// 		case BOTTOM:
-	// 			y - 2;
-	// 			break;
-	// 		case BOTTOM_LEFT:
-	// 			x - 2;
-	// 			y - 2;
-	// 			break;
-	// 		case LEFT:
-	// 			x - 2;
-	// 			break;
-	// 		case TOP_LEFT:
-	// 			x - 2;
-	// 			y + 2;
-	// 			break;
-	// 		default:
-	// 			return null;
-	// 	}
-
-	// 	if (this.helper.isPosNearEdge(x, y)) {
-	// 		return null;
-	// 	}
-
-	// 	return { x, y, direction };
-	// };
 
 	this.getPositionFromDirection = (originalPos, direction, distance) => {
 		//console.log(`getPositionFromDirection: ${JSON.stringify(originalPos)}, ${JSON.stringify(direction)}, ${JSON.stringify(distance)}`);
@@ -834,12 +538,6 @@ module.exports = function (memory, game) {
 					break;
 				}
 			}
-			// surroundingPositions.every((pos) => {
-			// 	if (this.doesPositionHaveOtherAccess(pos.x, pos.y)) {
-			// 		canBePlaced = true;
-			// 		return true;
-			// 	}
-			// });
 
 			if (canBePlaced) {
 				// current pos is the top right
@@ -850,7 +548,7 @@ module.exports = function (memory, game) {
 				}
 
 				this.roomSurveyData.structureMap[strucType].push({ x, y });
-				console.log(`positionData = ${JSON.stringify(this.roomSurveyData.positionData)}`);
+				//console.log(`positionData = ${JSON.stringify(this.roomSurveyData.positionData)}`);
 				//console.log(`structureMap = ${JSON.stringify(this.roomSurveyData.structureMap)}`);
 				positionData.hasStructure = true;
 				this.roomSurveyData.positionData[id] = positionData;
@@ -881,17 +579,6 @@ module.exports = function (memory, game) {
 				break;
 			}
 		}
-
-		// surroundingPositions.every((pos) => {
-		// 	let id = this.helper.getPosName(pos.x, pos.y),
-		// 		positionData = this.roomSurveyData.positionData[id];
-
-		// 	// position that you can travel over , doens't have
-		// 	if (positionData && positionData.canTravel && !positionData.hasStructure && pos.x != originX && pos.y != originY) {
-		// 		hasOtherAccess = true;
-		// 		return false;
-		// 	}
-		// });
 
 		return hasOtherAccess;
 	};
@@ -964,61 +651,7 @@ module.exports = function (memory, game) {
 			default:
 				return false;
 		}
-
-		// switch (direction) {
-		// 	case TOP:
-		// 		return true;
-		// 	case TOP_RIGHT:
-		// 		return false;
-		// 	case RIGHT:
-		// 		return true;
-		// 	case BOTTOM_RIGHT:
-		// 		return false;
-		// 	case BOTTOM:
-		// 		return true;
-		// 	case BOTTOM_LEFT:
-		// 		return false;
-		// 	case LEFT:
-		// 		return true;
-		// 	case TOP_LEFT:
-		// 		return false;
-		// 	default:
-		// 		return false;
-		// }
-		// use direction to determine next road positions
-
-		// switch (originalPosition.basePositionType) {
-		// 	case BASE_POSITION_TYPES.CROSS_ROAD:
-		//         return this.isLinearDirection(positionToBeChecked.direction);
-		//     case BASE_POSITION_TYPES.CONNECTING_ROAD_ONE:
-
-		// }
 	};
-
-	// this.getDirectionOfPositionFromPosition = (originalPosition, positionToBeChecked) => {
-	// 	const x = originalPosition.x - positionToBeChecked.x,
-	// 		y = originalPosition.y - positionToBeChecked.y;
-
-	// 	if (x === 1 && y === 1) {
-	// 		return BOTTOM_LEFT;
-	// 	} else if (x === 1 && y === 0) {
-	// 		return LEFT;
-	// 	} else if (x === 1 && y === -1) {
-	// 		return TOP_LEFT;
-	// 	} else if (x === 0 && y === 1) {
-	// 		return BOTTOM;
-	// 	} else if (x === 0 && y === -1) {
-	// 		return TOP;
-	// 	} else if (x === -1 && y === -1) {
-	// 		return TOP_RIGHT;
-	// 	} else if (x === -1 && y === 0) {
-	// 		return RIGHT;
-	// 	} else if (x === -1 && y === 1) {
-	// 		return BOTTOM_RIGHT;
-	// 	} else {
-	// 		return -1;
-	// 	}
-	// };
 
 	this.createNewStructureMap = function () {
 		return {
@@ -1071,62 +704,5 @@ module.exports = function (memory, game) {
 		});
 
 		return count;
-	};
-
-	this.identifyRoads = function (room) {
-		// find sources and path to controller
-	};
-
-	this.structurePlacement = function (structure) {
-		/* structure can only be placed if it's accessible
-        what is accessible patterns
-        how to define accessible?
-        minimal
-        - if two free spaces exist
-        basic collection
-        - three structures and there is enough free space for it still to be accessible
-
-        we need to track 
-        - road (mandatory free space) placement 
-        - structures
-        
-        How to determine structure placement and order?
-        - 
-
-        coordinates
-        -------------
-        | 1 | 2 | 3 |
-        -------------
-        | 4 | o | 6 |
-        -------------
-        | 7 | 8 | 9 | 
-		-------------
-		
-		--------------------------
-        |  1 |  2 |  3 |  4 |  5 |
-        --------------------------
-        |  6 |  7 |  8 |  9 | 10 |
-        --------------------------
-        | 11 | 12 | 13 | 14 | 15 |
-		--------------------------
-		| 16 | 17 | 18 | 19 | 20 |
-		--------------------------
-		| 21 | 22 | 23 | 24 | 25 |
-		--------------------------
-		
-		--------------------------
-        |  S |  S |  3 |  4 |  5 |
-        --------------------------
-        |  S |  7 |  8 |  9 | 10 |
-        --------------------------
-        | 11 | 12 | 13 | 14 | 15 |
-		--------------------------
-		| 16 | 17 | 18 | 19 | 20 |
-		--------------------------
-		| 21 | 22 | 23 | 24 | 25 |
-        --------------------------
-
-
-    */
 	};
 };
