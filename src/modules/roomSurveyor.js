@@ -4,6 +4,7 @@ const { STRUCTURE_ROAD } = require("../testing/constants");
 module.exports = function (memory, game) {
 	this.memory = memory;
 	this.game = game;
+	this.surveyVersion = 0.1;
 
 	this.sources = [];
 	this.minerals = [];
@@ -18,17 +19,9 @@ module.exports = function (memory, game) {
 		if (room) {
 			this.room = room;
 
-			// if (this.memory.roomSurveyData) {
-			// 	this.roomSurveyData = this.memory.roomSurveyData;
-			// } else {
-			// 	this.roomSurveyData = {
-			// 		room: room.name,
-			// 		progressPos: { x: 0, y: 0 },
-			// 		exitPathPosCounts: {},
-			// 		positionData: {},
-			// 		totalExits: 0,
-			// 	};
-			// }
+			if (this.room.memory.structureMapVersion && this.surveyVersion <= this.room.memory.structureMapVersion) {
+				return;
+			}
 
 			this.roomSurveyData = {
 				room: room.name,
@@ -75,6 +68,8 @@ module.exports = function (memory, game) {
 			//this.memory.roomSurveyData = this.roomSurveyData;
 
 			room.memory.structureMap = this.roomSurveyData.structureMap;
+			room.memory.structureMapGeneratedTime = this.game.time;
+			room.memory.structureMapVersion = this.surveyVersion;
 		}
 
 		console.log(`roomSurveyData = ${JSON.stringify(this.roomSurveyData)}`);
@@ -290,7 +285,6 @@ module.exports = function (memory, game) {
 			return;
 		}
 
-		//surveyData.structureMap = this.createNewStructureMap();
 		surveyData.structureMap = {};
 
 		let structureArray = [];
@@ -354,10 +348,10 @@ module.exports = function (memory, game) {
 							this.roomSurveyData.structureMap[STRUCTURE_ROAD] = [];
 						}
 						this.roomSurveyData.structureMap[STRUCTURE_ROAD].push({ x: blockPosition.x, y: blockPosition.y });
-						global.debug.colorPositionByStructure(
-							new RoomPosition(blockPosition.x, blockPosition.y, this.roomSurveyData.room),
-							STRUCTURE_ROAD
-						);
+						// global.debug.colorPositionByStructure(
+						// 	new RoomPosition(blockPosition.x, blockPosition.y, this.roomSurveyData.room),
+						// 	STRUCTURE_ROAD
+						// );
 
 						// find connecting block centre & add to centrePositions
 						let connectingBlockCentrePosition = this.getPositionFromDirection(blockPosition, blockPosition.direction, 2);
@@ -385,10 +379,10 @@ module.exports = function (memory, game) {
 						}
 
 						this.roomSurveyData.structureMap[strucType].push({ x: blockPosition.x, y: blockPosition.y });
-						global.debug.colorPositionByStructure(
-							new RoomPosition(blockPosition.x, blockPosition.y, this.roomSurveyData.room),
-							strucType
-						);
+						// global.debug.colorPositionByStructure(
+						// 	new RoomPosition(blockPosition.x, blockPosition.y, this.roomSurveyData.room),
+						// 	strucType
+						// );
 					}
 				}
 			}
@@ -497,12 +491,12 @@ module.exports = function (memory, game) {
 				y += distance;
 				break;
 			default:
-				console.log(`return null`);
+				//console.log(`return null`);
 				return null;
 		}
 
 		if (this.helper.isPosNearEdge(x, y)) {
-			console.log(`near edge`);
+			//console.log(`near edge`);
 			return null;
 		}
 
@@ -512,167 +506,96 @@ module.exports = function (memory, game) {
 		return returnedPosition;
 	};
 
-	this.assessPosForStructure = (x, y) => {
-		//console.log(`x: ${JSON.stringify(x)}, y:${JSON.stringify(y)}`);
-		const canBePlaced = this.canStructureBePlaced(x, y);
-		//console.log(`canBePlaced: ${JSON.stringify(canBePlaced)}`);
-		return canBePlaced;
-	};
+	// this.getSurroundingPositions = (x, y) => {
+	// 	let topPos = { x: x, y: y + 1, direction: TOP },
+	// 		leftPos = { x: x - 1, y, direction: LEFT },
+	// 		rightPos = { x: x, y: y + 1, direction: RIGHT },
+	// 		bottomPos = { x: x, y: y - 1, direction: BOTTOM },
+	// 		topRightPos = { x: x + 1, y: y + 1, direction: TOP_RIGHT },
+	// 		topLeftPos = { x: x - 1, y: y + 1, direction: TOP_LEFT },
+	// 		bottomLeftPos = { x: x - 1, y: y - 1, direction: BOTTOM_LEFT },
+	// 		bottomRightPos = { x: x + 1, y: y - 1, direction: BOTTOM_RIGHT };
 
-	this.canStructureBePlaced = (x, y) => {
-		let surroundingPositions = this.getSurroundingPositions(x, y),
-			canBePlaced = true,
-			id = this.helper.getPosName(x, y),
-			positionData = this.roomSurveyData.positionData[id];
+	// 	return [topPos, rightPos, bottomPos, leftPos, topLeftPos, topRightPos, bottomLeftPos, bottomRightPos];
+	// };
 
-		//console.log(`positionData = ${JSON.stringify(positionData)}`);
+	// this.getStructurePositions = (x, y) => {
+	// 	let topPos = { x: x, y: y + 1, direction: TOP },
+	// 		leftPos = { x: x - 1, y, direction: LEFT },
+	// 		rightPos = { x: x, y: y + 1, direction: RIGHT },
+	// 		bottomPos = { x: x, y: y - 1, direction: BOTTOM };
 
-		if (positionData) {
-			// check each surrounding pos to see if you  can build on it
-			// need to think of a better way of doing this. Checking surrounding positions to see where the current position is.
+	// 	return [topPos, rightPos, bottomPos, leftPos];
+	// };
 
-			for (const i in surroundingPositions) {
-				const pos = surroundingPositions[i];
-				if (!this.doesPositionHaveOtherAccess(pos.x, pos.y)) {
-					canBePlaced = false;
-					break;
-				}
-			}
+	// this.getRoadPositions = (x, y) => {
+	// 	let topRightPos = { x: x + 1, y: y + 1, direction: TOP_RIGHT },
+	// 		topLeftPos = { x: x - 1, y: y + 1, direction: TOP_LEFT },
+	// 		bottomLeftPos = { x: x - 1, y: y - 1, direction: BOTTOM_LEFT },
+	// 		bottomRightPos = { x: x + 1, y: y - 1, direction: BOTTOM_RIGHT };
 
-			if (canBePlaced) {
-				// current pos is the top right
-				let strucType = this.structureArray.shift();
+	// 	return [topLeftPos, topRightPos, bottomLeftPos, bottomRightPos];
+	// };
 
-				if (!this.roomSurveyData.structureMap[strucType]) {
-					this.roomSurveyData.structureMap[strucType] = [];
-				}
+	// this.isLinearDirection = (direction) => {
+	// 	switch (direction) {
+	// 		case TOP:
+	// 			return true;
+	// 		case TOP_RIGHT:
+	// 			return false;
+	// 		case RIGHT:
+	// 			return true;
+	// 		case BOTTOM_RIGHT:
+	// 			return false;
+	// 		case BOTTOM:
+	// 			return true;
+	// 		case BOTTOM_LEFT:
+	// 			return false;
+	// 		case LEFT:
+	// 			return true;
+	// 		case TOP_LEFT:
+	// 			return false;
+	// 		default:
+	// 			return false;
+	// 	}
+	// };
 
-				this.roomSurveyData.structureMap[strucType].push({ x, y });
-				//console.log(`positionData = ${JSON.stringify(this.roomSurveyData.positionData)}`);
-				//console.log(`structureMap = ${JSON.stringify(this.roomSurveyData.structureMap)}`);
-				positionData.hasStructure = true;
-				this.roomSurveyData.positionData[id] = positionData;
+	// this.isRoadPosition = (originalPosition, positionToBeChecked) => {
+	// 	// determine previous parent direction
+	// 	//var direction = this.getDirectionOfPositionFromPosition(originalPosition, positionToBeChecked);
+	// 	// check what type of road
+	// 	switch (originalPosition.basePositionType) {
+	// 		case BASE_POSITION_TYPES.CROSS_ROAD:
+	// 			return this.isLinearDirection(positionToBeChecked.direction);
+	// 		case BASE_POSITION_TYPES.CONNECTING_ROAD_ONE:
+	// 			return originalPosition.direction === positionToBeChecked.direction;
+	// 		case BASE_POSITION_TYPES.CONNECTING_ROAD_TWO:
+	// 			return originalPosition.direction === positionToBeChecked.direction;
+	// 		default:
+	// 			return false;
+	// 	}
+	// };
 
-				global.debug.colorPositionByStructure(new RoomPosition(x, y, this.roomSurveyData.room), strucType);
-			}
-		} else {
-			canBePlaced = false;
-		}
-
-		return canBePlaced;
-	};
-
-	this.doesPositionHaveOtherAccess = (x, y) => {
-		let surroundingPositions = this.getSurroundingPositions(x, y),
-			hasOtherAccess = false;
-
-		//console.log(`surroundingPositions: ${JSON.stringify(surroundingPositions)}`);
-
-		for (const i in surroundingPositions) {
-			let pos = surroundingPositions[i];
-			let id = this.helper.getPosName(pos.x, pos.y),
-				positionData = this.roomSurveyData.positionData[id];
-
-			// position that you can travel over , doens't have
-			if (positionData && positionData.canTravel && !positionData.hasStructure) {
-				hasOtherAccess = true;
-				break;
-			}
-		}
-
-		return hasOtherAccess;
-	};
-
-	this.getSurroundingPositions = (x, y) => {
-		let topPos = { x: x, y: y + 1, direction: TOP },
-			leftPos = { x: x - 1, y, direction: LEFT },
-			rightPos = { x: x, y: y + 1, direction: RIGHT },
-			bottomPos = { x: x, y: y - 1, direction: BOTTOM },
-			topRightPos = { x: x + 1, y: y + 1, direction: TOP_RIGHT },
-			topLeftPos = { x: x - 1, y: y + 1, direction: TOP_LEFT },
-			bottomLeftPos = { x: x - 1, y: y - 1, direction: BOTTOM_LEFT },
-			bottomRightPos = { x: x + 1, y: y - 1, direction: BOTTOM_RIGHT };
-
-		return [topPos, rightPos, bottomPos, leftPos, topLeftPos, topRightPos, bottomLeftPos, bottomRightPos];
-	};
-
-	this.getStructurePositions = (x, y) => {
-		let topPos = { x: x, y: y + 1, direction: TOP },
-			leftPos = { x: x - 1, y, direction: LEFT },
-			rightPos = { x: x, y: y + 1, direction: RIGHT },
-			bottomPos = { x: x, y: y - 1, direction: BOTTOM };
-
-		return [topPos, rightPos, bottomPos, leftPos];
-	};
-
-	this.getRoadPositions = (x, y) => {
-		let topRightPos = { x: x + 1, y: y + 1, direction: TOP_RIGHT },
-			topLeftPos = { x: x - 1, y: y + 1, direction: TOP_LEFT },
-			bottomLeftPos = { x: x - 1, y: y - 1, direction: BOTTOM_LEFT },
-			bottomRightPos = { x: x + 1, y: y - 1, direction: BOTTOM_RIGHT };
-
-		return [topLeftPos, topRightPos, bottomLeftPos, bottomRightPos];
-	};
-
-	this.isLinearDirection = (direction) => {
-		switch (direction) {
-			case TOP:
-				return true;
-			case TOP_RIGHT:
-				return false;
-			case RIGHT:
-				return true;
-			case BOTTOM_RIGHT:
-				return false;
-			case BOTTOM:
-				return true;
-			case BOTTOM_LEFT:
-				return false;
-			case LEFT:
-				return true;
-			case TOP_LEFT:
-				return false;
-			default:
-				return false;
-		}
-	};
-
-	this.isRoadPosition = (originalPosition, positionToBeChecked) => {
-		// determine previous parent direction
-		//var direction = this.getDirectionOfPositionFromPosition(originalPosition, positionToBeChecked);
-		// check what type of road
-		switch (originalPosition.basePositionType) {
-			case BASE_POSITION_TYPES.CROSS_ROAD:
-				return this.isLinearDirection(positionToBeChecked.direction);
-			case BASE_POSITION_TYPES.CONNECTING_ROAD_ONE:
-				return originalPosition.direction === positionToBeChecked.direction;
-			case BASE_POSITION_TYPES.CONNECTING_ROAD_TWO:
-				return originalPosition.direction === positionToBeChecked.direction;
-			default:
-				return false;
-		}
-	};
-
-	this.createNewStructureMap = function () {
-		return {
-			spawn: {},
-			extension: {},
-			road: {},
-			constructedWall: {},
-			rampart: {},
-			controller: {},
-			link: {},
-			storage: {},
-			tower: {},
-			observer: {},
-			powerSpawn: {},
-			extractor: {},
-			lab: {},
-			terminal: {},
-			container: {},
-			nuker: {},
-		};
-	};
+	// this.createNewStructureMap = function () {
+	// 	return {
+	// 		spawn: {},
+	// 		extension: {},
+	// 		road: {},
+	// 		constructedWall: {},
+	// 		rampart: {},
+	// 		controller: {},
+	// 		link: {},
+	// 		storage: {},
+	// 		tower: {},
+	// 		observer: {},
+	// 		powerSpawn: {},
+	// 		extractor: {},
+	// 		lab: {},
+	// 		terminal: {},
+	// 		container: {},
+	// 		nuker: {},
+	// 	};
+	// };
 
 	this.getSurroundingPositionExitPathCounts = (x, y) => {
 		this.exitPositions = [
