@@ -130,6 +130,13 @@ module.exports = {
 		CONNECTING_ROAD_ONE: 1,
 		CONNECTING_ROAD_TWO: 1,
 	},
+	OPERATION_TYPE: {
+		BUILD: "build",
+	},
+
+	OBJECT_TYPE: {
+		OPERATION: "operation",
+	},
 };
 // global.COORDINATES_MAX_SIZE = 49;
 

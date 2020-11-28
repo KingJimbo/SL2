@@ -15,7 +15,7 @@ module.exports = function (memory, game) {
 	var Helper = require("../common/helper");
 	this.helper = new Helper();
 
-	this.surveyRoom = function (room) {
+	this.surveyRoomForStructures = function (room) {
 		if (room) {
 			this.room = room;
 
@@ -72,7 +72,7 @@ module.exports = function (memory, game) {
 			room.memory.structureMapVersion = this.surveyVersion;
 		}
 
-		console.log(`roomSurveyData = ${JSON.stringify(this.roomSurveyData)}`);
+		//console.log(`roomSurveyData = ${JSON.stringify(this.roomSurveyData)}`);
 		return this.roomSurveyData;
 	};
 
@@ -117,7 +117,7 @@ module.exports = function (memory, game) {
 
 	this.getPositionDistanceData = function (posToCheck) {
 		//console.log("getPositionDistanceData");
-		console.log(`posToCheck: ${JSON.stringify(posToCheck)}`);
+		//console.log(`posToCheck: ${JSON.stringify(posToCheck)}`);
 
 		let positionDistanceData = {
 			distances: {
@@ -301,7 +301,7 @@ module.exports = function (memory, game) {
 		}
 
 		this.structureArray = structureArray;
-		console.log(`structureArray: ${JSON.stringify(structureArray)}`);
+		//console.log(`structureArray: ${JSON.stringify(structureArray)}`);
 
 		this.mapStructures(this.structureArray, idealSpawnPosition);
 	};

@@ -9,14 +9,20 @@ module.exports = function () {
 		Memory.counts = {};
 	}
 
-	const Move = require('./modules/move.js');
+	const Move = require("./modules/move.js");
 	this.move = new Move();
 
-	const CreepRequisitioner = require('./modules/creepRequisitioner.js');
+	const CreepRequisitioner = require("./modules/creepRequisitioner.js");
 	this.creepRequisitioner = new CreepRequisitioner();
 
-	const Resource = require('./modules/resource.js');
+	const Resource = require("./modules/resource.js");
 	this.resource = new Resource();
+
+	const RoomSurveyor = require("./modules/roomSurveyor");
+	this.roomSurveyor = new RoomSurveyor(Memory, Game);
+
+	const RoomBuildModule = require("./modules/roomBuildModule");
+	this.roomBuildModule = new RoomBuildModule();
 
 	// run function will activate every loop
 	this.run = () => {
@@ -30,9 +36,20 @@ module.exports = function () {
 			let room = Game.rooms[i];
 
 			if (room.controller.my) {
-				//console.log(`runRooms room: ${room.name}`);
+				// do survey if not done before or current version is newer than last survey
+				if (
+					!room.memory.structureMapVersion ||
+					(room.memory.structureMapVersion && this.roomSurveyor.surveyVersion > room.memory.structureMapVersion)
+				) {
+					this.roomSurveyor.surveyRoomForStructures(room);
+				}
+
+				if (!room.memory.structuresBuiltLastCheckedRoomLevel || room.controller.level > room.memory.structuresBuiltLastCheckedRoomLevel) {
+				}
 
 				if (room.memory.spawnQueue && room.memory.spawnQueue.length) {
+					//console.log(`runRooms room: ${room.name}`);
+
 					let spawnQueueCopy = [];
 
 					room.memory.spawnQueue.forEach((id) => {
@@ -160,14 +177,14 @@ module.exports = function () {
 					console.log(`runRooms: No spawns found! room: ${room.name}`);
 				} else {
 					if (room.memory.spawnQueue && room.memory.spawnQueue.length) {
-						console.log('spawn queue logic');
+						console.log("spawn queue logic");
 						for (let i = 0; i < spawns.length; i++) {
 							let spawn = spawns[i];
 
 							console.log(`found spawn ${spawn.id}`);
 
 							if (!spawn.memory.creepToSpawn && room.memory.spawnQueue && room.memory.spawnQueue.length) {
-								console.log('adding creepToSpawn from spawn Queue');
+								console.log("adding creepToSpawn from spawn Queue");
 								spawn.memory.creepToSpawn = room.memory.spawnQueue.shift();
 							}
 
@@ -203,7 +220,7 @@ module.exports = function () {
 									}
 								} else {
 									// doesn't exist any more to delete
-									console.log('Did not find creep to spawn');
+									console.log("Did not find creep to spawn");
 									delete spawn.memory.creepToSpawn;
 								}
 							}
@@ -221,17 +238,17 @@ module.exports = function () {
 			let creep = Game.creeps[name];
 			if (!creep.memory.role) {
 				//do somehting to reassign creep
-				console.log('No creep role found in memory adding to idle pool');
+				console.log("No creep role found in memory adding to idle pool");
 				this.creepRequisitioner.addCreepToIdlePool(creep.room, creep);
 			}
 
-			if (!creep.memory.type || creep.memory.type === 'unknown') {
+			if (!creep.memory.type || creep.memory.type === "unknown") {
 				creep.memory.type = CREEP_TYPES.UTILITY;
 			}
 			switch (creep.memory.role) {
-				case 'idle':
+				case "idle":
 					if (!Memory.idleCreeps[creep.name]) {
-						console.log('No creep name found idle creep memory adding to idle pool');
+						console.log("No creep name found idle creep memory adding to idle pool");
 						this.creepRequisitioner.addCreepToIdlePool(creep.room, creep);
 					}
 					creep.moveTo(0, 0);
@@ -239,12 +256,12 @@ module.exports = function () {
 				case CREEP_ROLES.HARVESTER:
 					if (!creep.memory.currentAction) {
 						creep.store.getFreeCapacity(RESOURCE_ENERGY) < creep.store.getCapacity(RESOURCE_ENERGY)
-							? (creep.memory.currentAction = 'goToSource')
-							: (creep.memory.currentAction = 'goToDestination');
+							? (creep.memory.currentAction = "goToSource")
+							: (creep.memory.currentAction = "goToDestination");
 					}
 
 					switch (creep.memory.currentAction) {
-						case 'goToSource':
+						case "goToSource":
 							let source = Game.getObjectById(creep.memory.sourceId);
 
 							if (!source) {
@@ -277,12 +294,12 @@ module.exports = function () {
 
 							creep.moveTo(source.pos);
 							if (creep.pos.isNearTo(source.pos)) {
-								creep.memory.currentAction = 'harvest';
+								creep.memory.currentAction = "harvest";
 								creep.harvest(Game.getObjectById(creep.memory.sourceId));
 							}
 
 							break;
-						case 'harvest':
+						case "harvest":
 							if (creep.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
 								creep.harvest(Game.getObjectById(creep.memory.sourceId));
 							} else {
@@ -295,16 +312,16 @@ module.exports = function () {
 									);
 								}
 
-								creep.memory.currentAction = 'goToDestination';
+								creep.memory.currentAction = "goToDestination";
 								let destination = this.resource.getResourceOrderItemDestination(creep.memory.resourceOrderItemId);
 								creep.moveTo(destination.pos);
 							}
 
 							break;
-						case 'goToDestination':
+						case "goToDestination":
 							if (!creep.memory.resourceOrderItemId) {
 								if (creep.store.getFreeCapacity(RESOURCE_ENERGY) !== 0) {
-									creep.memory.currentAction = 'goToSource';
+									creep.memory.currentAction = "goToSource";
 								} else {
 									this.resource.findNextResourceOrderToFulfill(
 										creep.room,
@@ -341,7 +358,7 @@ module.exports = function () {
 										console.log(`transferResult: ${transferResult}`);
 									}
 
-									creep.memory.currentAction = 'goToSource';
+									creep.memory.currentAction = "goToSource";
 								}
 							}
 
@@ -364,7 +381,7 @@ module.exports = function () {
 		//console.log('Start App.getAccessiblePositions');
 		//test
 		if (!pos) {
-			console.log('getAccessiblePositions invalid parameter');
+			console.log("getAccessiblePositions invalid parameter");
 		}
 
 		var room = Game.rooms[pos.roomName];
@@ -472,7 +489,7 @@ module.exports = function () {
 		let ratio = Math.floor(availableEnergy / ratioCost);
 
 		if (ratio === 0) {
-			console.log('not enough energy capacity to generate creep template');
+			console.log("not enough energy capacity to generate creep template");
 			return;
 		}
 
