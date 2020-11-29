@@ -1,4 +1,5 @@
 const { createBuildOperation } = require("../actions/operation");
+const { isRoomStructureInitialised } = require("../actions/room");
 
 module.exports = function () {
 	this.createBuildOperations = (room) => {
@@ -24,8 +25,10 @@ module.exports = function () {
 				const structurePosition = structTypeArray.shift();
 
 				if (structurePosition) {
-					if (!createBuildOperation(structurePosition.structureType, structurePosition.x, structurePosition.y, room.name)) {
-						console.log("failed to create build operation!");
+					if (!isRoomStructureInitialised(structurePosition.structureType, structurePosition.x, structurePosition.y, room.name)) {
+						if (!createBuildOperation(structurePosition.structureType, structurePosition.x, structurePosition.y, room.name)) {
+							console.log("failed to create build operation!");
+						}
 					}
 				}
 			}

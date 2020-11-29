@@ -137,6 +137,11 @@ module.exports = {
 	OBJECT_TYPE: {
 		OPERATION: "operation",
 	},
+	STRUCTURE_BUILD_STATUS: {
+		INITIALISED: 0,
+		IN_CONSTRUCTION: 1,
+		CONSTRUCTED: 2,
+	},
 };
 // global.COORDINATES_MAX_SIZE = 49;
 

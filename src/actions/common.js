@@ -2,6 +2,7 @@ module.exports = {
 	isANumber: (number) => {
 		return typeof number == "number";
 	},
+
 	getPosName: (x, y) => {
 		return `${x}-${y}`;
 	},
@@ -36,5 +37,34 @@ module.exports = {
 		Memory[objectType] = objectCollection;
 
 		return object;
+	},
+
+	getObject: (objectType, id) => {
+		if (objectType && id) {
+			var objectTypeCollection = Memory[objectType];
+
+			if (!objectTypeCollection) {
+				objectTypeCollection = {};
+			}
+
+			let object = objectTypeCollection[id];
+
+			if (object) {
+				return object;
+			}
+		}
+
+		console.log(`could not find object belonging to objectType:${objectType}, id:${id} `);
+		return null;
+	},
+
+	deleteObject: (objectType, id) => {
+		if (objectType && id && Memory[objectType] && Memory[objectType][id]) {
+			delete Memory[objectType][id];
+			return true;
+		}
+
+		console.log(`could not find object belonging to objectType:${objectType}, id:${id} `);
+		return false;
 	},
 };

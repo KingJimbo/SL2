@@ -1,8 +1,8 @@
-const { OPERATION_TYPE, OBJECT_TYPE } = require("../common/constants");
+const { OPERATION_TYPE, OBJECT_TYPE, STRUCTURE_BUILD_STATUS } = require("../common/constants");
 const { saveObject, getPosName, isANumber } = require("../actions/common");
 
 module.exports = {
-	createBuildOperation: function (structureType, x, y, roomName) {
+	createBuildOperation: (structureType, x, y, roomName) => {
 		if (roomName && isANumber(x) && isANumber(y) && structureType) {
 			let room = Game.rooms[roomName];
 
@@ -17,11 +17,20 @@ module.exports = {
 				});
 
 				if (buildOperation) {
-					if (!room.memory.structures) {
-						room.memory.structures = {};
+					if (!room.memory.positionInformation) {
+						room.memory.positionInformation = {};
 					}
 
-					room.memory.structures;
+					let posName = getPosName(x, y);
+
+					room.memory.positionInformation[posName] = {
+						x,
+						y,
+						structureType,
+						status: STRUCTURE_BUILD_STATUS.INITIALISED,
+						buildOperationId: buildOperation.id,
+					};
+
 					return buildOperation;
 				} else {
 					console.log(`Failed to create build operation`);
