@@ -1,33 +1,40 @@
 module.exports = {
-  getNextId = (type) => {
-    let id = Memory.ids[type];
+	isANumber: (number) => {
+		return typeof number == "number";
+	},
+	getPosName: (x, y) => {
+		return `${x}-${y}`;
+	},
 
-    if(!id){
-      id = 0;
-    }
-    id++;
-    Memory.ids[type] = id;
-    return id;
-  },
+	getNextId: (type) => {
+		let id = Memory.ids[type];
 
-  saveObject = (object) => {
-    let objectCollection = Memory[object.objectType];
-    let id = null;
-    if(!objectCollection){
-      objectCollection = {};
-    }
+		if (!id) {
+			id = 0;
+		}
+		id++;
+		Memory.ids[type] = id;
+		return `${type}-${id}`;
+	},
 
-    if(!object.id){
-      id = getNextId(OBJECT_TYPE.OPERATION);
-      object.id = id;
-    } else{
-      id = object.id;
-    }
+	saveObject: (object) => {
+		let objectCollection = Memory[object.objectType];
+		let id = null;
+		if (!objectCollection) {
+			objectCollection = {};
+		}
 
-    objectCollection[id] = object;
+		if (!object.id) {
+			id = getNextId(OBJECT_TYPE.OPERATION);
+			object.id = id;
+		} else {
+			id = object.id;
+		}
 
-    Memory[objectType] = objectCollection;
+		objectCollection[id] = object;
 
-    return object;
-  }
-}
+		Memory[objectType] = objectCollection;
+
+		return object;
+	},
+};
