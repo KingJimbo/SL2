@@ -12,9 +12,9 @@ module.exports = function () {
 		let resourceOrder;
 	}
 
-	this.createResourceOrder = (room, destinationId, type, amount) => {
+	this.createResourceOrder = (room, destinationId, type, amount, isContructionSite) => {
 		if (!room || !type || !amount) {
-			console.log('createResourceOrder: Invalid parameters');
+			console.log("createResourceOrder: Invalid parameters");
 			return false;
 		}
 
@@ -45,6 +45,7 @@ module.exports = function () {
 			amount,
 			amountPending: 0,
 			amountFulfilled: 0,
+			isContructionSite,
 			orderItemIds: {},
 			createdTime: Game.time,
 		};
@@ -83,7 +84,7 @@ module.exports = function () {
 
 	this.findNextResourceOrderToFulfill = (room, creep, type, amount) => {
 		if (!room || !creep || !type || !amount) {
-			console.log('findNextResourceOrderToFulfill: Invalid parameters');
+			console.log("findNextResourceOrderToFulfill: Invalid parameters");
 		}
 
 		this.checkRoomForResourceOrder(room, type);
@@ -125,7 +126,7 @@ module.exports = function () {
 
 					queueIndex++;
 				}
-				queue = room.memory.resourceOrders[type][structure];
+				//queue = room.memory.resourceOrders[type][structure];
 			}
 			//test
 			strucIndex++;
@@ -149,7 +150,7 @@ module.exports = function () {
 
 	this.checkRoomForResourceOrder = (room, type) => {
 		if (!room || !type) {
-			console.log('checkRoomForResourceOrder: Invalid parameters');
+			console.log("checkRoomForResourceOrder: Invalid parameters");
 		}
 
 		if (!room.memory.resourceOrders) {
@@ -163,14 +164,14 @@ module.exports = function () {
 
 	this.createResourceOrderItem = (creep, type, amount, order) => {
 		if (!creep || !type || !amount || !order) {
-			console.log('createResourceOrderItem: Invalid parameters');
+			console.log("createResourceOrderItem: Invalid parameters");
 			return false;
 		}
 
 		const amountLeft = order.amount - (order.amountPending + order.amountFulfilled);
 
 		if (amountLeft <= 0) {
-			console.log('createResourceOrderItem: amountLeft is less than originally requested!');
+			console.log("createResourceOrderItem: amountLeft is less than originally requested!");
 			this.deleteOrder(order);
 			return false;
 		}
@@ -214,7 +215,7 @@ module.exports = function () {
 		let order = Memory.resourceOrders[orderItem.orderId];
 
 		if (!order) {
-			console.log('fulfillResourceOrderItem: could not find order to fulfill!');
+			console.log("fulfillResourceOrderItem: could not find order to fulfill!");
 			delete Memory.resourceOrderItems[creep.memory.resourceOrderItemId];
 			delete creep.memory.resourceOrderItemId;
 
@@ -224,14 +225,19 @@ module.exports = function () {
 		let structure = Game.getObjectById(order.destinationId);
 
 		if (!structure) {
-			console.log('fulfillResourceOrderItem: Could not find structure for  resource order!');
+			console.log("fulfillResourceOrderItem: Could not find structure for  resource order!");
 
 			this.deleteOrder(order);
 
 			return false;
 		}
 
-		let transferResult = creep.transfer(structure, order.type, orderItem.amount);
+		let transferResult = null;
+		if (order.isContructionSite) {
+			transferResult = creep.build(structure);
+		} else {
+			transferResult = creep.transfer(structure, order.type, orderItem.amount);
+		}
 
 		switch (transferResult) {
 			case OK:
@@ -297,7 +303,7 @@ module.exports = function () {
 
 	this.deleteOrderItem = (orderItem) => {
 		if (!orderItem) {
-			console.log('deleteOrderItem: Invalid Parameters!');
+			console.log("deleteOrderItem: Invalid Parameters!");
 			return false;
 		}
 
@@ -326,7 +332,7 @@ module.exports = function () {
 
 	this.deleteOrder = (order) => {
 		if (!order) {
-			console.log('deleteOrder: Invalid parameter!');
+			console.log("deleteOrder: Invalid parameter!");
 		}
 
 		if (order.orderItemIds && order.orderItemIds.length) {
@@ -362,7 +368,7 @@ module.exports = function () {
 
 	this.getStructureResourceOrderId = (struc, type) => {
 		if (!struc || !type) {
-			console.log('getStructureResourceOrderId: Invalid parameters!');
+			console.log("getStructureResourceOrderId: Invalid parameters!");
 		}
 
 		if (!Memory[struc.structureType]) {
@@ -384,7 +390,7 @@ module.exports = function () {
 
 	this.getResourceOrderItemDestination = (resourceOrderItemId) => {
 		if (!resourceOrderItemId) {
-			console.log('getResourceOrderItemDestination: Invalid parameters');
+			console.log("getResourceOrderItemDestination: Invalid parameters");
 			return false;
 		}
 

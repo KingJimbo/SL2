@@ -28,6 +28,8 @@ module.exports = function () {
 	this.run = () => {
 		this.runRooms();
 
+		this.runOperations();
+
 		this.runCreeps();
 	};
 
@@ -45,7 +47,10 @@ module.exports = function () {
 				}
 
 				if (!room.memory.structuresBuiltLastCheckedRoomLevel || room.controller.level > room.memory.structuresBuiltLastCheckedRoomLevel) {
+					this.roomBuildModule.createBuildOperations(room);
 				}
+
+				this.roomBuildModule.managedConstructionSites(room);
 
 				if (room.memory.spawnQueue && room.memory.spawnQueue.length) {
 					//console.log(`runRooms room: ${room.name}`);
@@ -229,6 +234,30 @@ module.exports = function () {
 				}
 			}
 		}
+	};
+
+	this.runOperations = () => {
+		let operations = getObjects(OBJECT_TYPE.OPERATION);
+
+		if (!operations || !operations.length) {
+			console.log("No operations found!");
+			return;
+		}
+
+		operations.forEach((operation) => {
+			if (!operation.operationType) {
+				throw new Error(`operation doens't contain an operation type!`);
+			}
+
+			switch (operation.operationType) {
+				case OPERATION_TYPE.BUILD:
+					// do operation
+					runBuildOperation(operation);
+					break;
+				default:
+					throw new Error(`operation type ${operation.operationType} not currently supported.`);
+			}
+		});
 	};
 
 	this.runCreeps = () => {

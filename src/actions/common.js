@@ -8,6 +8,10 @@ module.exports = {
 	},
 
 	getNextId: (type) => {
+		if (!Memory.ids) {
+			Memory.ids = {};
+		}
+
 		let id = Memory.ids[type];
 
 		if (!id) {
@@ -18,53 +22,29 @@ module.exports = {
 		return `${type}-${id}`;
 	},
 
-	saveObject: (object) => {
-		let objectCollection = Memory[object.objectType];
-		let id = null;
-		if (!objectCollection) {
-			objectCollection = {};
-		}
+	getRoom: (roomName) => {
+		if (roomName) {
+			let room = Game.rooms[roomName];
 
-		if (!object.id) {
-			id = getNextId(OBJECT_TYPE.OPERATION);
-			object.id = id;
-		} else {
-			id = object.id;
-		}
-
-		objectCollection[id] = object;
-
-		Memory[objectType] = objectCollection;
-
-		return object;
-	},
-
-	getObject: (objectType, id) => {
-		if (objectType && id) {
-			var objectTypeCollection = Memory[objectType];
-
-			if (!objectTypeCollection) {
-				objectTypeCollection = {};
-			}
-
-			let object = objectTypeCollection[id];
-
-			if (object) {
-				return object;
+			if (room) {
+				return room;
 			}
 		}
 
-		console.log(`could not find object belonging to objectType:${objectType}, id:${id} `);
+		console.log(`Invalid roomName: ${roomName}`);
 		return null;
 	},
 
-	deleteObject: (objectType, id) => {
-		if (objectType && id && Memory[objectType] && Memory[objectType][id]) {
-			delete Memory[objectType][id];
-			return true;
+	isValidStructureBuildStatus: (status) => {
+		switch (status) {
+			case STRUCTURE_BUILD_STATUS.CONSTRUCTED:
+				return true;
+			case STRUCTURE_BUILD_STATUS.IN_CONSTRUCTION:
+				return true;
+			case STRUCTURE_BUILD_STATUS.INITIALISED:
+				return true;
+			default:
+				return false;
 		}
-
-		console.log(`could not find object belonging to objectType:${objectType}, id:${id} `);
-		return false;
 	},
 };

@@ -29,11 +29,11 @@ module.exports.loop = function () {
 	const App = require("./app.js");
 	let app = new App();
 
-	const RoomBuildModule = require("./modules/roomBuildModule");
-	let roomBuildModule = new RoomBuildModule();
+	// const RoomBuildModule = require("./modules/roomBuildModule");
+	// let roomBuildModule = new RoomBuildModule();
 
-	const RoomSurveyModule = require("./modules/roomSurveyor");
-	let roomSurveyModule = new RoomSurveyModule(Memory, Game);
+	// const RoomSurveyModule = require("./modules/roomSurveyor");
+	// let roomSurveyModule = new RoomSurveyModule(Memory, Game);
 
 	if (console.settings.debug) {
 		console._log = console.log;
@@ -52,15 +52,15 @@ module.exports.loop = function () {
 	console.log("loop start");
 
 	try {
-		//app.run();
+		app.run();
 
-		for (var i in Game.rooms) {
-			let room = Game.rooms[i];
-			let roomStructureMap = roomSurveyModule.surveyRoomForStructures(room);
-			let buildQueue = roomBuildModule.createBuildQueue(room);
+		// for (var i in Game.rooms) {
+		// 	let room = Game.rooms[i];
+		// 	let roomStructureMap = roomSurveyModule.surveyRoomForStructures(room);
+		// 	let buildQueue = roomBuildModule.createBuildQueue(room);
 
-			console.log(`buildQueue: ${JSON.stringify(buildQueue)}`);
-		}
+		// 	console.log(`buildQueue: ${JSON.stringify(buildQueue)}`);
+		// }
 	} catch (error) {
 		console.log("An error has occured!");
 		console.log("message: " + error.message);

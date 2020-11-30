@@ -52,7 +52,7 @@ module.exports = function (memory, game) {
 			this.roomSurveyData.totalExits = this.exits.length;
 
 			const lookAtArray = room.lookAtArea(0, 0, COORDINATES_MAX_SIZE, COORDINATES_MAX_SIZE, true); // as array
-			console.log(`lookAtArray = ${JSON.stringify(lookAtArray.length)}`);
+			//console.log(`lookAtArray = ${JSON.stringify(lookAtArray.length)}`);
 
 			for (const i in lookAtArray) {
 				const lookAtItem = lookAtArray[i];
