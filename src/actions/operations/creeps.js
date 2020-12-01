@@ -1,33 +1,36 @@
 module.exports = {
 	checkOperationCreeps: (operation) => {
-		if (!operation || !operation.requiredCreeps) {
+		if (!operation || !operation.creepRoles) {
 			throw new Error(`Invalid parameters! operation ${JSON.stringify(operation)}`);
 		}
 
 		// check differences in required and current
-		let requiredCreepRoles = { ...operation.requiredCreeps };
 
-		if (operation.currentCreeps) {
+		for (const roleName in operation.creepRoles) {
+			let role = operation.creepRoles[roleName];
+			let noOfCurrentCreeps = 0;
 			let creepsToDelete = [];
-			let curentCreepRoles = [];
 
-			for (const creepName in operation.currentCreeps) {
-				let creep = Game.creeps[creepId];
-				if (!creep) {
-					//creep no longer exists so remove
-					creepsToDelete.push(i);
+			if (role) {
+				for (const creepName in operation.creepRoles[roleName].currentCreeps) {
+					let creep = Game.creeps[creepName];
+					if (!creep) {
+						//creep no longer exists so remove
+						creepsToDelete.push(i);
+						continue;
+					}
+
+					// if creep role exists
+					if (operation.creepRoles[creep.memory.role]) {
+						// remove a role
+					}
 				}
 
-				if (!requiredCreepRoles[creep.memory.role]) {
+				if (creepsToDelete) {
+					creepsToDelete.forEach((name) => {
+						delete operation.creepRoles[roleName].currentCreeps[name];
+					});
 				}
-
-				creep.memory.role;
-			}
-
-			if (creepsToDelete) {
-				creepsToDelete.forEach((name) => {
-					delete operation.currentCreeps[name];
-				});
 			}
 		}
 
