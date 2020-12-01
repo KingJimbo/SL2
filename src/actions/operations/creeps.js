@@ -14,8 +14,11 @@ module.exports = {
 			let creepsToDelete = [];
 
 			if (role) {
-				for (const creepName in operation.creepRoles[roleName].currentCreeps) {
-					let creep = Game.creeps[creepName];
+				for (const creepName in operation.creepRoles[roleName].creepData) {
+                    let creepData = operation.creepRoles[roleName].creepData[creepName];
+                    
+                    
+                    let creep = Game.creeps[creepName];
 
 					// if creep is valid
 					if (!creep || creep.memory.role !== roleName || creep.memory.operationId !== operation.id) {
@@ -49,15 +52,7 @@ module.exports = {
 			}
 		}
 
-		// clean up dead creeps from source memory
-		for (const name in sourceMemory.creepIds) {
-			var creepname = sourceMemory.creepIds[name];
-			let creep = Game.creeps[creepname];
-
-			if (!creep) {
-				delete sourceMemory.creepIds[name];
-			}
-		}
+		
 
 		var noCreepIds = Object.keys(sourceMemory.creepIds).length;
 
