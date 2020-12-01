@@ -1,7 +1,5 @@
-const { isANumber, getPosName, getRoom, isValidStructureBuildStatus } = require("../actions/common");
-const { getObject } = require("../actions/memory");
-const { STRUCTURE_BUILD_STATUS, OBJECT_TYPE } = require("../common/constants");
-const { LOOK_STRUCTURES, LOOK_CONSTRUCTION_SITES } = require("../testing/constants");
+const { isANumber, getRoom } = require("../actions/common");
+const { getIdleCreep, addCreepToRoomSpawnQueue } = require("./room/creepRequisition");
 
 module.exports = {
 	isRoomStructureInitialised: (structureType, x, y, roomName) => {
@@ -37,5 +35,19 @@ module.exports = {
 		}
 
 		return foundObject ? true : false;
+	},
+	requestCreep: (room, type, memory) => {
+		if (!room || !type || !memory) {
+			console.log("requestCreep: invalid parameters!");
+			return false;
+		}
+
+		let creep = getIdleCreep(room, type, memory);
+
+		if (creep) {
+			return creep;
+		}
+
+		return addCreepToRoomSpawnQueue(room, type, memory);
 	},
 };

@@ -1,3 +1,5 @@
+const { requestCreep } = require("../room");
+
 module.exports = {
 	checkOperationCreeps: (operation) => {
 		if (!operation || !operation.creepRoles) {
@@ -14,22 +16,35 @@ module.exports = {
 			if (role) {
 				for (const creepName in operation.creepRoles[roleName].currentCreeps) {
 					let creep = Game.creeps[creepName];
-					if (!creep) {
+
+					// if creep is valid
+					if (!creep || creep.memory.role !== roleName || creep.memory.operationId !== operation.id) {
 						//creep no longer exists so remove
 						creepsToDelete.push(i);
 						continue;
 					}
 
-					// if creep role exists
-					if (operation.creepRoles[creep.memory.role]) {
-						// remove a role
-					}
+					noOfCurrentCreeps++;
 				}
 
 				if (creepsToDelete) {
 					creepsToDelete.forEach((name) => {
 						delete operation.creepRoles[roleName].currentCreeps[name];
 					});
+				}
+
+				const remainingNoOfCreeps = role.noCreepsRequired - noOfCurrentCreeps;
+
+				if (remainingNoOfCreeps > 0) {
+					for (let i = 0; i < remainingNoOfCreeps; i++) {
+						// requisition more creeps
+						requestCreep;
+					}
+				} else if (remainingNoOfCreeps < 0) {
+					const creepNames = Object.keys(operation.creepRoles[roleName].currentCreeps).slice(0, remainingNoOfCreeps * -1 + 1);
+					for (const creepName in creepNames) {
+						delete operation.creepRoles[roleName].currentCreeps[creepName];
+					}
 				}
 			}
 		}
