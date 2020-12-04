@@ -132,6 +132,7 @@ module.exports = {
 	},
 	OPERATION_TYPE: {
 		BUILD: "build",
+		SOURCE: "source",
 	},
 
 	OBJECT_TYPE: {

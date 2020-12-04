@@ -98,8 +98,8 @@ module.exports = {
 		creepAddedToSpawn = false;
 		while (!creepAddedToSpawn && noSpawnsChecked < spawns.length) {
 			let spawn = spawns[noSpawnsChecked];
-			if (!spawn.memory.currentCreepToSpawn) {
-				spawn.memory.currentCreepToSpawn = { type, memory };
+			if (!spawn.memory.creepToSpawn) {
+				spawn.memory.creepToSpawn = { type, memory };
 				creepAddedToSpawn = true;
 			}
 
