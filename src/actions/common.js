@@ -1,3 +1,5 @@
+const { COORDINATES_MAX_SIZE } = require("../common/constants");
+
 module.exports = {
 	isANumber: (number) => {
 		return typeof number == "number";
@@ -47,4 +49,35 @@ module.exports = {
 				return false;
 		}
 	},
+	getAccessiblePositions = (pos) => {
+		if (!pos) {
+			console.log("getAccessiblePositions invalid parameter");
+		}
+
+		var room = Game.rooms[pos.roomName];
+		var terrain = room.getTerrain();
+		var accessiblePositions = [];
+
+		let surroundingPositions = [
+			{ x: pos.x - 1, y: pos.y - 1 },
+			{ x: pos.x - 1, y: pos.y },
+			{ x: pos.x - 1, y: pos.y + 1 },
+			{ x: pos.x, y: pos.y - 1 },
+			{ x: pos.x, y: pos.y + 1 },
+			{ x: pos.x + 1, y: pos.y - 1 },
+			{ x: pos.x + 1, y: pos.y },
+			{ x: pos.x + 1, y: pos.y + 1 },
+		];
+
+		surroundingPositions.forEach((pos) => {
+			const terrainGet = terrain.get(pos.x, pos.y);
+			const isAccessible = pos.x >= 0 && pos.x <= COORDINATES_MAX_SIZE && pos.y >= 0 && pos.y <= COORDINATES_MAX_SIZE && terrainGet === 0;
+
+			if (isAccessible) {
+				accessiblePositions.push(pos);
+			}
+		});
+
+		return accessiblePositions;
+	}
 };

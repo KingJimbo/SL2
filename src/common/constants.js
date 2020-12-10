@@ -138,6 +138,7 @@ module.exports = {
 	OBJECT_TYPE: {
 		OPERATION: "operation",
 		SPAWN_QUEUE_ITEM: "spawnQueueItem",
+		SOURCE: "source",
 	},
 	STRUCTURE_BUILD_STATUS: {
 		INITIALISED: 0,
