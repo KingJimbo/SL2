@@ -3,8 +3,8 @@ const { isCreepIdle, addCreepToIdlePool } = require("./roomCreepRequisition");
 
 module.exports = {
 	runIdleCreep: (creep) => {
-		if (isCreepIdle(creep)) {
-			console.log("No creep name found idle creep memory adding to idle pool");
+		if (!isCreepIdle(creep)) {
+			//console.log("No creep name found idle creep memory adding to idle pool");
 			addCreepToIdlePool(creep.room, creep);
 		}
 		creep.moveTo(0, 0);

@@ -6,6 +6,7 @@ const { checkOperationCreeps } = require("./operationCreeps");
 const { upgradeSourceOperation } = require("./operationSource");
 const { addCreepToIdlePool } = require("./roomCreepRequisition");
 const { runIdleCreep, runHarvesterCreep } = require("./runCreep");
+const resource = App.modules.resource;
 
 module.exports = {
 	runSourceOperation: (operation) => {
@@ -54,8 +55,14 @@ module.exports = {
 
 		switch (operation.status) {
 			case STRUCTURE_BUILD_STATUS.UNDER_CONSTRUCTION:
-				if (!resource.getStructureResourceOrderId(site, RESOURCE_ENERGY)) {
-					resource.createResourceOrder(room, site.id, RESOURCE_ENERGY, site.progressTotal - site.progress, true);
+				if (!resource.getStructureResourceOrderId(constructionSite, RESOURCE_ENERGY)) {
+					resource.createResourceOrder(
+						room,
+						constructionSite.id,
+						RESOURCE_ENERGY,
+						constructionSite.progressTotal - constructionSite.progress,
+						true
+					);
 				}
 				// check creep is assigned if not get one
 				break;

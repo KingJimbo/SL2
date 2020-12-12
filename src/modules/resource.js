@@ -77,7 +77,9 @@ module.exports = (function (App) {
 
 		Memory.resourceOrders[resourceOrder.id] = resourceOrder;
 
-		room.memory.resourceOrders[type][destination.structureType].push(resourceOrder.id);
+		if (destination.structureType !== STRUCTURE_CONTROLLER) {
+			room.memory.resourceOrders[type][destination.structureType].push(resourceOrder.id);
+		}
 
 		Memory[destination.structureType][destination.id].resourceOrderIds[type] = resourceOrder.id;
 
@@ -120,7 +122,7 @@ module.exports = (function (App) {
 
 					var currentOrder = Memory.resourceOrders[orderId];
 
-					if (!currentOrder) {
+					if (!currentOrder || currentOrder.amountPending + currentOrder.amountFulfilled >= currentOrder.amount) {
 						room.memory.resourceOrders[type][structure].shift();
 					} else if (currentOrder.amountPending + currentOrder.amountFulfilled < currentOrder.amount) {
 						order = currentOrder;
@@ -201,6 +203,50 @@ module.exports = (function (App) {
 		creep.memory.resourceOrderItemId = resourceOrderItem.id;
 
 		return resourceOrderItem;
+	};
+
+	resource.getResourceOrder = (orderId) => {
+		return Memory.resourceOrders[orderId];
+	};
+
+	resource.getResourceOrderItem = (orderItemId) => {
+		return Memory.resourceOrderItems[orderItemId];
+	};
+
+	resource.orderIsValid = (order) => {
+		if (!order) {
+			throw new Error(`Invalid parameter!`);
+		}
+
+		if (order.amountFulfilled >= order.amount) {
+			return false;
+		}
+
+		if (order.amountPending > 0) {
+			if (!order.orderItemIds) {
+				return false;
+			}
+
+			for (const orderItemId in order.orderItemIds) {
+				const resourceOrderItem = resource.getResourceOrderItem(orderItemId);
+
+				if (!resourceOrderItem) {
+					return false;
+				}
+
+				const creep = Game.creeps[resourceOrderItem.creepName];
+
+				if (!creep) {
+					return false;
+				}
+
+				if (creep.resourceOrderItemId !== orderItemId) {
+					return false;
+				}
+			}
+		}
+
+		return true;
 	};
 
 	resource.fulfillResourceOrderItem = (creep) => {
@@ -373,7 +419,7 @@ module.exports = (function (App) {
 
 	resource.getStructureResourceOrderId = (struc, type) => {
 		if (!struc || !type) {
-			console.log("getStructureResourceOrderId: Invalid parameters!");
+			throw new Error("getStructureResourceOrderId: Invalid parameters!");
 		}
 
 		if (!Memory[struc.structureType]) {

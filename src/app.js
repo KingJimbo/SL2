@@ -1,10 +1,11 @@
 // app.js
 
-const { runSourceOperation, runCreep } = require("./actions/run.js");
+const { runSourceOperation, runCreep, runBuildOperation } = require("./actions/run.js");
 const { getCreepBody } = require("./actions/creep.js");
 const { createSourceOperation } = require("./actions/operationSource.js");
-const { getObjects } = require("./actions/memory.js");
+const { getObjects, getObject } = require("./actions/memory.js");
 const { checkOperationCreeps } = require("./actions/operationCreeps.js");
+const { OBJECT_TYPE } = require("./common/constants.js");
 const resource = App.modules.resource;
 
 module.exports = function () {
@@ -77,13 +78,26 @@ module.exports = function () {
 
 						const creepBodyResponse = getCreepBody(spawn.memory.creepToSpawn.memory.type, spawn.room.energyCapacityAvailable);
 						// console.log('creep body type result:');
-						console.log(JSON.stringify(creepBodyResponse));
+						//console.log(JSON.stringify(creepBodyResponse));
 
 						const spawnCapacityUsed = spawn.store.getUsedCapacity(RESOURCE_ENERGY);
 						if (creepBodyResponse.cost > spawnCapacityUsed) {
 							console.log(`not enough energy to spawnCreep | cost:${creepBodyResponse.cost} | energy:${spawnCapacityUsed}`);
 
-							if (!resource.getStructureResourceOrderId(spawn, RESOURCE_ENERGY)) {
+							let resourceOrderId = resource.getStructureResourceOrderId(spawn, RESOURCE_ENERGY);
+
+							if (resourceOrderId) {
+								const resourceOrder = resource.getResourceOrder(resourceOrderId);
+
+								if (resourceOrder) {
+									if (!resource.orderIsValid(resourceOrder)) {
+										resource.deleteOrder(resourceOrder);
+										resourceOrderId = null;
+									}
+								}
+							}
+
+							if (!resourceOrderId) {
 								resource.createResourceOrder(room, spawn.id, RESOURCE_ENERGY, creepBodyResponse.cost - spawnCapacityUsed);
 							}
 						} else {

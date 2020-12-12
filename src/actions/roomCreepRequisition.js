@@ -61,7 +61,7 @@ module.exports = {
 		return false;
 	},
 	addCreepToIdlePool: (room, creep) => {
-		console.log("addCreepToIdlePool start");
+		//console.log("addCreepToIdlePool start");
 
 		if (!Memory.idleCreeps) {
 			Memory.idleCreeps = {};

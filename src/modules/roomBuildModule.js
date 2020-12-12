@@ -18,7 +18,7 @@ module.exports = function () {
 	// };
 
 	this.createBuildOperations = (room) => {
-		console.log("createBuildOperations start");
+		//console.log("createBuildOperations start");
 		if (!room) {
 			console.log(`Invalid parameters! room ${JSON.stringify(room)}`);
 		}

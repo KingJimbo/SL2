@@ -61,11 +61,17 @@ module.exports = {
 							let creep = getIdleCreep(operation.room, CREEP_TYPES.UTILITY);
 
 							if (creep) {
-								role.creepData[creep.name] = { name: creep.name };
-							}
+								if (!role.creepData) {
+									role.creepData = {};
+								}
 
-							if (!addCreepToSpawn(operation.room, CREEP_TYPES.UTILITY, { role: roleName, operationId: operation.id })) {
-								break;
+								role.creepData[creep.name] = { name: creep.name };
+								creep.memory.operationId = operation.id;
+								creep.memory.role = roleName;
+							} else {
+								if (!addCreepToSpawn(operation.room, CREEP_TYPES.UTILITY, { role: roleName, operationId: operation.id })) {
+									break;
+								}
 							}
 						}
 					} else if (remainingNoOfCreeps < 0) {
@@ -86,10 +92,10 @@ module.exports = {
 							});
 						}
 					}
-
-					saveObject(operation);
 				}
 			}
 		}
+
+		saveObject(operation);
 	},
 };
