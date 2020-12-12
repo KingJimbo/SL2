@@ -4,7 +4,7 @@ const { getIdleCreep, addCreepToSpawn, addCreepToIdlePool } = require("./roomCre
 
 module.exports = {
 	checkOperationCreeps: (operation) => {
-		if (!operation || !operation.creepRoles) {
+		if (!operation) {
 			throw new Error(`Invalid parameters! operation ${JSON.stringify(operation)}`);
 		}
 
@@ -19,74 +19,76 @@ module.exports = {
 			return;
 		}
 
-		for (const roleName in operation.creepRoles) {
-			let role = operation.creepRoles[roleName];
-			let noOfCurrentCreeps = 0;
-			let creepsToDelete = [];
+		if (operation.creepRoles) {
+			for (const roleName in operation.creepRoles) {
+				let role = operation.creepRoles[roleName];
+				let noOfCurrentCreeps = 0;
+				let creepsToDelete = [];
 
-			if (role) {
-				for (const creepName in operation.creepRoles[roleName].creepData) {
-					let creepData = operation.creepRoles[roleName].creepData[creepName];
+				if (role) {
+					for (const creepName in operation.creepRoles[roleName].creepData) {
+						let creepData = operation.creepRoles[roleName].creepData[creepName];
 
-					if (creepData && !creepData.pending) {
-						let creep = Game.creeps[creepName];
+						if (creepData && !creepData.pending) {
+							let creep = Game.creeps[creepName];
 
-						// if creep is valid
-						if (!creep || creep.memory.role !== roleName || creep.memory.operationId !== operation.id) {
-							//creep no longer exists so remove
-							creepsToDelete.push(i);
-							continue;
+							// if creep is valid
+							if (!creep || creep.memory.role !== roleName || creep.memory.operationId !== operation.id) {
+								//creep no longer exists so remove
+								creepsToDelete.push(i);
+								continue;
+							}
 						}
+
+						noOfCurrentCreeps++;
 					}
 
-					noOfCurrentCreeps++;
-				}
-
-				if (creepsToDelete) {
-					creepsToDelete.forEach((name) => {
-						delete operation.creepRoles[roleName].creepData[name];
-					});
-				}
-
-				const remainingNoOfCreeps = role.noCreepsRequired - noOfCurrentCreeps;
-
-				console.log(`remainingNoOfCreeps ${remainingNoOfCreeps}`);
-
-				if (remainingNoOfCreeps > 0) {
-					for (let i = 0; i < remainingNoOfCreeps; i++) {
-						// requisition more creeps
-						// requestIdleCreep;
-
-						let creep = getIdleCreep(operation.room, CREEP_TYPES.UTILITY);
-
-						if (creep) {
-							role.creepData[creep.name] = { name: creep.name };
-						}
-
-						if (!addCreepToSpawn(operation.room, CREEP_TYPES.UTILITY, { role: roleName, operationId: operation.id })) {
-							break;
-						}
+					if (creepsToDelete) {
+						creepsToDelete.forEach((name) => {
+							delete operation.creepRoles[roleName].creepData[name];
+						});
 					}
-				} else if (remainingNoOfCreeps < 0) {
-					const creepNames = Object.keys(operation.creepRoles[roleName].creepData).slice(0, remainingNoOfCreeps * -1 + 1);
+
+					const remainingNoOfCreeps = role.noCreepsRequired - noOfCurrentCreeps;
 
 					console.log(`remainingNoOfCreeps ${remainingNoOfCreeps}`);
 
-					if (creepNames) {
-						creepNames.forEach((creepName) => {
-							delete operation.creepRoles[roleName].creepData[creepName];
-							let creep = Game.creeps[creepName];
+					if (remainingNoOfCreeps > 0) {
+						for (let i = 0; i < remainingNoOfCreeps; i++) {
+							// requisition more creeps
+							// requestIdleCreep;
 
-							console.log(`creep ${creep} creepName ${creepName}`);
+							let creep = getIdleCreep(operation.room, CREEP_TYPES.UTILITY);
 
 							if (creep) {
-								addCreepToIdlePool(creep.room, creep);
+								role.creepData[creep.name] = { name: creep.name };
 							}
-						});
-					}
-				}
 
-				saveObject(operation);
+							if (!addCreepToSpawn(operation.room, CREEP_TYPES.UTILITY, { role: roleName, operationId: operation.id })) {
+								break;
+							}
+						}
+					} else if (remainingNoOfCreeps < 0) {
+						const creepNames = Object.keys(operation.creepRoles[roleName].creepData).slice(0, remainingNoOfCreeps * -1 + 1);
+
+						console.log(`remainingNoOfCreeps ${remainingNoOfCreeps}`);
+
+						if (creepNames) {
+							creepNames.forEach((creepName) => {
+								delete operation.creepRoles[roleName].creepData[creepName];
+								let creep = Game.creeps[creepName];
+
+								console.log(`creep ${creep} creepName ${creepName}`);
+
+								if (creep) {
+									addCreepToIdlePool(creep.room, creep);
+								}
+							});
+						}
+					}
+
+					saveObject(operation);
+				}
 			}
 		}
 	},

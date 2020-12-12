@@ -25,7 +25,7 @@ module.exports = {
 			status: STRUCTURE_BUILD_STATUS.UNDER_CONSTRUCTION,
 			x,
 			y,
-			roomName,
+			room: roomName,
 		});
 
 		if (!buildOperation) {
