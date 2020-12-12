@@ -5,6 +5,7 @@ module.exports = {
 	CREEP_ROLES: {
 		HARVESTER: "harvester",
 		SCOUT: "scout",
+		BUILDER: "builder",
 	},
 	CREEP_TYPES: {
 		UTILITY: "utility",
@@ -141,9 +142,14 @@ module.exports = {
 		SOURCE: "source",
 	},
 	STRUCTURE_BUILD_STATUS: {
-		INITIALISED: 0,
-		IN_CONSTRUCTION: 1,
-		CONSTRUCTED: 2,
+		UNDER_CONSTRUCTION: 0,
+		BUILT: 1,
+	},
+	CREEP_ACTIONS: {
+		GO_TO_SOURCE: "goToSource",
+		GO_TO_DESTINATION: "goToDestination",
+		HARVEST: "harvest",
+		FULLFILL_ENERGY_ORDER: "fullEnergyFillOrder",
 	},
 };
 // global.COORDINATES_MAX_SIZE = 49;

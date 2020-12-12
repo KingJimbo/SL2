@@ -28,28 +28,42 @@ module.exports = function () {
 		}
 
 		RESOURCE_ORDER_STRUCTURE_PRIORITY.forEach((structureType) => {
-			console.log(`structureType: ${structureType}`);
+			//console.log(`structureType: ${structureType}`);
 			if (!room.memory.structureMap[structureType]) {
-				console.log(`No room structureMap contains no structureType of ${structureType}`);
+				//console.log(`No room structureMap contains no structureType of ${structureType}`);
 				return;
 			}
 
 			let availableNoOfStructures = CONTROLLER_STRUCTURES[structureType][room.controller.level];
-			console.log(`availableNoOfStructures: ${availableNoOfStructures}`);
+			//console.log(`availableNoOfStructures: ${availableNoOfStructures}`);
+
+			const structures = room.find(FIND_MY_STRUCTURES, {
+				filter: { structureType },
+			});
+
+			//console.log(`structures found ${JSON.stringify(structures)}`);
+
+			if (structures) {
+				availableNoOfStructures -= structures.length;
+			}
+
+			if (availableNoOfStructures < 1) {
+				return;
+			}
 
 			let structTypeArray = room.memory.structureMap[structureType].slice(0, availableNoOfStructures);
-			console.log(`structTypeArray: ${JSON.stringify(structTypeArray)}`);
+			//console.log(`structTypeArray: ${JSON.stringify(structTypeArray)}`);
 
 			while (structTypeArray && structTypeArray.length) {
 				const structurePosition = structTypeArray.shift();
 
-				console.log(`structurePosition: ${JSON.stringify(structurePosition)}`);
+				//console.log(`structurePosition: ${JSON.stringify(structurePosition)}`);
 
 				if (structurePosition) {
 					if (!isRoomStructureInitialised(structureType, structurePosition.x, structurePosition.y, room.name)) {
-						console.log(`isRoomStructureInitialised false`);
+						//console.log(`isRoomStructureInitialised false`);
 						if (!createBuildOperation(structureType, structurePosition.x, structurePosition.y, room.name)) {
-							console.log("failed to create build operation!");
+							//console.log("failed to create build operation!");
 						}
 					}
 				}

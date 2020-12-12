@@ -7,15 +7,25 @@ module.exports = {
 			return false;
 		}
 
-		if (!room.memory.idleCreeps) {
-			room.memory.idleCreeps = {};
+		let idleRoom = null;
+
+		var roomType = typeof room;
+
+		if (roomType === "string") {
+			idleRoom = Game.rooms[room];
+		} else if (roomType == "object") {
+			idleRoom = room;
+		}
+
+		if (!idleRoom.memory.idleCreeps) {
+			idleRoom.memory.idleCreeps = {};
 			return false;
 		}
 
-		let idleCreeps = room.memory.idleCreeps[type];
+		let idleCreeps = idleRoom.memory.idleCreeps[type];
 
 		if (!idleCreeps) {
-			console.log(`can not find idleCreeps type in room memory. type ${type} roomMemory: ${JSON.stringify(room.memory.idleCreeps)}`);
+			console.log(`can not find idleCreeps type in room memory. type ${type} roomMemory: ${JSON.stringify(idleRoom.memory.idleCreeps)}`);
 			return false;
 		}
 
@@ -33,7 +43,7 @@ module.exports = {
 					creep.memory = memory;
 				}
 
-				room.memory.idleCreeps[type] = idleCreeps;
+				idleRoom.memory.idleCreeps[type] = idleCreeps;
 
 				if (Memory.idleCreeps[creep.name]) {
 					delete Memory.idleCreeps[creep.name];
@@ -44,13 +54,19 @@ module.exports = {
 
 			idleIndex++;
 		}
-		room.memory.idleCreeps[type] = idleCreeps;
+		idleRoom.memory.idleCreeps[type] = idleCreeps;
 
 		console.log(`no idle creep found in idleCreep Queue of type: ${type}`);
 
 		return false;
 	},
 	addCreepToIdlePool: (room, creep) => {
+		console.log("addCreepToIdlePool start");
+
+		if (!Memory.idleCreeps) {
+			Memory.idleCreeps = {};
+		}
+
 		if (!room || !creep) {
 			console.log("addCreepToIdlePool: invalid parameters!");
 			return;
@@ -64,6 +80,8 @@ module.exports = {
 			console.log("addCreepToIdlePool: unknown creep type");
 			creep.memory.type = CREEP_TYPES.UTILITY;
 		}
+
+		creep.memory.operationId = null;
 
 		if (!room.memory.idleCreeps[creep.memory.type]) {
 			room.memory.idleCreeps[creep.memory.type] = [];
@@ -79,7 +97,12 @@ module.exports = {
 			//console.log('creep already in idle pool');
 		}
 	},
-	isCreepInIdlePool: (creep) => {},
+	isCreepIdle: (creep) => {
+		if (Memory.idleCreeps[creep.name]) {
+			return true;
+		}
+		return false;
+	},
 	addCreepToSpawn: (roomName, type, memory) => {
 		if (!roomName || !type || !memory) {
 			console.log("addCreepToRoomSpawnQueue: Invalid parameters!");
@@ -93,17 +116,26 @@ module.exports = {
 
 		// already tried or already creep to spawn
 		if (room.memory.spawnsCheckedTime && room.memory.spawnsCheckedTime === Game.time) {
+			//console.log(`checked spawns already time ${Game.time}`);
 			return false;
 		}
 
-		let spawns = room.find(STRUCTURE_SPAWN);
+		let spawns = room.find(FIND_MY_STRUCTURES, {
+			filter: { structureType: STRUCTURE_SPAWN },
+		});
+
+		//console.log(`spawns ${JSON.stringify(spawns)}`);
 
 		var noSpawnsChecked = 0;
-		creepAddedToSpawn = false;
+		let creepAddedToSpawn = false;
 		while (!creepAddedToSpawn && noSpawnsChecked < spawns.length) {
 			let spawn = spawns[noSpawnsChecked];
+
+			//console.log(`checking spawn ${JSON.stringify(spawn)}`);
+
 			if (!spawn.memory.creepToSpawn) {
-				spawn.memory.creepToSpawn = { type, memory };
+				memory.type = type;
+				spawn.memory.creepToSpawn = { memory };
 				creepAddedToSpawn = true;
 			}
 

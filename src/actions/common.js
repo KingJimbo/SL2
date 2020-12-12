@@ -49,7 +49,7 @@ module.exports = {
 				return false;
 		}
 	},
-	getAccessiblePositions = (pos) => {
+	getAccessiblePositions: (pos) => {
 		if (!pos) {
 			console.log("getAccessiblePositions invalid parameter");
 		}
@@ -79,5 +79,5 @@ module.exports = {
 		});
 
 		return accessiblePositions;
-	}
+	},
 };

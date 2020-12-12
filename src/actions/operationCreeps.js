@@ -1,4 +1,6 @@
-const { getIdleCreep, addCreepToSpawn } = require("./roomCreepRequisition");
+const { OBJECT_TYPE } = require("../common/constants");
+const { saveObject } = require("./memory");
+const { getIdleCreep, addCreepToSpawn, addCreepToIdlePool } = require("./roomCreepRequisition");
 
 module.exports = {
 	checkOperationCreeps: (operation) => {
@@ -48,6 +50,8 @@ module.exports = {
 
 				const remainingNoOfCreeps = role.noCreepsRequired - noOfCurrentCreeps;
 
+				console.log(`remainingNoOfCreeps ${remainingNoOfCreeps}`);
+
 				if (remainingNoOfCreeps > 0) {
 					for (let i = 0; i < remainingNoOfCreeps; i++) {
 						// requisition more creeps
@@ -56,7 +60,7 @@ module.exports = {
 						let creep = getIdleCreep(operation.room, CREEP_TYPES.UTILITY);
 
 						if (creep) {
-							role.creepData[creep.name] = { name: creep.name, role: roleName, operationId: operation.id };
+							role.creepData[creep.name] = { name: creep.name };
 						}
 
 						if (!addCreepToSpawn(operation.room, CREEP_TYPES.UTILITY, { role: roleName, operationId: operation.id })) {
@@ -65,10 +69,24 @@ module.exports = {
 					}
 				} else if (remainingNoOfCreeps < 0) {
 					const creepNames = Object.keys(operation.creepRoles[roleName].creepData).slice(0, remainingNoOfCreeps * -1 + 1);
-					for (const creepName in creepNames) {
-						delete operation.creepRoles[roleName].creepData[creepName];
+
+					console.log(`remainingNoOfCreeps ${remainingNoOfCreeps}`);
+
+					if (creepNames) {
+						creepNames.forEach((creepName) => {
+							delete operation.creepRoles[roleName].creepData[creepName];
+							let creep = Game.creeps[creepName];
+
+							console.log(`creep ${creep} creepName ${creepName}`);
+
+							if (creep) {
+								addCreepToIdlePool(creep.room, creep);
+							}
+						});
 					}
 				}
+
+				saveObject(operation);
 			}
 		}
 	},

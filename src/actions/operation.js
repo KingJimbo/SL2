@@ -1,6 +1,8 @@
-const { OPERATION_TYPE, OBJECT_TYPE, STRUCTURE_BUILD_STATUS } = require("../common/constants");
+const { OPERATION_TYPE, OBJECT_TYPE, STRUCTURE_BUILD_STATUS, CREEP_ROLES } = require("../common/constants");
 const { getPosName, isANumber } = require("../actions/common");
-const { saveObject, getObjects } = require("../actions/memory");
+const { saveObject, getObjects, deleteObject } = require("../actions/memory");
+const { addCreepToIdlePool } = require("./roomCreepRequisition");
+const resource = App.modules.resource;
 
 module.exports = {
 	createBuildOperation: (structureType, x, y, roomName) => {
@@ -20,6 +22,7 @@ module.exports = {
 			objectType: OBJECT_TYPE.OPERATION,
 			operationType: OPERATION_TYPE.BUILD,
 			structureType,
+			status: STRUCTURE_BUILD_STATUS.UNDER_CONSTRUCTION,
 			x,
 			y,
 			roomName,
@@ -30,35 +33,26 @@ module.exports = {
 			return null;
 		}
 
-		if (!room.memory.positionInformation) {
-			room.memory.positionInformation = {};
-		}
-
-		let posName = getPosName(x, y);
-
-		room.memory.positionInformation[posName] = {
-			x,
-			y,
-			structureType,
-			status: STRUCTURE_BUILD_STATUS.INITIALISED,
-			buildOperationId: buildOperation.id,
-		};
-
 		return buildOperation;
 	},
 
-	checkOperationCreeps: () => {},
-
-	runBuildOperation: (operation) => {
-		if (!operation || !operation.id || !operation.room || !operation.structureType || !isANumber(operation.x) || !isANumber(operation.y)) {
-			throw new Error(`invalid parameters operation: ${JSON.stringify(operation)}`);
+	deleteOperation: (operation) => {
+		if (!operation) {
+			throw new Error(`Invalid Parameters`);
 		}
 
-		let room = Game.rooms[operation.room];
+		// idle creeps
+		for (const rolename in operation.creepRoles) {
+			const role = operation.creepRoles[rolename];
 
-		// determine if structure is under construction
-		// if not start construction
-		// once construction started requisision energy
-		//
+			for (const creepName in role.creepData) {
+				let creep = Game.creeps[creepName];
+
+				addCreepToIdlePool(creep.room, creep);
+			}
+		}
+
+		//delete from memory
+		deleteObject(OBJECT_TYPE.OPERATION, operation.id);
 	},
 };

@@ -2,6 +2,9 @@ module.exports.loop = function () {
 	var appConstants = require("./common/constants");
 	global = Object.assign(global, appConstants);
 
+	global.App = { modules: {} };
+	require("./modules/resource");
+
 	this.attachLogger = (obj) => {
 		let name, fn;
 		for (name in obj) {

@@ -1,4 +1,5 @@
 const { OPERATION_TYPE } = require("../common/constants");
+const { saveObject } = require("./memory");
 const { upgradeToLevelOne } = require("./operationUpgradeSource");
 
 module.exports = {
@@ -12,6 +13,7 @@ module.exports = {
 			objectType: OBJECT_TYPE.OPERATION,
 			operationType: OPERATION_TYPE.SOURCE,
 			sourceId: source.id,
+			room: source.room.name,
 		});
 
 		if (!operation) {

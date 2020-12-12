@@ -63,4 +63,26 @@ module.exports = {
 		console.log(`could not find object belonging to objectType:${objectType}, id:${id} `);
 		return false;
 	},
+
+	getNextResourceOrderId: () => {
+		if (!Memory.counts) {
+			Memory.counts = {};
+		}
+
+		if (!Memory.counts.resourceOrders) {
+			Memory.counts.resourceOrders = 0;
+		}
+		return `ro${Memory.counts.resourceOrders++}`;
+	},
+
+	getNextResourceOrderItemId: () => {
+		if (!Memory.counts) {
+			Memory.counts = {};
+		}
+
+		if (!Memory.counts.resourceOrderItems) {
+			Memory.counts.resourceOrderItems = 0;
+		}
+		return `roi${Memory.counts.resourceOrderItems++}`;
+	},
 };

@@ -1,7 +1,11 @@
 // app.js
 
 const { runSourceOperation, runCreep } = require("./actions/run.js");
+const { getCreepBody } = require("./actions/creep.js");
 const { createSourceOperation } = require("./actions/operationSource.js");
+const { getObjects } = require("./actions/memory.js");
+const { checkOperationCreeps } = require("./actions/operationCreeps.js");
+const resource = App.modules.resource;
 
 module.exports = function () {
 	if (!Memory.sources) {
@@ -14,12 +18,6 @@ module.exports = function () {
 
 	const Move = require("./modules/move.js");
 	this.move = new Move();
-
-	const CreepRequisitioner = require("./modules/creepRequisitioner.js");
-	this.creepRequisitioner = new CreepRequisitioner();
-
-	const Resource = require("./modules/resource.js");
-	this.resource = new Resource();
 
 	const RoomSurveyor = require("./modules/roomSurveyor");
 	this.roomSurveyor = new RoomSurveyor(Memory, Game);
@@ -53,7 +51,7 @@ module.exports = function () {
 					this.roomBuildModule.createBuildOperations(room);
 				}
 
-				this.roomBuildModule.managedConstructionSites(room);
+				//this.roomBuildModule.managedConstructionSites(room);
 
 				if (!room.memory.sources) {
 					room.memory.sources = {};
@@ -73,25 +71,24 @@ module.exports = function () {
 
 				if (spawns) {
 					spawns.forEach((spawn) => {
-						if (!spawn.creepToSpawn) {
+						if (!spawn.memory.creepToSpawn) {
 							return;
 						}
 
-						const creepBodyResponse = this.getCreepBody(spawn.creepToSpawn.type, spawn.room.energyCapacityAvailable);
+						const creepBodyResponse = getCreepBody(spawn.memory.creepToSpawn.memory.type, spawn.room.energyCapacityAvailable);
 						// console.log('creep body type result:');
-						// console.log(JSON.stringify(creepBodyResponse));
+						console.log(JSON.stringify(creepBodyResponse));
 
 						const spawnCapacityUsed = spawn.store.getUsedCapacity(RESOURCE_ENERGY);
 						if (creepBodyResponse.cost > spawnCapacityUsed) {
 							console.log(`not enough energy to spawnCreep | cost:${creepBodyResponse.cost} | energy:${spawnCapacityUsed}`);
 
-							if (!this.resource.getStructureResourceOrderId(spawn, RESOURCE_ENERGY)) {
-								this.resource.createResourceOrder(room, spawn.id, RESOURCE_ENERGY, creepBodyResponse.cost - spawnCapacityUsed);
+							if (!resource.getStructureResourceOrderId(spawn, RESOURCE_ENERGY)) {
+								resource.createResourceOrder(room, spawn.id, RESOURCE_ENERGY, creepBodyResponse.cost - spawnCapacityUsed);
 							}
 						} else {
-							spawnQueueItem.memory.type = spawnQueueItem.type;
 							var spawnCreepResult = spawn.spawnCreep(creepBodyResponse.creepBody, this.getNextCreepName(), {
-								memory: spawnQueueItem.memory,
+								memory: spawn.memory.creepToSpawn.memory,
 							});
 
 							console.log(`spawnCreepResult: ${spawnCreepResult}`);
@@ -105,15 +102,19 @@ module.exports = function () {
 	this.runOperations = () => {
 		let operations = getObjects(OBJECT_TYPE.OPERATION);
 
-		if (!operations || !operations.length) {
-			console.log("No operations found!");
+		if (!operations) {
+			console.log(`No operations found! operations ${JSON.stringify(operations)}`);
 			return;
 		}
 
-		operations.forEach((operation) => {
+		for (const operationId in operations) {
+			let operation = operations[operationId];
+
 			if (!operation.operationType) {
 				throw new Error(`operation doesn't contain an operation type!`);
 			}
+
+			checkOperationCreeps(operation);
 
 			switch (operation.operationType) {
 				case OPERATION_TYPE.BUILD:
@@ -126,7 +127,7 @@ module.exports = function () {
 				default:
 					throw new Error(`operation type ${operation.operationType} not currently supported.`);
 			}
-		});
+		}
 	};
 
 	this.runCreeps = () => {
@@ -191,89 +192,5 @@ module.exports = function () {
 		Memory.settings.creepCount++;
 
 		return `Creep${Memory.settings.creepCount}`;
-	};
-
-	this.getCreepBody = (creepType, availableEnergy) => {
-		//console.log('Start App.getCreepBody');
-		const creepTemplate = CREEP_BODIES[creepType];
-		//console.log(`creep template: ${JSON.stringify(creepTemplate)}`);
-
-		let currentCost = 0,
-			creepBodyResponse = {
-				creepBody: [],
-				bodyCounts: {
-					move: 0,
-					work: 0,
-					carry: 0,
-					attack: 0,
-					ranged_attack: 0,
-					tough: 0,
-					heal: 0,
-					claim: 0,
-					total: 0,
-				},
-				bodyTotal: 0,
-				cost: 0,
-			};
-
-		let ratioCost = 0;
-
-		for (const bodyPart in creepTemplate) {
-			// use spawn max energy to calculate max creep body possible
-			const creepTemplateItem = creepTemplate[bodyPart];
-
-			//console.log(`creepTemplateItem: ${JSON.stringify(creepTemplateItem)}`);
-
-			if (creepTemplateItem.value > 0) {
-				let bodyCost = BODYPART_COST[bodyPart];
-				// e.g. available energy * 0.3
-				//bodyToSpend = availableEnergy * creepTemplateItem.value,
-				// Round down to nearest whole no. as you don't get half a body part.
-				//bodyNo = Math.floor(bodyToSpend / bodyCost);
-				//console.log(`availableEnergy: ${availableEnergy}`);
-				//console.log(`bodyPart: ${bodyPart} | bodyCost: ${bodyCost} | bodyToSpend: ${bodyToSpend} | bodyNo:${bodyNo}`);
-				// if (bodyNo === 0) {
-				// 	// no enough to add body part so return invalid target error
-				// 	return ERR_INVALID_TARGET;
-				// }
-
-				// if (creepTemplateItem.max && bodyNo > creepTemplateItem.max) {
-				// 	bodyNo = creepTemplateItem.max;
-				// }
-
-				ratioCost += bodyCost * creepTemplateItem.value;
-
-				// for (let i = 0; i < creepTemplateItem.value; i++) {
-				// 	// creepBodyResponse.creepBody.push(bodyPart);
-				// 	// creepBodyResponse.bodyCounts[bodyPart]++;
-				// 	// creepBodyResponse.bodyTotal++;
-				// 	// creepBodyResponse.cost += bodyCost;
-				// }
-			}
-		}
-
-		let ratio = Math.floor(availableEnergy / ratioCost);
-
-		if (ratio === 0) {
-			console.log("not enough energy capacity to generate creep template");
-			return;
-		}
-
-		for (const bodyPart in creepTemplate) {
-			const creepTemplateItem = creepTemplate[bodyPart];
-
-			if (creepTemplateItem.value > 0) {
-				creepBodyResponse.bodyCounts[bodyPart] += ratio;
-				creepBodyResponse.bodyTotal += ratio;
-
-				creepBodyResponse.cost += BODYPART_COST[bodyPart] * ratio;
-
-				for (var i = 0; i < ratio; i++) {
-					creepBodyResponse.creepBody.push(bodyPart);
-				}
-			}
-		}
-
-		return creepBodyResponse;
 	};
 };
