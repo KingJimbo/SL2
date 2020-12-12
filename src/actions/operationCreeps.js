@@ -1,4 +1,4 @@
-const { getIdleCreep, addCreepToSpawn } = require("../room/creepRequisition");
+const { getIdleCreep, addCreepToSpawn } = require("./roomCreepRequisition");
 
 module.exports = {
 	checkOperationCreeps: (operation) => {

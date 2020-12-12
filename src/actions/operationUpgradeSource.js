@@ -1,5 +1,5 @@
-const { getAccessiblePositions } = require("../../common");
-const { saveObject } = require("../../memory");
+const { getAccessiblePositions } = require("./common");
+const { saveObject } = require("./memory");
 
 module.exports = {
 	upgradeToLevelOne: (operation) => {

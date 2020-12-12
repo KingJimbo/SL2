@@ -1,5 +1,5 @@
-const { OPERATION_TYPE } = require("../../common/constants");
-const { upgradeToLevelOne } = require("./upgrades/source");
+const { OPERATION_TYPE } = require("../common/constants");
+const { upgradeToLevelOne } = require("./operationUpgradeSource");
 
 module.exports = {
 	createSourceOperation: (source) => {

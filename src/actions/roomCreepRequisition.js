@@ -1,4 +1,4 @@
-const { OBJECT_TYPE } = require("../../common/constants");
+const { OBJECT_TYPE } = require("../common/constants");
 
 module.exports = {
 	getIdleCreep: (room, type, memory) => {
@@ -50,32 +50,36 @@ module.exports = {
 
 		return false;
 	},
-	// addCreepToRoomSpawnQueue: (room, type, memory) => {
-	// 	if (!room || !type || !memory) {
-	// 		console.log("addCreepToRoomSpawnQueue: Invalid parameters!");
-	// 	}
+	addCreepToIdlePool: (room, creep) => {
+		if (!room || !creep) {
+			console.log("addCreepToIdlePool: invalid parameters!");
+			return;
+		}
 
-	// 	let spawnQueueItem = {
-	// 		id: `sqi${Memory.counts.spawnQueueItems++}`,
-	// 		roomName: room.name,
-	// 		type,
-	// 		memory,
-	// 		spawnId: null,
-	// 	};
+		if (!room.memory.idleCreeps) {
+			room.memory.idleCreeps = {};
+		}
 
-	// 	// reference for the creep
-	// 	spawnQueueItem.memory.spawnQueueItemId = spawnQueueItem.id;
+		if (!creep.memory.type) {
+			console.log("addCreepToIdlePool: unknown creep type");
+			creep.memory.type = CREEP_TYPES.UTILITY;
+		}
 
-	// 	Memory.spawnQueueItems[spawnQueueItem.id] = spawnQueueItem;
+		if (!room.memory.idleCreeps[creep.memory.type]) {
+			room.memory.idleCreeps[creep.memory.type] = [];
+		}
 
-	// 	if (!room.memory.spawnQueue) {
-	// 		room.memory.spawnQueue = [];
-	// 	}
-
-	// 	room.memory.spawnQueue.push(spawnQueueItem.id);
-
-	// 	return spawnQueueItem;
-	// },
+		if (!room.memory.idleCreeps[creep.memory.type].includes(creep.name)) {
+			//console.log('adding creep to idle pool');
+			room.memory.idleCreeps[creep.memory.type].push(creep.name);
+			Memory.idleCreeps[creep.name] = creep.name;
+			creep.memory.role = "idle";
+		} else {
+			Memory.idleCreeps[creep.name] = creep.name;
+			//console.log('creep already in idle pool');
+		}
+	},
+	isCreepInIdlePool: (creep) => {},
 	addCreepToSpawn: (roomName, type, memory) => {
 		if (!roomName || !type || !memory) {
 			console.log("addCreepToRoomSpawnQueue: Invalid parameters!");

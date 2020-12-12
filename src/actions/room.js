@@ -1,5 +1,5 @@
 const { isANumber, getRoom } = require("../actions/common");
-const { getIdleCreep, addCreepToRoomSpawnQueue } = require("./room/creepRequisition");
+const { getIdleCreep, addCreepToRoomSpawnQueue } = require("./roomCreepRequisition");
 
 module.exports = {
 	isRoomStructureInitialised: (structureType, x, y, roomName) => {
