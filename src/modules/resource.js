@@ -1,4 +1,4 @@
-const { STRUCTURE_CONTROLLER } = require("../testing/constants");
+//const { STRUCTURE_CONTROLLER, RESOURCE_ENERGY } = require("../testing/constants");
 
 /* resource.js */
 module.exports = (function (App) {
@@ -96,52 +96,63 @@ module.exports = (function (App) {
 		resource.checkRoomForResourceOrder(room, type);
 
 		var strucIndex = 0,
-			order = null;
+			order = null,
+			getOrderAsNormal = true;
 		//console.log(`looking for strucIndex: ${strucIndex}, RESOURCE_ORDER_STRUCTURE_PRIORITY length: ${RESOURCE_ORDER_STRUCTURE_PRIORITY.length}`);
 
 		//for(var strucIndex = 0; strucIndex < RESOURCE_ORDER_STRUCTURE_PRIORITY.length )
 
-		while (!order && strucIndex < RESOURCE_ORDER_STRUCTURE_PRIORITY.length) {
-			const structure = RESOURCE_ORDER_STRUCTURE_PRIORITY[strucIndex];
+		if (room.controller.ticksToDowngrade < MIN_CONTROLLER_TICKS_TO_DOWNGRADE) {
+			let controllerResourceOrderIds = resource.getStructureResourceOrderId(room.controller.structureType, RESOURCE_ENERGY);
 
-			// console.log(
-			// 	`looking for ${structure}, strucIndex: ${strucIndex}, RESOURCE_ORDER_STRUCTURE_PRIORITY length: ${RESOURCE_ORDER_STRUCTURE_PRIORITY.length}`
-			// );
-
-			if (!room.memory.resourceOrders[type][structure]) {
-				room.memory.resourceOrders[type][structure] = [];
+			if (!controllerResourceOrderIds) {
+				getOrderAsNormal = false;
 			}
+		}
 
-			//console.log(`room.memory.resourceOrders[type][structure] ${JSON.stringify(room.memory.resourceOrders[type][structure])}`);
+		if (getOrderAsNormal) {
+			while (!order && strucIndex < RESOURCE_ORDER_STRUCTURE_PRIORITY.length) {
+				const structure = RESOURCE_ORDER_STRUCTURE_PRIORITY[strucIndex];
 
-			if (room.memory.resourceOrders[type][structure].length) {
 				// console.log(
-				// 	`room resourceOrder of type: ${type}, of struc: ${structure}, length: ${room.memory.resourceOrders[type][structure].length}`
+				// 	`looking for ${structure}, strucIndex: ${strucIndex}, RESOURCE_ORDER_STRUCTURE_PRIORITY length: ${RESOURCE_ORDER_STRUCTURE_PRIORITY.length}`
 				// );
-				var queueIndex = 0;
-				while (!order && queueIndex < room.memory.resourceOrders[type][structure].length) {
-					var orderId = room.memory.resourceOrders[type][structure][queueIndex];
 
-					//console.log(`looking for order with id ${orderId}, queueIndex: ${queueIndex}`);
-
-					var currentOrder = Memory.resourceOrders[orderId];
-
-					//console.log(`currentOrder ${JSON.stringify(currentOrder)}`);
-
-					if (!currentOrder || currentOrder.amountPending + currentOrder.amountFulfilled >= currentOrder.amount) {
-						//console.log(`shifting order`);
-						room.memory.resourceOrders[type][structure].shift();
-					} else if (currentOrder.amountPending + currentOrder.amountFulfilled < currentOrder.amount) {
-						//console.log(`selecting order`);
-						order = currentOrder;
-					}
-
-					queueIndex++;
+				if (!room.memory.resourceOrders[type][structure]) {
+					room.memory.resourceOrders[type][structure] = [];
 				}
-				//queue = room.memory.resourceOrders[type][structure];
+
+				//console.log(`room.memory.resourceOrders[type][structure] ${JSON.stringify(room.memory.resourceOrders[type][structure])}`);
+
+				if (room.memory.resourceOrders[type][structure].length) {
+					// console.log(
+					// 	`room resourceOrder of type: ${type}, of struc: ${structure}, length: ${room.memory.resourceOrders[type][structure].length}`
+					// );
+					var queueIndex = 0;
+					while (!order && queueIndex < room.memory.resourceOrders[type][structure].length) {
+						var orderId = room.memory.resourceOrders[type][structure][queueIndex];
+
+						//console.log(`looking for order with id ${orderId}, queueIndex: ${queueIndex}`);
+
+						var currentOrder = Memory.resourceOrders[orderId];
+
+						//console.log(`currentOrder ${JSON.stringify(currentOrder)}`);
+
+						if (!currentOrder || currentOrder.amountPending + currentOrder.amountFulfilled >= currentOrder.amount) {
+							//console.log(`shifting order`);
+							room.memory.resourceOrders[type][structure].shift();
+						} else if (currentOrder.amountPending + currentOrder.amountFulfilled < currentOrder.amount) {
+							//console.log(`selecting order`);
+							order = currentOrder;
+						}
+
+						queueIndex++;
+					}
+					//queue = room.memory.resourceOrders[type][structure];
+				}
+				//test
+				strucIndex++;
 			}
-			//test
-			strucIndex++;
 		}
 
 		if (!order) {

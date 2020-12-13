@@ -2,6 +2,7 @@
 
 module.exports = {
 	COORDINATES_MAX_SIZE: 49,
+	MIN_CONTROLLER_TICKS_TO_DOWNGRADE: 500,
 	CREEP_ROLES: {
 		HARVESTER: "harvester",
 		SCOUT: "scout",
