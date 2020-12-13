@@ -1,3 +1,5 @@
+const { STRUCTURE_CONTROLLER } = require("../testing/constants");
+
 /* resource.js */
 module.exports = (function (App) {
 	let resource = {};
@@ -95,36 +97,42 @@ module.exports = (function (App) {
 
 		var strucIndex = 0,
 			order = null;
-		console.log(`looking for strucIndex: ${strucIndex}, RESOURCE_ORDER_STRUCTURE_PRIORITY length: ${RESOURCE_ORDER_STRUCTURE_PRIORITY.length}`);
+		//console.log(`looking for strucIndex: ${strucIndex}, RESOURCE_ORDER_STRUCTURE_PRIORITY length: ${RESOURCE_ORDER_STRUCTURE_PRIORITY.length}`);
 
 		//for(var strucIndex = 0; strucIndex < RESOURCE_ORDER_STRUCTURE_PRIORITY.length )
 
 		while (!order && strucIndex < RESOURCE_ORDER_STRUCTURE_PRIORITY.length) {
 			const structure = RESOURCE_ORDER_STRUCTURE_PRIORITY[strucIndex];
 
-			console.log(
-				`looking for ${structure}, strucIndex: ${strucIndex}, RESOURCE_ORDER_STRUCTURE_PRIORITY length: ${RESOURCE_ORDER_STRUCTURE_PRIORITY.length}`
-			);
+			// console.log(
+			// 	`looking for ${structure}, strucIndex: ${strucIndex}, RESOURCE_ORDER_STRUCTURE_PRIORITY length: ${RESOURCE_ORDER_STRUCTURE_PRIORITY.length}`
+			// );
 
 			if (!room.memory.resourceOrders[type][structure]) {
 				room.memory.resourceOrders[type][structure] = [];
 			}
 
+			//console.log(`room.memory.resourceOrders[type][structure] ${JSON.stringify(room.memory.resourceOrders[type][structure])}`);
+
 			if (room.memory.resourceOrders[type][structure].length) {
-				console.log(
-					`room resourceOrder of type: ${type}, of struc: ${structure}, length: ${room.memory.resourceOrders[type][structure].length}`
-				);
+				// console.log(
+				// 	`room resourceOrder of type: ${type}, of struc: ${structure}, length: ${room.memory.resourceOrders[type][structure].length}`
+				// );
 				var queueIndex = 0;
 				while (!order && queueIndex < room.memory.resourceOrders[type][structure].length) {
 					var orderId = room.memory.resourceOrders[type][structure][queueIndex];
 
-					console.log(`looking for order with id ${orderId}, queueIndex: ${queueIndex}`);
+					//console.log(`looking for order with id ${orderId}, queueIndex: ${queueIndex}`);
 
 					var currentOrder = Memory.resourceOrders[orderId];
 
+					//console.log(`currentOrder ${JSON.stringify(currentOrder)}`);
+
 					if (!currentOrder || currentOrder.amountPending + currentOrder.amountFulfilled >= currentOrder.amount) {
+						//console.log(`shifting order`);
 						room.memory.resourceOrders[type][structure].shift();
 					} else if (currentOrder.amountPending + currentOrder.amountFulfilled < currentOrder.amount) {
+						//console.log(`selecting order`);
 						order = currentOrder;
 					}
 
@@ -145,7 +153,7 @@ module.exports = (function (App) {
 			}
 		}
 
-		console.log(`findNextResourceOrderToFulfill: order: ${JSON.stringify(order)}`);
+		//console.log(`findNextResourceOrderToFulfill: order: ${JSON.stringify(order)}`);
 
 		let item = resource.createResourceOrderItem(creep, type, amount, order);
 
@@ -191,9 +199,10 @@ module.exports = (function (App) {
 			creepName: creep.name,
 			fulfilled: false,
 			createdTime: Game.time,
+			amountTransferred: 0,
 		};
 
-		console.log(`createResourceOrderItem: order: ${JSON.stringify(order)}`);
+		//console.log(`createResourceOrderItem: order: ${JSON.stringify(order)}`);
 
 		order.amountPending += amountToUpdate;
 		order.orderItemIds[resourceOrderItem.id] = resourceOrderItem.id;
@@ -214,38 +223,47 @@ module.exports = (function (App) {
 	};
 
 	resource.orderIsValid = (order) => {
+		//console.log("order is valid start");
 		if (!order) {
 			throw new Error(`Invalid parameter!`);
 		}
 
+		//console.log(`order ${JSON.stringify(order)}`);
+
 		if (order.amountFulfilled >= order.amount) {
+			//console.log(`order.amountFulfilled >= order.amount`);
 			return false;
 		}
 
 		if (order.amountPending > 0) {
+			//console.log(`order.amountPending > 0`);
 			if (!order.orderItemIds) {
+				//console.log(`!order.orderItemIds`);
 				return false;
 			}
 
 			for (const orderItemId in order.orderItemIds) {
 				const resourceOrderItem = resource.getResourceOrderItem(orderItemId);
+				//console.log(`resourceOrderItem ${JSON.stringify(resourceOrderItem)}`);
 
 				if (!resourceOrderItem) {
 					return false;
 				}
 
 				const creep = Game.creeps[resourceOrderItem.creepName];
+				//console.log(`creep ${JSON.stringify(creep)}`);
 
 				if (!creep) {
 					return false;
 				}
 
-				if (creep.resourceOrderItemId !== orderItemId) {
+				if (creep.memory.resourceOrderItemId !== orderItemId) {
+					//console.log("return false");
 					return false;
 				}
 			}
 		}
-
+		//console.log("return true");
 		return true;
 	};
 
@@ -284,25 +302,50 @@ module.exports = (function (App) {
 		}
 
 		let transferResult = null;
+		const carryAmountBeforeAction = creep.store.getUsedCapacity(order.type);
+
+		if (carryAmountBeforeAction === 0) {
+			orderItem.amount = order.amountFulfilled;
+			orderItem.fulfilled = true;
+			Memory.resourceOrderItems[creep.memory.resourceOrderItemId] = orderItem;
+			return false;
+		}
+
 		if (order.isContructionSite) {
 			transferResult = creep.build(structure);
+		} else if (structure.structureType === STRUCTURE_CONTROLLER) {
+			transferResult = creep.upgradeController(structure);
 		} else {
 			transferResult = creep.transfer(structure, order.type, orderItem.amount);
 		}
 
+		//console.log(`transferResult ${transferResult}`);
+
 		switch (transferResult) {
 			case OK:
-				if (order.amountFulfilled + orderItem.amount >= order.amount) {
-					resource.deleteOrder(order);
-				} else {
-					orderItem.fulfilled = true;
-					order.amountFulfilled += orderItem.amount;
-					order.amountPending -= orderItem.amount;
+				const carryAmountAfterAction = creep.store.getUsedCapacity(order.type);
+				const amountTransferred = carryAmountBeforeAction - carryAmountAfterAction;
 
-					Memory.resourceOrderItems[creep.memory.resourceOrderItemId] = orderItem;
-					Memory.resourceOrders[orderItem.orderId] = order;
+				order.amountFulfilled += amountTransferred;
+				order.amountPending -= amountTransferred;
+				orderItem.amountTransferred += amountTransferred;
+
+				//console.log(`order ${JSON.stringify(order)}`);
+				//console.log(`orderItem ${JSON.stringify(orderItem)}`);
+
+				if (order.amountFulfilled >= order.amount) {
+					//console.log(`order.amountFulfilled >= order.amount delete order`);
+					resource.deleteOrder(order);
+					break;
 				}
 
+				if (orderItem.amountTransferred > orderItem.amount) {
+					//console.log(`orderItem.amountTransferred > orderItem.amount order item fulfilled`);
+					orderItem.fulfilled = true;
+				}
+
+				Memory.resourceOrderItems[creep.memory.resourceOrderItemId] = orderItem;
+				Memory.resourceOrders[orderItem.orderId] = order;
 				break;
 			case ERR_NOT_ENOUGH_RESOURCES:
 				resource.checkCreepAmount(creep, orderItem, order);
@@ -313,9 +356,11 @@ module.exports = (function (App) {
 			case ERR_NOT_IN_RANGE:
 				return transferResult;
 			case ERR_INVALID_ARGS:
-				v.checkCreepAmount(creep, orderItem, order);
+				resource.checkCreepAmount(creep, orderItem, order);
 				break;
 		}
+
+		return transferResult;
 	};
 
 	resource.checkCreepAmount = (creep, orderItem, order) => {

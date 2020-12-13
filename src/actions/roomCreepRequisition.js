@@ -25,7 +25,7 @@ module.exports = {
 		let idleCreeps = idleRoom.memory.idleCreeps[type];
 
 		if (!idleCreeps) {
-			console.log(`can not find idleCreeps type in room memory. type ${type} roomMemory: ${JSON.stringify(idleRoom.memory.idleCreeps)}`);
+			//console.log(`can not find idleCreeps type in room memory. type ${type} roomMemory: ${JSON.stringify(idleRoom.memory.idleCreeps)}`);
 			return false;
 		}
 
@@ -37,7 +37,7 @@ module.exports = {
 
 			let creep = Game.creeps[idleCreep];
 			if (creep) {
-				console.log(`idle creep found. creep: ${creep.name} type:${type}`);
+				//console.log(`idle creep found. creep: ${creep.name} type:${type}`);
 
 				if (memory) {
 					creep.memory = memory;
@@ -56,7 +56,7 @@ module.exports = {
 		}
 		idleRoom.memory.idleCreeps[type] = idleCreeps;
 
-		console.log(`no idle creep found in idleCreep Queue of type: ${type}`);
+		//console.log(`no idle creep found in idleCreep Queue of type: ${type}`);
 
 		return false;
 	},

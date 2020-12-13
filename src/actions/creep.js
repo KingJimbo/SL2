@@ -118,7 +118,12 @@ module.exports = {
 	harvest: (creep) => {
 		if (creep.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
 			let operation = getObject(OBJECT_TYPE.OPERATION, creep.memory.operationId);
-			creep.harvest(Game.getObjectById(operation.sourceId));
+
+			switch (creep.harvest(Game.getObjectById(operation.sourceId))) {
+				case ERR_NOT_IN_RANGE:
+					creep.memory.currentAction = CREEP_ACTIONS.GO_TO_SOURCE;
+					break;
+			}
 		} else {
 			if (!creep.memory.resourceOrderItemId) {
 				resource.findNextResourceOrderToFulfill(creep.room, creep, RESOURCE_ENERGY, creep.store.getUsedCapacity(RESOURCE_ENERGY));
@@ -160,11 +165,40 @@ module.exports = {
 
 				let transferResult = resource.fulfillResourceOrderItem(creep);
 
-				if (transferResult !== OK) {
-					console.log(`transferResult: ${transferResult}`);
-				}
+				// if (transferResult !== OK) {
+				// 	console.log(`transferResult: ${transferResult}`);
+				// }
 
-				creep.memory.currentAction = CREEP_ACTIONS.GO_TO_SOURCE;
+				if (creep.memory.resourceOrderItemId) {
+					let resourceOrderItem = resource.getResourceOrderItem(creep.memory.resourceOrderItemId);
+
+					if (!resourceOrderItem) {
+						//console.log(`!resourceOrderItem`);
+						creep.memory.currentAction = CREEP_ACTIONS.GO_TO_SOURCE;
+						creep.memory.resourceOrderItemId = null;
+						return;
+					}
+
+					let order = resource.getResourceOrder(resourceOrderItem.orderId);
+
+					if (!order) {
+						//console.log(`!resourceOrderItem`);
+						creep.memory.currentAction = CREEP_ACTIONS.GO_TO_SOURCE;
+						creep.memory.resourceOrderItemId = null;
+						return;
+					}
+
+					if (
+						creep.store.getUsedCapacity(order.type) === 0 ||
+						(resourceOrderItem && resourceOrderItem.amountTransferred >= resourceOrderItem.amount)
+					) {
+						creep.memory.currentAction = CREEP_ACTIONS.GO_TO_SOURCE;
+						creep.memory.resourceOrderItemId = null;
+					}
+				} else {
+					creep.memory.currentAction = CREEP_ACTIONS.GO_TO_SOURCE;
+					creep.memory.resourceOrderItemId = null;
+				}
 			}
 		}
 	},

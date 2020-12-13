@@ -48,8 +48,11 @@ module.exports = function () {
 					this.roomSurveyor.surveyRoomForStructures(room);
 				}
 
+				//console.log(`room.memory.structuresBuiltLastCheckedRoomLevel ${room.memory.structuresBuiltLastCheckedRoomLevel}`);
+				//console.log(`room.controller.level ${room.controller.level}`);
 				if (!room.memory.structuresBuiltLastCheckedRoomLevel || room.controller.level > room.memory.structuresBuiltLastCheckedRoomLevel) {
 					this.roomBuildModule.createBuildOperations(room);
+					room.memory.structuresBuiltLastCheckedRoomLevel = room.controller.level;
 				}
 
 				//this.roomBuildModule.managedConstructionSites(room);
@@ -82,7 +85,7 @@ module.exports = function () {
 
 						const spawnCapacityUsed = spawn.store.getUsedCapacity(RESOURCE_ENERGY);
 						if (creepBodyResponse.cost > spawnCapacityUsed) {
-							console.log(`not enough energy to spawnCreep | cost:${creepBodyResponse.cost} | energy:${spawnCapacityUsed}`);
+							//console.log(`not enough energy to spawnCreep | cost:${creepBodyResponse.cost} | energy:${spawnCapacityUsed}`);
 
 							let resourceOrderId = resource.getStructureResourceOrderId(spawn, RESOURCE_ENERGY);
 
@@ -105,7 +108,7 @@ module.exports = function () {
 								memory: spawn.memory.creepToSpawn.memory,
 							});
 
-							console.log(`spawnCreepResult: ${spawnCreepResult}`);
+							//console.log(`spawnCreepResult: ${spawnCreepResult}`);
 						}
 					});
 				}

@@ -17,6 +17,7 @@ module.exports = {
 			operationId: operation.id,
 			noCreepsRequired: accessPos.length,
 			creepType: CREEP_TYPES.UTILITY,
+			creepData: {},
 		};
 
 		return saveObject(operation);

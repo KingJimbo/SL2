@@ -1,4 +1,5 @@
 const { OBJECT_TYPE } = require("../common/constants");
+const { LOOK_STRUCTURES } = require("../testing/constants");
 const { isANumber, getAccessiblePositions } = require("./common");
 const { saveObject, getObject } = require("./memory");
 const { deleteOperation } = require("./operation");
@@ -29,47 +30,64 @@ module.exports = {
 		let room = Game.rooms[operation.room],
 			constructionSite = null;
 
-		if (operation.constructionId) {
+		// check if it exists
+		if (!operation.constructionId) {
+			const lookStructures = room.lookForAt(LOOK_CONSTRUCTION_SITES, operation.x, operation.y);
+
+			if (lookStructures) {
+				lookStructures.forEach((structure) => {
+					if (structure.structureType === operation.structureType) {
+						operation.constructionId = structure.id;
+						constructionSite = structure;
+					}
+				});
+			}
+		}
+
+		if (!constructionSite && operation.constructionId) {
 			constructionSite = Game.getObjectById(operation.constructionId);
 		}
 
 		if (!constructionSite) {
 			// still needs built
 			//let spawnName = name
+
+			operation.status = STRUCTURE_BUILD_STATUS.UNDER_CONSTRUCTION;
 			const createConstructionSiteResponse = room.createConstructionSite(operation.x, operation.y, operation.structureType);
 			if (createConstructionSiteResponse !== OK) {
-				console.log(`Failed to build contruction site response ${createConstructionSiteResponse}`);
+				console.log(
+					`Failed to build contruction site response ${createConstructionSiteResponse} operation.x  ${operation.x} , operation.y  ${operation.y} , operation.structureType  ${operation.structureType} `
+				);
 			}
-			operation.status = STRUCTURE_BUILD_STATUS.UNDER_CONSTRUCTION;
-		}
+		} else {
+			if (constructionSite && !constructionSite.progressTotal) {
+				// built
+				operation.status = STRUCTURE_BUILD_STATUS.BUILT;
+			}
 
-		if (constructionSite && !constructionSite.progressTotal) {
-			// built
-			operation.status = STRUCTURE_BUILD_STATUS.BUILT;
-		}
+			if (constructionSite && constructionSite.progressTotal && constructionSite.progress < constructionSite.progressTotal) {
+				// still under construction
+				operation.status = STRUCTURE_BUILD_STATUS.UNDER_CONSTRUCTION;
+			}
 
-		if (constructionSite && constructionSite.progressTotal && constructionSite.progress < constructionSite.progressTotal) {
-			// still under construction
-			operation.status = STRUCTURE_BUILD_STATUS.UNDER_CONSTRUCTION;
-		}
-
-		switch (operation.status) {
-			case STRUCTURE_BUILD_STATUS.UNDER_CONSTRUCTION:
-				if (!resource.getStructureResourceOrderId(constructionSite, RESOURCE_ENERGY)) {
-					resource.createResourceOrder(
-						room,
-						constructionSite.id,
-						RESOURCE_ENERGY,
-						constructionSite.progressTotal - constructionSite.progress,
-						true
-					);
-				}
-				// check creep is assigned if not get one
-				break;
-			case STRUCTURE_BUILD_STATUS.BUILT:
-				// clean up
-				deleteOperation(operation);
-				break;
+			switch (operation.status) {
+				case STRUCTURE_BUILD_STATUS.UNDER_CONSTRUCTION:
+					if (!resource.getStructureResourceOrderId(constructionSite, RESOURCE_ENERGY)) {
+						resource.createResourceOrder(
+							room,
+							constructionSite.id,
+							RESOURCE_ENERGY,
+							constructionSite.progressTotal - constructionSite.progress,
+							true
+						);
+					}
+					// check creep is assigned if not get one
+					break;
+				case STRUCTURE_BUILD_STATUS.BUILT:
+					// clean up
+					deleteOperation(operation);
+					break;
+			}
 		}
 
 		// determine if structure is under construction
