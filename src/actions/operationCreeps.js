@@ -8,7 +8,7 @@ module.exports = {
 			throw new Error(`Invalid parameters! operation ${JSON.stringify(operation)}`);
 		}
 
-		console.log(`operation ${JSON.stringify(operation)}`);
+		//console.log(`operation ${JSON.stringify(operation)}`);
 
 		// check differences in required and current
 		let room = Game.rooms[operation.room];
@@ -23,13 +23,13 @@ module.exports = {
 
 		if (operation.creepRoles) {
 			for (const roleName in operation.creepRoles) {
-				console.log(`roleName ${JSON.stringify(roleName)}`);
+				//console.log(`roleName ${JSON.stringify(roleName)}`);
 				let role = operation.creepRoles[roleName];
 				let noOfCurrentCreeps = 0;
 				let creepsToDelete = [];
 
 				if (role) {
-					console.log(`role ${JSON.stringify(role)}`);
+					//console.log(`role ${JSON.stringify(role)}`);
 
 					if (operation.creepRoles[roleName].creepData) {
 						for (const creepName in operation.creepRoles[roleName].creepData) {
@@ -91,7 +91,7 @@ module.exports = {
 								delete operation.creepRoles[roleName].creepData[creepName];
 								let creep = Game.creeps[creepName];
 
-								console.log(`creep ${creep} creepName ${creepName}`);
+								//console.log(`creep ${creep} creepName ${creepName}`);
 
 								if (creep) {
 									addCreepToIdlePool(creep.room, creep);

@@ -288,11 +288,11 @@ module.exports = function (memory, game) {
 		surveyData.structureMap = {};
 
 		let structureArray = [];
-		//console.log(`RESOURCE_ORDER_STRUCTURE_PRIORITY: ${JSON.stringify(RESOURCE_ORDER_STRUCTURE_PRIORITY)}`);
-		for (const j in RESOURCE_ORDER_STRUCTURE_PRIORITY) {
+		//console.log(`STRUCTURE_PRIORITY: ${JSON.stringify(STRUCTURE_PRIORITY)}`);
+		for (const j in STRUCTURE_PRIORITY) {
 			//console.log(`type: ${JSON.stringify(type)}`);
 			//console.log(`CONTROLLER_STRUCTURES: ${JSON.stringify(CONTROLLER_STRUCTURES)}`);
-			const type = RESOURCE_ORDER_STRUCTURE_PRIORITY[j];
+			const type = STRUCTURE_PRIORITY[j];
 			let structureMax = CONTROLLER_STRUCTURES[type][8];
 
 			for (var i = 0; i < structureMax; i++) {
