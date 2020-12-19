@@ -30,6 +30,11 @@ module.exports = {
 		let room = Game.rooms[operation.room],
 			constructionSite = null;
 
+		if (room.cantBuildTime === Game.time) {
+			// exit
+			return;
+		}
+
 		// check if it exists
 		if (!operation.constructionId) {
 			const lookStructures = room.lookForAt(LOOK_CONSTRUCTION_SITES, operation.x, operation.y);
@@ -54,10 +59,16 @@ module.exports = {
 
 			operation.status = STRUCTURE_BUILD_STATUS.UNDER_CONSTRUCTION;
 			const createConstructionSiteResponse = room.createConstructionSite(operation.x, operation.y, operation.structureType);
-			if (createConstructionSiteResponse !== OK) {
-				console.log(
-					`Failed to build contruction site response ${createConstructionSiteResponse} operation.x  ${operation.x} , operation.y  ${operation.y} , operation.structureType  ${operation.structureType} `
-				);
+
+			switch (createConstructionSiteResponse) {
+				case ERR_FULL:
+					room.memory.cantBuildTime = Game.time;
+					break;
+				default:
+					console.log(
+						`Failed to build contruction site response ${createConstructionSiteResponse} operation.x  ${operation.x} , operation.y  ${operation.y} , operation.structureType  ${operation.structureType} `
+					);
+					break;
 			}
 		} else {
 			if (constructionSite && !constructionSite.progressTotal) {
