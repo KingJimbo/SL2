@@ -1,5 +1,5 @@
+const { getAccessiblePositions } = require("../actions/common");
 const { COORDINATES_MAX_SIZE } = require("../common/constants");
-const { STRUCTURE_ROAD } = require("../testing/constants");
 
 module.exports = function (memory, game) {
 	this.memory = memory;
@@ -138,7 +138,7 @@ module.exports = function (memory, game) {
 				const searchObject = { pos: source.pos, range: 1 };
 				// console.log(`pos: ${JSON.stringify(pos)}`);
 				// console.log(`searchObject: ${JSON.stringify(searchObject)}`);
-				var ret = PathFinder.search(pos, searchObject);
+				//var ret = PathFinder.search(pos, searchObject);
 				var ret = PathFinder.search(pos, { pos: source, range: 1 });
 				positionDistanceData.distances.sources.push({ id: source.id, cost: ret.cost });
 				positionDistanceData.totalDistance += ret.cost;
@@ -303,7 +303,27 @@ module.exports = function (memory, game) {
 		this.structureArray = structureArray;
 		//console.log(`structureArray: ${JSON.stringify(structureArray)}`);
 
+		this.mapContainers();
 		this.mapStructures(this.structureArray, idealSpawnPosition);
+	};
+
+	this.mapContainers = () => {
+		if (!this.roomSurveyData.structureMap[STRUCTURE_CONTAINER]) {
+			this.roomSurveyData.structureMap[STRUCTURE_CONTAINER] = [];
+		}
+
+		this.sources.forEach((source) => {
+			var freePositions = getAccessiblePositions(source.pos);
+			if (freePositions) {
+				const firstPos = freePositions[0];
+				const posId = this.helper.getPosName(firstPos.x, firstPos.y);
+				let firstPosData = this.roomSurveyData.positionData[posId];
+
+				this.roomSurveyData.structureMap[STRUCTURE_CONTAINER].push({ x: firstPos.x, y: firstPos.y });
+				firstPosData.hasStructure;
+				this.roomSurveyData.positionData[posId] = firstPosData;
+			}
+		});
 	};
 
 	this.mapStructures = (structureArray, idealSpawnPosition) => {
@@ -356,7 +376,7 @@ module.exports = function (memory, game) {
 						// );
 
 						// find connecting block centre & add to centrePositions
-						let connectingBlockCentrePosition = this.getPositionFromDirection(blockPosition, blockPosition.direction, 2);
+						let connectingBlockCentrePosition = this.getPositionFromDirection(blockPosition, blockPosition.direction, 1);
 
 						//console.log(`connectingBlockCentrePosition: ${JSON.stringify(connectingBlockCentrePosition)}`);
 
@@ -403,49 +423,49 @@ module.exports = function (memory, game) {
 
 		let topLeftPosition = this.getPositionFromDirection(centrePosition, TOP_LEFT);
 		if (topLeftPosition) {
-			topLeftPosition.isRoad = false;
+			topLeftPosition.isRoad = true;
 			positionArray.push(topLeftPosition);
 		}
 
 		let topPosition = this.getPositionFromDirection(centrePosition, TOP);
 		if (topPosition) {
-			topPosition.isRoad = true;
+			topPosition.isRoad = false;
 			positionArray.push(topPosition);
 		}
 
 		let topRightPosition = this.getPositionFromDirection(centrePosition, TOP_RIGHT);
 		if (topRightPosition) {
-			topRightPosition.isRoad = false;
+			topRightPosition.isRoad = true;
 			positionArray.push(topRightPosition);
 		}
 
 		let leftPosition = this.getPositionFromDirection(centrePosition, LEFT);
 		if (leftPosition) {
-			leftPosition.isRoad = true;
+			leftPosition.isRoad = false;
 			positionArray.push(leftPosition);
 		}
 
 		let rightPosition = this.getPositionFromDirection(centrePosition, RIGHT);
 		if (rightPosition) {
-			rightPosition.isRoad = true;
+			rightPosition.isRoad = false;
 			positionArray.push(rightPosition);
 		}
 
 		let bottomLeftPosition = this.getPositionFromDirection(centrePosition, BOTTOM_LEFT);
 		if (bottomLeftPosition) {
-			bottomLeftPosition.isRoad = false;
+			bottomLeftPosition.isRoad = true;
 			positionArray.push(bottomLeftPosition);
 		}
 
 		let bottomPosition = this.getPositionFromDirection(centrePosition, BOTTOM);
 		if (bottomPosition) {
-			bottomPosition.isRoad = true;
+			bottomPosition.isRoad = false;
 			positionArray.push(bottomPosition);
 		}
 
 		let bottomRightPosition = this.getPositionFromDirection(centrePosition, BOTTOM_RIGHT);
 		if (bottomRightPosition) {
-			bottomRightPosition.isRoad = false;
+			bottomRightPosition.isRoad = true;
 			positionArray.push(bottomRightPosition);
 		}
 

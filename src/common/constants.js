@@ -142,14 +142,16 @@ module.exports = {
 		SOURCE: "source",
 	},
 
+	OPERATION_STATUS: {
+		SUSPENDED: 0,
+		ACTIVE: 1,
+		TERMINATE: 2,
+	},
+
 	OBJECT_TYPE: {
 		OPERATION: "operation",
 		SPAWN_QUEUE_ITEM: "spawnQueueItem",
 		SOURCE: "source",
-	},
-	STRUCTURE_BUILD_STATUS: {
-		UNDER_CONSTRUCTION: 0,
-		BUILT: 1,
 	},
 	CREEP_ACTIONS: {
 		GO_TO_SOURCE: "goToSource",

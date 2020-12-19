@@ -8,6 +8,10 @@ module.exports = {
 			throw new Error(`Invalid parameters! operation ${JSON.stringify(operation)}`);
 		}
 
+		if (operation.status === OPERATION_STATUS.SUSPEND) {
+			return;
+		}
+
 		//console.log(`operation ${JSON.stringify(operation)}`);
 
 		// check differences in required and current

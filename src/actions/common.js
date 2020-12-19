@@ -39,11 +39,7 @@ module.exports = {
 
 	isValidStructureBuildStatus: (status) => {
 		switch (status) {
-			case STRUCTURE_BUILD_STATUS.CONSTRUCTED:
-				return true;
-			case STRUCTURE_BUILD_STATUS.IN_CONSTRUCTION:
-				return true;
-			case STRUCTURE_BUILD_STATUS.INITIALISED:
+			case OPERATION_STATUS.ACTIVE:
 				return true;
 			default:
 				return false;

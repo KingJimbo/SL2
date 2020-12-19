@@ -18,12 +18,17 @@ module.exports = {
 
 		let source = Game.getObjectById(operation.sourceId);
 
-		let room = source.room;
-
 		if (positionHasNearbyThreat(source.pos)) {
+			console.log(`${JSON.stringify(source)}`);
+			console.log("has threat");
 			idleOperationCreeps(operation);
+			operation.status = OPERATION_STATUS.SUSPEND;
+			saveObject(operation);
 			return;
 		}
+
+		operation.status = OPERATION_STATUS.ACTIVE;
+		saveObject(operation);
 
 		if (!operation.level || source.room.controller.level > operation.level) {
 			upgradeSourceOperation(operation);
@@ -45,10 +50,10 @@ module.exports = {
 
 		// check if it exists
 		if (!operation.constructionId) {
-			const lookStructures = room.lookForAt(LOOK_CONSTRUCTION_SITES, operation.x, operation.y);
+			const lookSites = room.lookForAt(LOOK_CONSTRUCTION_SITES, operation.x, operation.y);
 
-			if (lookStructures) {
-				lookStructures.forEach((structure) => {
+			if (lookSites) {
+				lookSites.forEach((structure) => {
 					if (structure.structureType === operation.structureType) {
 						operation.constructionId = structure.id;
 						constructionSite = structure;
@@ -63,9 +68,22 @@ module.exports = {
 
 		if (!constructionSite) {
 			// still needs built
-			//let spawnName = name
+			const lookStructures = room.lookForAt(LOOK_STRUCTURES, operation.x, operation.y);
 
-			operation.status = STRUCTURE_BUILD_STATUS.UNDER_CONSTRUCTION;
+			if (lookStructures) {
+				lookStructures.forEach((structure) => {
+					if (structure.structureType === operation.structureType && !operation.progressTotal) {
+						operation.status = OPERATION_STATUS.TERMINATE;
+					}
+				});
+			}
+
+			if (operation.status === OPERATION_STATUS.TERMINATE) {
+				deleteOperation(operation);
+				return;
+			}
+
+			operation.status = OPERATION_STATUS.ACTIVE;
 			const createConstructionSiteResponse = room.createConstructionSite(operation.x, operation.y, operation.structureType);
 
 			switch (createConstructionSiteResponse) {
@@ -81,16 +99,16 @@ module.exports = {
 		} else {
 			if (constructionSite && !constructionSite.progressTotal) {
 				// built
-				operation.status = STRUCTURE_BUILD_STATUS.BUILT;
+				operation.status = OPERATION_STATUS.TERMINATE;
 			}
 
 			if (constructionSite && constructionSite.progressTotal && constructionSite.progress < constructionSite.progressTotal) {
 				// still under construction
-				operation.status = STRUCTURE_BUILD_STATUS.UNDER_CONSTRUCTION;
+				operation.status = OPERATION_STATUS.ACTIVE;
 			}
 
 			switch (operation.status) {
-				case STRUCTURE_BUILD_STATUS.UNDER_CONSTRUCTION:
+				case OPERATION_STATUS.ACTIVE:
 					if (!resource.getStructureResourceOrderId(constructionSite, RESOURCE_ENERGY)) {
 						resource.createResourceOrder(
 							room,
@@ -102,7 +120,7 @@ module.exports = {
 					}
 					// check creep is assigned if not get one
 					break;
-				case STRUCTURE_BUILD_STATUS.BUILT:
+				case OPERATION_STATUS.TERMINATE:
 					// clean up
 					deleteOperation(operation);
 					break;

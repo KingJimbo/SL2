@@ -1,4 +1,7 @@
 const { isANumber, getRoom } = require("../actions/common");
+const { OBJECT_TYPE } = require("../common/constants");
+const { getObject } = require("./memory");
+const { createSourceOperation } = require("./operationSource");
 const { getIdleCreep, addCreepToRoomSpawnQueue } = require("./roomCreepRequisition");
 
 module.exports = {
@@ -123,20 +126,60 @@ module.exports = {
 		var roomPosition = new RoomPosition(pos.x, pos.y, pos.roomName);
 
 		for (const i in room.memory.threats.threatPositions) {
-			const threatPos = room.memory.threats.threatPositions;
-			const threatPosition = new RoomPosition(pos.x, pos.y, pos.roomName);
-			const pathFinderResponse = PathFinder.search(threatPosition, roomPosition);
+			const threatPos = room.memory.threats.threatPositions[i];
+			const threatPosition = new RoomPosition(threatPos.x, threatPos.y, threatPos.roomName);
+			const pathFinderResponse = PathFinder.search(threatPosition, { pos: roomPosition, range: 1 });
 
-			if (
-				pathFinderResponse &&
-				!pathFinderResponse.inComplete &&
-				pathFinderResponse.path &&
-				pathFinderResponse.path.length < HOSTILE_CREEP_PROXIMITY_DISTANCE
-			) {
+			console.log(`pathFinderResponse ${JSON.stringify(pathFinderResponse)}`);
+
+			if (pathFinderResponse && !pathFinderResponse.inComplete && pathFinderResponse.path.length < HOSTILE_CREEP_PROXIMITY_DISTANCE) {
 				return true;
 			}
 		}
 
 		return false;
+	},
+
+	checkSources: (room) => {
+		if (!room) {
+			throw new Error("Invalid parameters");
+		}
+
+		if (!room.memory.sources) {
+			room.memory.sources = {};
+
+			let sources = room.find(FIND_SOURCES);
+
+			if (sources) {
+				//console.log(`sources ${JSON.stringify(sources)}`);
+				sources.forEach((source) => {
+					createSourceOperation(source);
+				});
+			}
+
+			return;
+		}
+
+		if (room.memory.sources) {
+			//console.log(`room.memory.sources ${JSON.stringify(room.memory.sources)}`);
+			for (var sourceId in room.memory.sources) {
+				let sourceData = room.memory.sources[sourceId];
+
+				if (sourceData) {
+					let operation = null;
+
+					if (sourceData.operationId) {
+						operation = getObject(OBJECT_TYPE.OPERATION, sourceData.operationId);
+					}
+
+					if (!operation) {
+						delete room.memory.sources[sourceId].operationId;
+
+						let source = Game.getObjectById(sourceId);
+						createSourceOperation(source);
+					}
+				}
+			}
+		}
 	},
 };

@@ -1,8 +1,7 @@
-const { OPERATION_TYPE, OBJECT_TYPE, STRUCTURE_BUILD_STATUS, CREEP_ROLES } = require("../common/constants");
-const { getPosName, isANumber } = require("../actions/common");
-const { saveObject, getObjects, deleteObject } = require("../actions/memory");
+const { OPERATION_TYPE, OBJECT_TYPE, OPERATION_STATUS } = require("../common/constants");
+const { isANumber } = require("../actions/common");
+const { saveObject, deleteObject } = require("../actions/memory");
 const { addCreepToIdlePool } = require("./roomCreepRequisition");
-const resource = App.modules.resource;
 
 module.exports = {
 	createBuildOperation: (structureType, x, y, roomName) => {
@@ -22,7 +21,7 @@ module.exports = {
 			objectType: OBJECT_TYPE.OPERATION,
 			operationType: OPERATION_TYPE.BUILD,
 			structureType,
-			status: STRUCTURE_BUILD_STATUS.UNDER_CONSTRUCTION,
+			status: OPERATION_STATUS.ACTIVE,
 			x,
 			y,
 			room: roomName,
