@@ -6,6 +6,7 @@ const { createSourceOperation } = require("./actions/operationSource.js");
 const { getObjects, getObject } = require("./actions/memory.js");
 const { checkOperationCreeps } = require("./actions/operationCreeps.js");
 const { OBJECT_TYPE } = require("./common/constants.js");
+const { hasRoomThreats } = require("./actions/room.js");
 const resource = App.modules.resource;
 
 module.exports = function () {
@@ -38,6 +39,11 @@ module.exports = function () {
 	this.runRooms = () => {
 		for (const i in Game.rooms) {
 			let room = Game.rooms[i];
+
+			if (hasRoomThreats(room)) {
+				// has threats to take sufficient action?
+				// will need to access global threat response after all rooms processed.
+			}
 
 			if (room.controller.my) {
 				// do survey if not done before or current version is newer than last survey

@@ -21,6 +21,9 @@ module.exports = {
 			return;
 		}
 
+		if (room.memory.threats.hasThreat) {
+		}
+
 		if (operation.creepRoles) {
 			for (const roleName in operation.creepRoles) {
 				//console.log(`roleName ${JSON.stringify(roleName)}`);
@@ -97,6 +100,52 @@ module.exports = {
 									addCreepToIdlePool(creep.room, creep);
 								}
 							});
+						}
+					}
+				}
+			}
+		}
+
+		saveObject(operation);
+	},
+
+	idleOperationCreeps: (operation) => {
+		if (!operation) {
+			throw new Error(`Invalid parameters! operation ${JSON.stringify(operation)}`);
+		}
+
+		//console.log(`operation ${JSON.stringify(operation)}`);
+
+		// check differences in required and current
+		let room = Game.rooms[operation.room];
+
+		if (!room) {
+			console.log(`Couldn't find room ${operation.room}`);
+		}
+
+		if (operation.creepRoles) {
+			for (const roleName in operation.creepRoles) {
+				//console.log(`roleName ${JSON.stringify(roleName)}`);
+				let role = operation.creepRoles[roleName];
+
+				if (role) {
+					//console.log(`role ${JSON.stringify(role)}`);
+
+					if (operation.creepRoles[roleName].creepData) {
+						for (const creepName in operation.creepRoles[roleName].creepData) {
+							let creep = Game.creeps[creepName];
+
+							// if creep is valid
+							if (!creep) {
+								//creep no longer exists so remove
+								delete operation.creepRoles[roleName].creepData[creepName];
+
+								//console.log(`creep ${creep} creepName ${creepName}`);
+
+								if (creep) {
+									addCreepToIdlePool(creep.room, creep);
+								}
+							}
 						}
 					}
 				}

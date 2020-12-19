@@ -317,16 +317,18 @@ module.exports = function (memory, game) {
 			// console.log(`centrePositions: ${JSON.stringify(centrePositions)}`);
 			// console.log(`centrePosition: ${JSON.stringify(centrePosition)}`);
 
-			const centrePositionData = this.roomSurveyData.positionData[centrePositionId];
+			let centrePositionData = this.roomSurveyData.positionData[centrePositionId];
 			// console.log(`positionData: ${JSON.stringify(this.roomSurveyData.positionData)}`);
 			// console.log(`centrePositionData: ${JSON.stringify(centrePositionData)}`);
 
-			if (centrePositionData && centrePositionData.canTravel) {
+			if (centrePositionData && centrePositionData.canTravel && !centrePositionData.hasStructure) {
 				if (!this.roomSurveyData.structureMap[STRUCTURE_ROAD]) {
 					this.roomSurveyData.structureMap[STRUCTURE_ROAD] = [];
 				}
 				this.roomSurveyData.structureMap[STRUCTURE_ROAD].push({ x: centrePosition.x, y: centrePosition.y });
-				global.debug.colorPositionByStructure(new RoomPosition(centrePosition.x, centrePosition.y, this.roomSurveyData.room), STRUCTURE_ROAD);
+				centrePositionData.hasStructure = true;
+				this.roomSurveyData.positionData[centrePositionId] = centrePositionData;
+				// global.debug.colorPositionByStructure(new RoomPosition(centrePosition.x, centrePosition.y, this.roomSurveyData.room), STRUCTURE_ROAD);
 			}
 
 			const blockPositions = this.getDefaultBaseTemplatePositionBlock(centrePosition);
@@ -339,9 +341,9 @@ module.exports = function (memory, game) {
 
 				//console.log(`blockPosition: ${JSON.stringify(blockPosition)}`);
 
-				const blockPositionData = this.roomSurveyData.positionData[blockPositionId];
+				let blockPositionData = this.roomSurveyData.positionData[blockPositionId];
 
-				if (blockPositionData) {
+				if (blockPositionData && !blockPositionData.hasStructure) {
 					if (blockPosition.isRoad && blockPositionData.canTravel) {
 						// add road structure
 						if (!this.roomSurveyData.structureMap[STRUCTURE_ROAD]) {
@@ -385,6 +387,9 @@ module.exports = function (memory, game) {
 						// );
 					}
 				}
+
+				blockPositionData.hasStructure = true;
+				this.roomSurveyData.positionData[blockPositionId] = blockPositionData;
 			}
 		}
 	};

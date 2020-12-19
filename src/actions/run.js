@@ -3,8 +3,9 @@ const { LOOK_STRUCTURES } = require("../testing/constants");
 const { isANumber, getAccessiblePositions } = require("./common");
 const { saveObject, getObject } = require("./memory");
 const { deleteOperation } = require("./operation");
-const { checkOperationCreeps } = require("./operationCreeps");
+const { idleOperationCreeps } = require("./operationCreeps");
 const { upgradeSourceOperation } = require("./operationSource");
+const { positionHasNearbyThreat } = require("./room");
 const { addCreepToIdlePool } = require("./roomCreepRequisition");
 const { runIdleCreep, runHarvesterCreep } = require("./runCreep");
 const resource = App.modules.resource;
@@ -16,6 +17,13 @@ module.exports = {
 		}
 
 		let source = Game.getObjectById(operation.sourceId);
+
+		let room = source.room;
+
+		if (positionHasNearbyThreat(source.pos)) {
+			idleOperationCreeps(operation);
+			return;
+		}
 
 		if (!operation.level || source.room.controller.level > operation.level) {
 			upgradeSourceOperation(operation);

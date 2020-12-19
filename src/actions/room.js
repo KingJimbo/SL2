@@ -51,13 +51,14 @@ module.exports = {
 		return addCreepToRoomSpawnQueue(room, type, memory);
 	},
 
-	assessRoomThreats: (room) => {
+	hasRoomThreats: (room) => {
 		if (!room) {
 			throw new Error("Invalid parameters!");
 		}
 
 		// reset every time
 		room.memory.threats = {
+			hasThreats: false,
 			threatPositions: [],
 			threatLevel: 0,
 			creeps: {},
@@ -69,30 +70,73 @@ module.exports = {
 		// global threat level
 		// manage global response
 
+		const creepThreatFilter = (creep) => {
+			if (!creep) {
+				return false;
+			}
+
+			// probably need to track creep strength (i.e. threat level)
+			const threatValue = creep.getActiveBodyparts(ATTACK) + creep.getActiveBodyparts(RANGED_ATTACK);
+			const isHostile = threatValue > 0;
+
+			if (isHostile) {
+				creep.room.memory.threats.creeps[creep.id] = creep.id;
+
+				creep.room.memory.threats.threatPositions.push(creep.pos);
+
+				creep.room.memory.threats.threatLevel += threatValue;
+			}
+
+			return isHostile;
+		};
+
 		const hostileCreeps = room.find(FIND_HOSTILE_CREEPS, {
-			filter: (creep) => {
-				// probably need to track creep strength (i.e. threat level)
-				const threatValue = creep.getActiveBodyparts(ATTACK) + creep.getActiveBodyparts(RANGED_ATTACK);
-				const isHostile = threatValue > 0;
-
-				if (isHostile) {
-					creep.room.memory.threats.creeps[creep.id] = creep.id;
-
-					creep.room.memory.threats.threatPositions.push(creep.pos);
-
-					creep.room.memory.threats.threatLevel += threatValue;
-				}
-
-				return isHostile;
-			},
+			filter: creepThreatFilter,
 		});
 
-		if (hostileCreeps) {
-			room.memory.hasThreats = true;
+		const hostilePowerCreeps = room.find(FIND_POWER_CREEPS, {
+			filter: creepThreatFilter,
+		});
+
+		if (hostileCreeps || hostilePowerCreeps) {
+			room.memory.threats.hasThreats = true;
 		}
 
-		// const hostilePowerCreeps = room.find(FIND_POWER_CREEPS, {
-		// 	filter: { structureType: STRUCTURE_EXTENSION },
-		// });
+		return room.memory.threats.hasThreats;
+	},
+
+	positionHasNearbyThreat: (pos) => {
+		if (!pos || !pos.x || !pos.y || !pos.roomName) {
+			throw new Error(`Invalid parameters pos ${JSON.stringify(pos)}`);
+		}
+
+		let room = Game.rooms[pos.roomName];
+
+		if (!room) {
+			throw new Error(`Can't find room ${pos.roomName}`);
+		}
+
+		if (!room.memory.threats.hasThreats) {
+			return false;
+		}
+
+		var roomPosition = new RoomPosition(pos.x, pos.y, pos.roomName);
+
+		for (const i in room.memory.threats.threatPositions) {
+			const threatPos = room.memory.threats.threatPositions;
+			const threatPosition = new RoomPosition(pos.x, pos.y, pos.roomName);
+			const pathFinderResponse = PathFinder.search(threatPosition, roomPosition);
+
+			if (
+				pathFinderResponse &&
+				!pathFinderResponse.inComplete &&
+				pathFinderResponse.path &&
+				pathFinderResponse.path.length < HOSTILE_CREEP_PROXIMITY_DISTANCE
+			) {
+				return true;
+			}
+		}
+
+		return false;
 	},
 };
