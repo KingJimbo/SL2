@@ -6,7 +6,8 @@ const { createSourceOperation } = require("./actions/operationSource.js");
 const { getObjects, getObject } = require("./actions/memory.js");
 const { checkOperationCreeps } = require("./actions/operationCreeps.js");
 const { OBJECT_TYPE } = require("./common/constants.js");
-const { hasRoomThreats, checkSources } = require("./actions/room.js");
+const { hasRoomThreats, checkSources, createRoomCreepRoles, checkCreeps } = require("./actions/room.js");
+const { FIND_MY_CONSTRUCTION_SITES } = require("./testing/constants.js");
 const resource = App.modules.resource;
 
 module.exports = function () {
@@ -56,17 +57,27 @@ module.exports = function () {
 
 				//console.log(`room.memory.structuresBuiltLastCheckedRoomLevel ${room.memory.structuresBuiltLastCheckedRoomLevel}`);
 				//console.log(`room.controller.level ${room.controller.level}`);
-				if (
-					(room.controller.level > 1 && !room.memory.structuresBuiltLastCheckedRoomLevel) ||
-					room.controller.level > room.memory.structuresBuiltLastCheckedRoomLevel
-				) {
-					this.roomBuildModule.createBuildOperations(room);
-					room.memory.structuresBuiltLastCheckedRoomLevel = room.controller.level;
+				// if (
+				// 	(room.controller.level > 1 && !room.memory.structuresBuiltLastCheckedRoomLevel) ||
+				// 	room.controller.level > room.memory.structuresBuiltLastCheckedRoomLevel
+				// ) {
+				// 	this.roomBuildModule.createBuildOperations(room);
+				// 	room.memory.structuresBuiltLastCheckedRoomLevel = room.controller.level;
+				// }
+
+				const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
+
+				if (!sites) {
+					this.roomBuildModule.buildNextSite(room);
 				}
 
 				//this.roomBuildModule.managedConstructionSites(room);
 
-				checkSources(room);
+				//checkSources(room);
+
+				createRoomCreepRoles(room);
+
+				checkCreeps(room);
 
 				let spawns = room.find(FIND_MY_STRUCTURES, {
 					filter: { structureType: STRUCTURE_SPAWN },

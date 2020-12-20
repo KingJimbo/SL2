@@ -1,4 +1,5 @@
 const { goToSource, harvest, fullEnergyFillOrder } = require("./creep");
+const { findNextFreeSource } = require("./room");
 const { isCreepIdle, addCreepToIdlePool } = require("./roomCreepRequisition");
 
 module.exports = {
@@ -10,6 +11,10 @@ module.exports = {
 		creep.moveTo(0, 0);
 	},
 	runHarvesterCreep: (creep) => {
+		if (!creep.memory.sourceId) {
+			var source = findNextFreeSource(creep.room);
+		}
+
 		if (!creep.memory.currentAction) {
 			creep.store.getFreeCapacity(RESOURCE_ENERGY) < creep.store.getCapacity(RESOURCE_ENERGY)
 				? (creep.memory.currentAction = CREEP_ACTIONS.GO_TO_SOURCE)

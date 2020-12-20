@@ -132,6 +132,7 @@ module.exports = {
 		// once construction started requisision energy
 		//
 	},
+
 	runCreep: (creep) => {
 		if (!creep) {
 			throw new Error(`Invalid Parameters!`);
@@ -147,21 +148,21 @@ module.exports = {
 			creep.memory.type = CREEP_TYPES.UTILITY;
 		}
 
-		if (creep.memory.operationId) {
-			let operation = getObject(OBJECT_TYPE.OPERATION, creep.memory.operationId);
+		// if (creep.memory.operationId) {
+		// 	let operation = getObject(OBJECT_TYPE.OPERATION, creep.memory.operationId);
 
-			if (operation) {
-				if (operation.creepRoles[creep.memory.role]) {
-					if (!operation.creepRoles[creep.memory.role].creepData) {
-						operation.creepRoles[creep.memory.role].creepData = {};
-					}
+		// 	if (operation) {
+		// 		if (operation.creepRoles[creep.memory.role]) {
+		// 			if (!operation.creepRoles[creep.memory.role].creepData) {
+		// 				operation.creepRoles[creep.memory.role].creepData = {};
+		// 			}
 
-					if (!operation.creepRoles[creep.memory.role].creepData[creep.name]) {
-						operation.creepRoles[creep.memory.role].creepData[creep.name] = { name: creep.name };
-					}
-				}
-			}
-		}
+		// 			if (!operation.creepRoles[creep.memory.role].creepData[creep.name]) {
+		// 				operation.creepRoles[creep.memory.role].creepData[creep.name] = { name: creep.name };
+		// 			}
+		// 		}
+		// 	}
+		// }
 
 		switch (creep.memory.role) {
 			case "idle":

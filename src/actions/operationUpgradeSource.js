@@ -1,3 +1,4 @@
+const { CONDITIONS } = require("../common/constants");
 const { getAccessiblePositions } = require("./common");
 const { saveObject } = require("./memory");
 
@@ -17,6 +18,15 @@ module.exports = {
 			operationId: operation.id,
 			noCreepsRequired: accessPos.length,
 			creepType: CREEP_TYPES.UTILITY,
+			conditions: [{ condition: CONDITIONS.LESS_THAN_OR_EQUAL, valueType: CONDITION_VALUES.ROOM_TOTAL_ENERGY_CAPACITY, value: 300 }],
+			creepData: {},
+		};
+
+		operation.creepRoles[CREEP_ROLES.MINER] = {
+			operationId: operation.id,
+			noCreepsRequired: 1,
+			creepType: CREEP_TYPES.MINER,
+			conditions: [{ condition: CONDITIONS.GREATER_THAN_OR_EQUAL, valueType: CONDITION_VALUES.ROOM_TOTAL_ENERGY_CAPACITY, value: 550 }],
 			creepData: {},
 		};
 
