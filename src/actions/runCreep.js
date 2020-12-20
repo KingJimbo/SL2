@@ -13,6 +13,22 @@ module.exports = {
 	runHarvesterCreep: (creep) => {
 		if (!creep.memory.sourceId) {
 			var source = findNextFreeSource(creep.room);
+
+			if (!source) {
+				addCreepToIdlePool(creep.room, creep);
+			}
+
+			creep.memory.sourceId = source.id;
+
+			if (!creep.room.memory.sources[source.id]) {
+				creep.room.memory.sources[source.id] = {};
+			}
+
+			if (!creep.room.memory.sources[source.id].currentCreeps) {
+				creep.room.memory.sources[source.id].currentCreeps = {};
+			}
+
+			creep.room.memory.sources[source.id].currentCreeps[creep.name] = creep.name;
 		}
 
 		if (!creep.memory.currentAction) {

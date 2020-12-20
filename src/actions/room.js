@@ -474,11 +474,12 @@ module.exports = {
 	},
 
 	findNextFreeSource: (room) => {
-		//
 		const sources = room.find(FIND_SOURCES);
 
 		if (sources) {
-			sources.forEach((source) => {
+			for (const i in sources) {
+				const source = sources[i];
+
 				// check room memory for source data
 
 				if (!room.memory.sources) {
@@ -492,13 +493,11 @@ module.exports = {
 				}
 
 				if (!sourceData.noRequiredCreeps) {
-					
+					const freePos = getAccessiblePositions(source.pos);
 
-                    const freePos = getAccessiblePositions(source.pos);
-                    
-                    sourceData.noRequiredCreeps = freePos.length;
-                    
-                    room.memory.sources[source.id] = sourceData;
+					sourceData.noRequiredCreeps = freePos.length;
+
+					room.memory.sources[source.id] = sourceData;
 
 					return source;
 				}
@@ -515,13 +514,16 @@ module.exports = {
 					if (!creep) {
 						delete room.memory.sources[source.id].currentCreeps[creepName];
 					}
-                });
-                
-                creepNames = Object.keys(sourceData.currentCreeps);
+				});
 
-                if()
+				creepNames = Object.keys(sourceData.currentCreeps);
 
-			});
+				if (creepNames.length < sourceData.noRequiredCreeps) {
+					return source;
+				}
+			}
 		}
+
+		return null;
 	},
 };

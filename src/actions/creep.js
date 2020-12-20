@@ -93,14 +93,13 @@ module.exports = {
 		return creepBodyResponse;
 	},
 	goToSource: (creep) => {
-		let operation = getObject(OBJECT_TYPE.OPERATION, creep.memory.operationId);
+		//let operation = getObject(OBJECT_TYPE.OPERATION, creep.memory.operationId);
 
-		if (!operation) {
+		if (!creep.memory.sourceId) {
 			addCreepToIdlePool(creep.room, creep);
-			return;
 		}
 
-		let source = Game.getObjectById(operation.sourceId);
+		const source = Game.getObjectById(creep.memory.sourceId);
 
 		if (!source) {
 			console.log(`No source found belonging to id ${operation.sourceId}!`);
@@ -117,9 +116,11 @@ module.exports = {
 	},
 	harvest: (creep) => {
 		if (creep.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-			let operation = getObject(OBJECT_TYPE.OPERATION, creep.memory.operationId);
+			//let operation = getObject(OBJECT_TYPE.OPERATION, creep.memory.operationId);
 
-			switch (creep.harvest(Game.getObjectById(operation.sourceId))) {
+			const source = Game.getObjectById(creep.memory.sourceId);
+
+			switch (creep.harvest(source)) {
 				case ERR_NOT_IN_RANGE:
 					creep.memory.currentAction = CREEP_ACTIONS.GO_TO_SOURCE;
 					break;
