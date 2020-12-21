@@ -5,7 +5,7 @@ const { getObject } = require("./memory");
 const { createSourceOperation } = require("./operationSource");
 const { getIdleCreep, addCreepToRoomSpawnQueue, addCreepToSpawn } = require("./roomCreepRequisition");
 
-module.exports = {
+const roomModule = {
 	isRoomStructureInitialised: (structureType, x, y, roomName) => {
 		console.log(`isRoomStructureInitialised start`);
 		console.log(`structureType ${structureType}, x ${x}, y ${y}, roomName ${roomName}`);
@@ -131,7 +131,7 @@ module.exports = {
 			const threatPosition = new RoomPosition(threatPos.x, threatPos.y, threatPos.roomName);
 			const pathFinderResponse = PathFinder.search(threatPosition, { pos: roomPosition, range: 1 });
 
-			console.log(`pathFinderResponse ${JSON.stringify(pathFinderResponse)}`);
+			//console.log(`pathFinderResponse ${JSON.stringify(pathFinderResponse)}`);
 
 			if (pathFinderResponse && !pathFinderResponse.inComplete && pathFinderResponse.path.length < HOSTILE_CREEP_PROXIMITY_DISTANCE) {
 				return true;
@@ -204,13 +204,25 @@ module.exports = {
 					},
 				});
 
-				console.log(`creepRole ${JSON.stringify(creepRole)}, creeps ${JSON.stringify(creeps)}`);
+				//console.log(`creepRole ${JSON.stringify(creepRole)}, creeps ${JSON.stringify(creeps)}`);
 
 				if (creeps && creeps.length < creepRole.noCreepsRequired) {
 					for (var i = 0; i < creepRole.noCreepsRequired - creeps.length; i++) {
-						if (!addCreepToSpawn(room.name, CREEP_ROLES_TYPES[creepRoleName], { role: creepRoleName, room: room.name })) {
-							console.log("failed to add creep to spawn");
-							return;
+						let noIdleCreeps = false;
+						let creep = null;
+						if (!noIdleCreeps) {
+							creep = getIdleCreep(room.name, CREEP_ROLES_TYPES[creepRoleName]);
+						}
+
+						if (creep) {
+							creep.memory.room = room.name;
+							creep.memory.role = creepRoleName;
+						} else {
+							noIdleCreeps = true;
+							if (!addCreepToSpawn(room.name, CREEP_ROLES_TYPES[creepRoleName], { role: creepRoleName, room: room.name })) {
+								//console.log("failed to add creep to spawn");
+								return;
+							}
 						}
 					}
 				}
@@ -239,12 +251,12 @@ module.exports = {
 			var isCreepRoleValidToSpawn = null;
 			var noCreepsRequired = 0;
 
-			console.log(`creepRole ${creepRole}`);
+			//console.log(`creepRole ${creepRole}`);
 
 			creepRoleSpawnConditions.forEach((spawnConditions) => {
 				var conditionResults = [];
 
-				console.log(`spawnConditions ${JSON.stringify(spawnConditions)}`);
+				//console.log(`spawnConditions ${JSON.stringify(spawnConditions)}`);
 
 				for (var i = 0; i < spawnConditions.conditions.length; i++) {
 					const spawnCondition = spawnConditions.conditions[i];
@@ -284,30 +296,35 @@ module.exports = {
 							sources = room.find(FIND_SOURCES);
 
 							if (sources) {
-								conditionValueResult = sources.length;
+								sources.forEach((source) => {
+									if (!roomModule.positionHasNearbyThreat(source.pos)) {
+										conditionValueResult++;
+									}
+								});
 							}
 							break;
 						case CONDITION_VALUE_TYPES.SOURCE_ACCESS:
 							sources = room.find(FIND_SOURCES);
-							var accessPositionTotal = 0;
 
 							if (sources) {
 								//console.log(`sources ${JSON.stringify(sources)}`);
 								sources.forEach((source) => {
-									const freePos = getAccessiblePositions(source.pos);
-									if (freePos) {
-										if (!room.memory.sources) {
-											room.memory.sources = {};
-										}
+									if (!roomModule.positionHasNearbyThreat(source.pos)) {
+										const freePos = getAccessiblePositions(source.pos);
+										if (freePos) {
+											if (!room.memory.sources) {
+												room.memory.sources = {};
+											}
 
-										if (!room.memory.sources[source.id]) {
-											room.memory.sources[source.id] = {
-												noRequiredCreeps: freePos.length,
-												currentCreeps: null,
-											};
-										}
+											if (!room.memory.sources[source.id]) {
+												room.memory.sources[source.id] = {
+													noRequiredCreeps: freePos.length,
+													currentCreeps: null,
+												};
+											}
 
-										accessPositionTotal += freePos.length;
+											conditionValueResult += freePos.length;
+										}
 									}
 								});
 							}
@@ -383,7 +400,7 @@ module.exports = {
 						throw new Error(`Operator not supported ${spawnConditions.operator}`);
 				}
 
-				console.log(`conditionResults ${JSON.stringify(conditionResults)} `);
+				//console.log(`conditionResults ${JSON.stringify(conditionResults)} `);
 			});
 
 			if (!isCreepRoleValidToSpawn) {
@@ -400,7 +417,7 @@ module.exports = {
 
 				var noCreepsRequired = 0;
 
-				console.log(`numberCondition ${JSON.stringify(numberCondition)}.`);
+				//console.log(`numberCondition ${JSON.stringify(numberCondition)}.`);
 
 				switch (numberCondition.valueType) {
 					case CONDITION_VALUE_TYPES.CONTRTRUCTION_SITE:
@@ -437,7 +454,11 @@ module.exports = {
 						}
 
 						if (sources) {
-							noCreepsRequired = sources.length;
+							sources.forEach((source) => {
+								if (!roomModule.positionHasNearbyThreat(source.pos)) {
+									noCreepsRequired++;
+								}
+							});
 						}
 						break;
 					case CONDITION_VALUE_TYPES.SOURCE_ACCESS:
@@ -448,9 +469,11 @@ module.exports = {
 						if (sources) {
 							//console.log(`sources ${JSON.stringify(sources)}`);
 							sources.forEach((source) => {
-								const freePos = getAccessiblePositions(source.pos);
-								if (freePos) {
-									noCreepsRequired += freePos.length;
+								if (!roomModule.positionHasNearbyThreat(source.pos)) {
+									const freePos = getAccessiblePositions(source.pos);
+									if (freePos) {
+										noCreepsRequired += freePos.length;
+									}
 								}
 							});
 						}
@@ -479,6 +502,10 @@ module.exports = {
 		if (sources) {
 			for (const i in sources) {
 				const source = sources[i];
+
+				if (roomModule.positionHasNearbyThreat(source.pos)) {
+					break;
+				}
 
 				// check room memory for source data
 
@@ -527,3 +554,5 @@ module.exports = {
 		return null;
 	},
 };
+
+module.exports = roomModule;

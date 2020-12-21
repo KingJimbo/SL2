@@ -1,5 +1,5 @@
 const { goToSource, harvest, fullEnergyFillOrder } = require("./creep");
-const { findNextFreeSource } = require("./room");
+const { findNextFreeSource, positionHasNearbyThreat } = require("./room");
 const { isCreepIdle, addCreepToIdlePool } = require("./roomCreepRequisition");
 
 module.exports = {
@@ -11,24 +11,38 @@ module.exports = {
 		creep.moveTo(0, 0);
 	},
 	runHarvesterCreep: (creep) => {
+		var source = null;
+
 		if (!creep.memory.sourceId) {
-			var source = findNextFreeSource(creep.room);
+			source = findNextFreeSource(creep.room);
 
 			if (!source) {
 				addCreepToIdlePool(creep.room, creep);
 			}
 
 			creep.memory.sourceId = source.id;
+		}
 
-			if (!creep.room.memory.sources[source.id]) {
-				creep.room.memory.sources[source.id] = {};
-			}
+		source = Game.getObjectById(creep.memory.sourceId);
 
-			if (!creep.room.memory.sources[source.id].currentCreeps) {
-				creep.room.memory.sources[source.id].currentCreeps = {};
-			}
+		if (!source) {
+			addCreepToIdlePool(creep.room, creep);
+		}
 
-			creep.room.memory.sources[source.id].currentCreeps[creep.name] = creep.name;
+		if (positionHasNearbyThreat(source.pos)) {
+			addCreepToIdlePool(creep.room, creep);
+		}
+
+		if (!creep.room.memory.sources[creep.memory.sourceId]) {
+			creep.room.memory.sources[creep.memory.sourceId] = {};
+		}
+
+		if (!creep.room.memory.sources[creep.memory.sourceId].currentCreeps) {
+			creep.room.memory.sources[creep.memory.sourceId].currentCreeps = {};
+		}
+
+		if (!creep.room.memory.sources[creep.memory.sourceId].currentCreeps[creep.name]) {
+			creep.room.memory.sources[creep.memory.sourceId].currentCreeps[creep.name] = creep.name;
 		}
 
 		if (!creep.memory.currentAction) {
