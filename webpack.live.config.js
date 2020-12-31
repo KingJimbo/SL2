@@ -1,12 +1,13 @@
 const path = require("path");
 
 module.exports = {
+	devtool: "inline-source",
 	entry: "./src/index.js",
-	mode: 'production',
+	mode: "production",
 	output: {
 		filename: "main.js",
 		libraryTarget: "commonjs",
-		path: path.resolve(__dirname, "dist")
+		path: path.resolve(__dirname, "dist"),
 	},
-	target: "node"
+	target: "node",
 };

@@ -6,7 +6,7 @@ module.exports = {
 	output: {
 		filename: "main.js",
 		libraryTarget: "commonjs",
-		path: path.resolve(__dirname, "dist")
+		path: path.resolve(__dirname, "dist"),
 	},
-	target: "node"
+	target: "node",
 };

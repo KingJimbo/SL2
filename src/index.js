@@ -1,61 +1,33 @@
 module.exports.loop = function () {
-	var appConstants = require("./common/constants");
-	global = Object.assign(global, appConstants);
+	// start loop
 
-	global.App = { modules: {} };
-	require("./modules/resource");
+	//require("./common/logging");
 
-	this.attachLogger = (obj) => {
-		let name, fn;
-		for (name in obj) {
-			fn = obj[name];
-			if (typeof fn === "function") {
-				obj[name] = (function (name, fn) {
-					var args = arguments;
-					return function () {
-						(function (name, fn) {
-							console.log("calling " + name);
-						}.apply(this, args));
-						return fn.apply(this, arguments);
-					};
-				})(name, fn);
-			} else if (typeof fn === "object") {
-				this.attachLogger(fn, true);
-			}
-		}
-	};
-
-	console.settings = { debug: true };
-
-	global.debug = require("./common/debug");
-
-	const App = require("./app.js");
-	let app = new App();
-
-	// const RoomBuildModule = require("./modules/roomBuildModule");
-	// let roomBuildModule = new RoomBuildModule();
-
-	// const RoomSurveyModule = require("./modules/roomSurveyor");
-	// let roomSurveyModule = new RoomSurveyModule(Memory, Game);
-
-	if (console.settings.debug) {
-		console._log = console.log;
-		console.log = (message) => {
-			if (console.settings.debug) {
-				console._log(message);
-			}
-		};
-		//this.attachLogger(app);
+	if (process.env.NODE_ENV === "development") {
+		require("./common/logging");
+		console.log(`Start loop`);
 	}
 
-	console.debug = (func) => {
-		func();
-	};
+	require("./common/constants");
 
-	console.log("loop start");
+	const App = require("./app");
+	require("./modules/memory");
+	require("./modules/resource");
+	require("./modules/spawn");
+
+	require("./modules/creep");
+	require("./modules/creepRequisition");
+
+	require("./modules/room");
+	require("./modules/roomSurvey");
+	require("./modules/structure");
+
+	if (process.env.NODE_ENV === "development") {
+		if (console.attachLogger) console.attachLogger(global.App);
+	}
 
 	try {
-		app.run();
+		App.runApp();
 
 		// for (var i in Game.rooms) {
 		// 	let room = Game.rooms[i];
@@ -70,8 +42,10 @@ module.exports.loop = function () {
 		console.log("name: " + error.name);
 		console.log("error occured on file: " + error.filename + " line: " + error.lineNumber + " column: " + error.columnNumber);
 		console.log("stacktrace " + error.stack);
-		//console.log(JSON.stringify(error));
 	}
 
-	console.log("loop end");
+	if (process.env.NODE_ENV === "development") {
+		console.log("End loop");
+		if (console.reportLog) console.reportLog();
+	}
 };

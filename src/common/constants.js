@@ -1,8 +1,7 @@
-/** constants.js **/
-
-module.exports = {
+const constants = {
 	COORDINATES_MAX_SIZE: 49,
 	MIN_CONTROLLER_TICKS_TO_DOWNGRADE: 500,
+	MIN_TOWER_ENERGY_CAPACITY: 200,
 	HOSTILE_CREEP_PROXIMITY_DISTANCE: 6,
 	CREEP_ROLES: {
 		BUILDER: "builder",
@@ -10,7 +9,7 @@ module.exports = {
 		HAULER: "hauler",
 		MINER: "miner",
 		REPAIRER: "repairer",
-		//SCOUT: "scout",
+		SCOUT: "scout",
 	},
 	CREEP_TYPES: {
 		UTILITY: "utility",
@@ -21,14 +20,15 @@ module.exports = {
 		RANGED: "ranged",
 		TANK: "tank",
 		HEALER: "healer",
+		SCOUT: "scout",
 	},
 	CREEP_ROLES_TYPES: {
 		builder: "utility",
 		harvester: "utility",
 		hauler: "hauler",
 		miner: "miner",
-		repairer: "repairer",
-		//SCOUT: "scout",
+		repairer: "utility",
+		scout: "scout",
 	},
 	CREEP_BODIES: {
 		utility: {
@@ -42,8 +42,8 @@ module.exports = {
 			claim: { value: 0 },
 		},
 		miner: {
-			MOVE: 0.1,
-			WORK: { value: 0.9, max: 5 },
+			MOVE: 1,
+			WORK: { value: 5, max: 5 },
 			CARRY: 0,
 			ATTACK: 0,
 			RANGED_ATTACK: 0,
@@ -52,9 +52,9 @@ module.exports = {
 			CLAIM: 0,
 		},
 		hauler: {
-			MOVE: 0.5,
+			MOVE: 1,
 			WORK: 0,
-			CARRY: 0.5,
+			CARRY: 1,
 			ATTACK: 0,
 			RANGED_ATTACK: 0,
 			TOUGH: 0,
@@ -62,53 +62,63 @@ module.exports = {
 			CLAIM: 0,
 		},
 		claimer: {
-			MOVE: 0.5,
+			MOVE: 1,
 			WORK: 0,
 			CARRY: 0,
 			ATTACK: 0,
 			RANGED_ATTACK: 0,
 			TOUGH: 0,
 			HEAL: 0,
-			CLAIM: 0.5,
+			CLAIM: 1,
 		},
 		melee: {
-			MOVE: 0.5,
+			MOVE: 1,
 			WORK: 0,
 			CARRY: 0,
-			ATTACK: 0.5,
+			ATTACK: 1,
 			RANGED_ATTACK: 0,
 			TOUGH: 0,
 			HEAL: 0,
 			CLAIM: 0,
 		},
 		ranged: {
-			MOVE: 0.5,
+			MOVE: 1,
 			WORK: 0,
 			CARRY: 0,
 			ATTACK: 0,
-			RANGED_ATTACK: 0.5,
+			RANGED_ATTACK: 1,
 			TOUGH: 0,
 			HEAL: 0,
 			CLAIM: 0,
 		},
 		tank: {
-			MOVE: 0.5,
+			MOVE: 2,
 			WORK: 0,
 			CARRY: 0,
-			ATTACK: 0.25,
+			ATTACK: 1,
 			RANGED_ATTACK: 0,
-			TOUGH: 0.25,
+			TOUGH: 1,
 			HEAL: 0,
 			CLAIM: 0,
 		},
 		healer: {
-			MOVE: 0.5,
+			MOVE: 1,
 			WORK: 0,
 			CARRY: 0,
 			ATTACK: 0,
 			RANGED_ATTACK: 0,
 			TOUGH: 0,
-			HEAL: 0.5,
+			HEAL: 1,
+			CLAIM: 0,
+		},
+		scout: {
+			MOVE: 1,
+			WORK: 0,
+			CARRY: 0,
+			ATTACK: 0,
+			RANGED_ATTACK: 0,
+			TOUGH: 0,
+			HEAL: 0,
 			CLAIM: 0,
 		},
 	},
@@ -161,14 +171,19 @@ module.exports = {
 
 	OBJECT_TYPE: {
 		OPERATION: "operation",
+		RESOURCE_ORDER: "resourceOrder",
+		RESOURCE_ORDER_ITEM: "resourceOrderItem",
 		SPAWN_QUEUE_ITEM: "spawnQueueItem",
 		SOURCE: "source",
+		CREEP: "creep",
 	},
 	CREEP_ACTIONS: {
-		GO_TO_SOURCE: "goToSource",
 		GO_TO_DESTINATION: "goToDestination",
 		HARVEST: "harvest",
-		FULLFILL_ENERGY_ORDER: "fullEnergyFillOrder",
+		TRANSFER_RESOURCE: "transferResource",
+		REPAIR_STRUCTURE: "repairStructure",
+		UPGRADE_CONTROLLER: "upgradeController",
+		FIND_REQUEST: "findRequest",
 	},
 
 	CONDITION_OPERATORS: {
@@ -198,7 +213,7 @@ module.exports = {
 	ROOM_CREEP_ROLE_SPAWN_CONDITIONS: {
 		harvester: [
 			{
-				operator: "and",
+				operator: "or",
 				conditions: [
 					{ condition: "lessThanOrEqualTo", valueType: "roomTotalEnergyCapacity", value: 300 },
 					{ condition: "lessThan", valueType: "creepRole", creepRole: "miner", value: 1 },
@@ -254,3 +269,7 @@ module.exports = {
 		builder: { condition: "equals", valueType: "constructionSite" },
 	},
 };
+
+global = Object.assign(global, constants);
+
+module.exports = constants;
