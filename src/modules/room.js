@@ -1,6 +1,6 @@
 (() => {
 	const { getAccessiblePositions } = require("../common/position");
-	var { spawnModule, creepRequisitionModule } = global.App;
+	var { creepRequisitionModule } = global.App;
 	let roomModule = {
 		runRooms: () => {
 			for (const i in Game.rooms) {

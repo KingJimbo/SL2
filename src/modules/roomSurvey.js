@@ -41,11 +41,11 @@
 
 				//console.log(`minerals = ${JSON.stringify(this.minerals)}`);
 
-				roomSurveyModule.exits = room.find(FIND_EXIT);
+				//roomSurveyModule.exits = room.find(FIND_EXIT);
 
 				//console.log(`exits = ${JSON.stringify(this.exits)}`);
 
-				roomSurveyModule.roomSurveyData.totalExits = roomSurveyModule.exits.length;
+				//roomSurveyModule.roomSurveyData.totalExits = roomSurveyModule.exits.length;
 
 				const lookAtArray = room.lookAtArea(0, 0, COORDINATES_MAX_SIZE, COORDINATES_MAX_SIZE, true); // as array
 				//console.log(`lookAtArray = ${JSON.stringify(lookAtArray.length)}`);
@@ -84,11 +84,11 @@
 
 			posSurveyData = { ...posSurveyData, ...terrainData };
 
-			if (posSurveyData.canTravel) {
-				var distanceData = roomSurveyModule.getPositionDistanceData(roomSurveyModule.room.getPositionAt(pos.x, pos.y));
+			// if (posSurveyData.canTravel) {
+			// 	var distanceData = roomSurveyModule.getPositionDistanceData(roomSurveyModule.room.getPositionAt(pos.x, pos.y));
 
-				posSurveyData = { ...posSurveyData, ...distanceData };
-			}
+			// 	posSurveyData = { ...posSurveyData, ...distanceData };
+			// }
 
 			return posSurveyData;
 		}, // checkPosition END
@@ -152,81 +152,95 @@
 		}, // getPositionDistanceData END
 
 		generateStructureMap: (surveyData) => {
-			const weights = {
-				spawn: { nearSource: 0.3, nearSources: 0.3, defendability: 0.3, nearController: 0.3 },
-			};
+			// const weights = {
+			// 	spawn: { nearSource: 0.3, nearSources: 0.3, defendability: 0.3, nearController: 0.3 },
+			// };
 
-			let nearestSourceDistance = 1000,
-				bestSpawnWeight = 10000,
-				idealSpawnPosition = null;
+			// let nearestSourceDistance = 1000,
+			// 	bestSpawnWeight = 10000,
+			// 	idealSpawnPosition = null;
 
-			for (const i in surveyData.positionData) {
-				let positionData = surveyData.positionData[i],
-					totalSourceDistance = 1000,
-					posNearestSourceDistance = 1000,
-					exitPathCount = 10000,
-					controllerDistance = 1000;
+			// for (const i in surveyData.positionData) {
+			// 	let positionData = surveyData.positionData[i],
+			// 		totalSourceDistance = 1000,
+			// 		posNearestSourceDistance = 1000,
+			// 		exitPathCount = 10000,
+			// 		controllerDistance = 1000;
 
-				if (positionData.canTravel && positionData.canBuild) {
-					let totalSourceDistancePossible = 0;
-					//console.log(`positionData = ${JSON.stringify(positionData)}`);
-					positionData.distances.sources.forEach((distance) => {
-						// checking globally nearest source distance
-						if (distance.cost < nearestSourceDistance) {
-							nearestSourceDistance = distance.cost;
-							posNearestSourceDistance = distance.cost;
-						}
+			// 	if (positionData.canTravel && positionData.canBuild) {
+			// 		let totalSourceDistancePossible = 0;
+			// 		//console.log(`positionData = ${JSON.stringify(positionData)}`);
+			// 		positionData.distances.sources.forEach((distance) => {
+			// 			// checking globally nearest source distance
+			// 			if (distance.cost < nearestSourceDistance) {
+			// 				nearestSourceDistance = distance.cost;
+			// 				posNearestSourceDistance = distance.cost;
+			// 			}
 
-						// checking locally nearest source distance
-						if (distance.cost < posNearestSourceDistance) {
-							posNearestSourceDistance = distance.cost;
-						}
+			// 			// checking locally nearest source distance
+			// 			if (distance.cost < posNearestSourceDistance) {
+			// 				posNearestSourceDistance = distance.cost;
+			// 			}
 
-						// finding total source distance
-						totalSourceDistancePossible += distance.cost;
-					});
+			// 			// finding total source distance
+			// 			totalSourceDistancePossible += distance.cost;
+			// 		});
 
-					if (totalSourceDistancePossible) {
-						totalSourceDistance = totalSourceDistancePossible;
-					}
+			// 		if (totalSourceDistancePossible) {
+			// 			totalSourceDistance = totalSourceDistancePossible;
+			// 		}
 
-					let controllerDistancePossible = positionData.distances.controller.cost;
+			// 		let controllerDistancePossible = positionData.distances.controller.cost;
 
-					if (controllerDistancePossible) {
-						controllerDistance = controllerDistancePossible;
-					}
+			// 		if (controllerDistancePossible) {
+			// 			controllerDistance = controllerDistancePossible;
+			// 		}
 
-					let exitPathCountPossible = roomSurveyModule.getSurroundingPositionExitPathCounts(positionData.x, positionData.y);
+			// 		let exitPathCountPossible = roomSurveyModule.getSurroundingPositionExitPathCounts(positionData.x, positionData.y);
 
-					if (exitPathCountPossible) {
-						exitPathCount = exitPathCountPossible;
-					}
+			// 		if (exitPathCountPossible) {
+			// 			exitPathCount = exitPathCountPossible;
+			// 		}
 
-					const weightNearestSourceDistance = weights.spawn.nearSource * posNearestSourceDistance,
-						weightTotalNearestSourceDistance = weights.spawn.nearSources * totalSourceDistance,
-						weightControllerDistance = weights.spawn.nearController * controllerDistance,
-						weightDefendability = weights.spawn.defendability * exitPathCount;
+			// 		const weightNearestSourceDistance = weights.spawn.nearSource * posNearestSourceDistance,
+			// 			weightTotalNearestSourceDistance = weights.spawn.nearSources * totalSourceDistance,
+			// 			weightControllerDistance = weights.spawn.nearController * controllerDistance,
+			// 			weightDefendability = weights.spawn.defendability * exitPathCount;
 
-					// console.log(`posNearestSourceDistance: ${JSON.stringify(posNearestSourceDistance)}`);
-					// console.log(`totalSourceDistance: ${JSON.stringify(totalSourceDistance)}`);
-					// console.log(`controllerDistance: ${JSON.stringify(controllerDistance)}`);
-					// console.log(`exitPathCount: ${JSON.stringify(exitPathCount)}`);
+			// 		// console.log(`posNearestSourceDistance: ${JSON.stringify(posNearestSourceDistance)}`);
+			// 		// console.log(`totalSourceDistance: ${JSON.stringify(totalSourceDistance)}`);
+			// 		// console.log(`controllerDistance: ${JSON.stringify(controllerDistance)}`);
+			// 		// console.log(`exitPathCount: ${JSON.stringify(exitPathCount)}`);
 
-					let spawnWeight = weightNearestSourceDistance + weightTotalNearestSourceDistance + weightControllerDistance + weightDefendability;
+			// 		let spawnWeight = weightNearestSourceDistance + weightTotalNearestSourceDistance + weightControllerDistance + weightDefendability;
 
-					positionData.weightNearestSourceDistance = weightNearestSourceDistance;
-					positionData.weightTotalNearestSourceDistance = weightTotalNearestSourceDistance;
-					positionData.weightControllerDistance = weightControllerDistance;
-					positionData.weightDefendability = weightDefendability;
-					positionData.spawnWeight = spawnWeight;
+			// 		positionData.weightNearestSourceDistance = weightNearestSourceDistance;
+			// 		positionData.weightTotalNearestSourceDistance = weightTotalNearestSourceDistance;
+			// 		positionData.weightControllerDistance = weightControllerDistance;
+			// 		positionData.weightDefendability = weightDefendability;
+			// 		positionData.spawnWeight = spawnWeight;
 
-					//console.log(`spawnWeight: ${JSON.stringify(spawnWeight)}`);
+			// 		//console.log(`spawnWeight: ${JSON.stringify(spawnWeight)}`);
 
-					if (spawnWeight < bestSpawnWeight) {
-						bestSpawnWeight = spawnWeight;
-						idealSpawnPosition = { id: i, x: positionData.x, y: positionData.y, basePositionType: BASE_POSITION_TYPES.CROSS_ROAD };
-					}
-				}
+			// 		if (spawnWeight < bestSpawnWeight) {
+			// 			bestSpawnWeight = spawnWeight;
+			// 			idealSpawnPosition = { id: i, x: positionData.x, y: positionData.y, basePositionType: BASE_POSITION_TYPES.CROSS_ROAD };
+			// 		}
+			// 	}
+			// }
+
+			let idealSpawnPosition = null;
+
+			var freePositions = getAccessiblePositions(roomSurveyModule.room.controller.pos);
+
+			if (process.env.NODE_ENV === "development") {
+				console.log(`freePositions ${JSON.stringify(freePositions)}`);
+			}
+
+			if (freePositions) {
+				const firstPos = freePositions[0];
+				const posName = getPosName(firstPos.x, firstPos.y);
+				idealSpawnPosition = { id: posName, x: firstPos.x, y: firstPos.y, basePositionType: BASE_POSITION_TYPES.CROSS_ROAD };
 			}
 
 			if (!idealSpawnPosition) {

@@ -88,7 +88,8 @@ const position = {
 
 		surroundingPositions.forEach((pos) => {
 			const terrainGet = terrain.get(pos.x, pos.y);
-			const isAccessible = pos.x >= 0 && pos.x <= COORDINATES_MAX_SIZE && pos.y >= 0 && pos.y <= COORDINATES_MAX_SIZE && terrainGet === 0;
+			const isAccessible =
+				pos.x >= 0 && pos.x <= COORDINATES_MAX_SIZE && pos.y >= 0 && pos.y <= COORDINATES_MAX_SIZE && terrainGet !== TERRAIN_MASK_WALL;
 
 			if (isAccessible) {
 				accessiblePositions.push(pos);
