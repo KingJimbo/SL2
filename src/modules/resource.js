@@ -105,8 +105,8 @@
 			] = structureResourceRequestMemory;
 		}, // addStructureResourceRequest END
 
-		addStructureRepairRequest: (structure, amount) => {
-			if ((!structure, !amount)) {
+		addStructureRepairRequest: (structure) => {
+			if (!structure) {
 				throw Error(
 					`Invalid parameters structure  ${JSON.stringify(structure)}, resourceType ${JSON.stringify(
 						resourceType
