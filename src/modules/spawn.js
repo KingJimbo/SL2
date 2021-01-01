@@ -14,6 +14,10 @@
 		},
 
 		runSpawn: (spawn) => {
+			if (!spawn.memory.creepToSpawn) {
+				return;
+			}
+
 			const { resourceModule } = global.App;
 
 			const spawnCapacityFree = spawn.store.getFreeCapacity(RESOURCE_ENERGY);
@@ -23,10 +27,6 @@
 			}
 
 			resourceModule.addStructureResourceRequest(spawn, RESOURCE_ENERGY, spawnCapacityFree);
-
-			if (!spawn.memory.creepToSpawn) {
-				return;
-			}
 
 			const creepBodyResponse = spawnModule.getCreepBody(spawn.memory.creepToSpawn.memory.type, spawn.room.energyCapacityAvailable);
 
@@ -54,6 +54,9 @@
 						break;
 				}
 			}
+
+			// clear memory
+			spawn.memory.creepToSpawn = null;
 		},
 
 		getCreepBody: (creepType, availableEnergy) => {

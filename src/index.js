@@ -37,11 +37,17 @@ module.exports.loop = function () {
 		// 	console.log(`buildQueue: ${JSON.stringify(buildQueue)}`);
 		// }
 	} catch (error) {
-		console.log("An error has occured!");
-		console.log("message: " + error.message);
-		console.log("name: " + error.name);
-		console.log("error occured on file: " + error.filename + " line: " + error.lineNumber + " column: " + error.columnNumber);
-		console.log("stacktrace " + error.stack);
+		const errorMessage = `An error has occured!
+        message: ${error.message}
+        name: ${error.name}
+        error occured on file: ${error.filename} line: ${error.lineNumber} column: ${error.columnNumber}
+        stacktrace: ${error.stack}`;
+
+		console.log(errorMessage);
+
+		if (process.env.NODE_ENV === "production") {
+			Game.notify(errorMessage, 180);
+		}
 	}
 
 	if (process.env.NODE_ENV === "development") {

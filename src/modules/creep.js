@@ -21,6 +21,10 @@ const { CREEP_ACTIONS } = require("../common/constants");
 				throw new Error(`Invalid Parameters!`);
 			}
 
+			if (process.env.NODE_ENV === "development") {
+				console.log(`run creep ${creep.name}`);
+			}
+
 			let { creepRequisitionModule } = global.App;
 
 			if (!creep.memory.role) {
@@ -50,7 +54,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 			// }
 
 			switch (creep.memory.role) {
-				case "idle":
+				case CREEP_ROLES.IDLE:
 					creepModule.runIdleCreep(creep);
 					break;
 				case CREEP_ROLES.HARVESTER:
@@ -62,10 +66,21 @@ const { CREEP_ACTIONS } = require("../common/constants");
 		runIdleCreep: (creep) => {
 			let { creepRequisitionModule } = global.App;
 
+			if (!creep.memory.structureId && creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
+				creep.memory.currentAction = CREEP_ACTIONS.FIND_REQUEST;
+				creepModule.carryOutAction(creep);
+			}
+
+			if (creep.memory.structureId) {
+				creepModule.carryOutAction(creep);
+				return;
+			}
+
 			if (!creepRequisitionModule.isCreepIdle(creep)) {
 				//console.log("No creep name found idle creep memory adding to idle pool");
 				creepRequisitionModule.addCreepToIdlePool(creep.room, creep);
 			}
+
 			creep.moveTo(0, 0);
 		}, // runIdleCreep END
 

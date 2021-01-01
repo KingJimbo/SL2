@@ -134,7 +134,7 @@
 					// console.log(`pos: ${JSON.stringify(pos)}`);
 					// console.log(`searchObject: ${JSON.stringify(searchObject)}`);
 					//var ret = PathFinder.search(pos, searchObject);
-					var ret = PathFinder.search(pos, { pos: source, range: 1 });
+					var ret = PathFinder.search(pos, { pos: source.pos, range: 1 });
 					positionDistanceData.distances.sources.push({ id: source.id, cost: ret.cost });
 					positionDistanceData.totalDistance += ret.cost;
 				}

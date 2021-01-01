@@ -7,6 +7,7 @@ const constants = {
 		BUILDER: "builder",
 		HARVESTER: "harvester",
 		HAULER: "hauler",
+		IDLE: "idle",
 		MINER: "miner",
 		REPAIRER: "repairer",
 		SCOUT: "scout",
@@ -151,7 +152,7 @@ const constants = {
 		//STRUCTURE_INVADER_CORE: "invaderCore",
 	],
 
-	STRUCTURE_PRIORITY: ["spawn", "storage", "terminal", "powerSpawn", "factory", "nuker", "lab", "extension", "tower", "road"],
+	STRUCTURE_PRIORITY: ["spawn", "storage", "terminal", "powerSpawn", "factory", "nuker", "lab", "extension", "tower", "container", "road"],
 
 	BASE_POSITION_TYPES: {
 		CROSS_ROAD: 0,

@@ -23,13 +23,13 @@
 				// delete requests and start fresh every time
 				delete room.memory.resourceRequests;
 
-				roomModule.checkRoomSites(room);
-
-				roomModule.checkRoomStructures(room);
-
 				roomModule.createRoomCreepRoles(room);
 
 				roomModule.checkCreeps(room);
+
+				roomModule.checkRoomSites(room);
+
+				roomModule.checkRoomStructures(room);
 			}
 		}, // runRoom
 
