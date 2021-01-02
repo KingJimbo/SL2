@@ -1,6 +1,7 @@
 (() => {
 	const { getAccessiblePositions } = require("../common/position");
 	var { creepRequisitionModule } = global.App;
+
 	let roomModule = {
 		runRooms: () => {
 			for (const i in Game.rooms) {
@@ -87,13 +88,20 @@
 		checkRoomSites: (room) => {
 			// don't add construction site orders until level 2
 			if (room.controller.level > 1) {
-				const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
+				let sites = room.find(FIND_MY_CONSTRUCTION_SITES);
 
 				//console.log(`sites ${JSON.stringify(sites)}`);
 
 				if (!sites || sites.length === 0) {
 					//console.log(`build next site`);
 					roomModule.buildNextSite(room);
+
+					sites = room.find(FIND_MY_CONSTRUCTION_SITES);
+
+					if (!sites || sites.length === 0) {
+						roomModule.addCommonRoads(room);
+					}
+
 					return;
 				}
 
@@ -196,37 +204,72 @@
 				throw new Error(`Invalid structureMap! room ${JSON.stringify(room)}`);
 			}
 
-			RESOURCE_ORDER_STRUCTURE_PRIORITY.forEach((structureType) => {
-				//console.log(`structureType: ${structureType}`);
-				if (!room.memory.structureMap[structureType]) {
-					console.log(`No room structureMap contains no structureType of ${structureType}`);
-					return;
+			let structureBuilt = false,
+				structureIndex = 0;
+
+			while (!structureBuilt && structureIndex < STRUCTURE_PRIORITY.length) {
+				const structureType = STRUCTURE_PRIORITY[structureIndex];
+				let structTypeArray = [];
+
+				if (process.env.NODE_ENV === "development") {
+					console.log(`structureType: ${structureType}`);
 				}
 
-				let availableNoOfStructures = CONTROLLER_STRUCTURES[structureType][room.controller.level];
-				//console.log(`availableNoOfStructures: ${availableNoOfStructures}`);
+				if (!room.memory.structureMap[structureType]) {
+					console.log(`No room structureMap contains no structureType of ${structureType}`);
+					structureIndex++;
+					continue;
+				}
+
+				let availableNoOfStructures = CONTROLLER_STRUCTURES[structureType][room.controller.level],
+					totalCurrentStructures = 0;
+				if (process.env.NODE_ENV === "development") {
+					console.log(`availableNoOfStructures: ${availableNoOfStructures}`);
+				}
 
 				const structures = room.find(FIND_MY_STRUCTURES, {
 					filter: { structureType },
 				});
 
-				//console.log(`structures found ${JSON.stringify(structures)}`);
+				if (process.env.NODE_ENV === "development") {
+					console.log(`structures found ${JSON.stringify(structures)}`);
+				}
 
 				if (structures) {
-					availableNoOfStructures -= structures.length;
+					totalCurrentStructures = structures.length;
 				}
 
-				if (availableNoOfStructures < 1) {
-					return;
+				if (availableNoOfStructures - totalCurrentStructures < 1) {
+					structureIndex++;
+					continue;
 				}
 
-				let structTypeArray = room.memory.structureMap[structureType].slice(0, availableNoOfStructures);
-				//console.log(`structTypeArray: ${JSON.stringify(structTypeArray)}`);
+				if (structureType === STRUCTURE_ROAD) {
+					let positionKeys = Object.keys(room.memory.roadPositions);
+
+					if (positionKeys) {
+						positionKeys.forEach((positionKey) => {
+							const roadPosition = room.memory.roadPositions[positionKey];
+
+							structTypeArray.push(roadPosition);
+						});
+					}
+
+					structTypeArray = [...structTypeArray, room.memory.structureMap[structureType].slice(0, availableNoOfStructures)];
+				} else {
+					structTypeArray = room.memory.structureMap[structureType].slice(0, availableNoOfStructures);
+				}
+
+				if (process.env.NODE_ENV === "development") {
+					console.log(`structTypeArray: ${JSON.stringify(structTypeArray)}`);
+				}
 
 				while (structTypeArray && structTypeArray.length) {
 					const structurePosition = structTypeArray.shift();
 
-					//console.log(`structurePosition: ${JSON.stringify(structurePosition)}`);
+					if (process.env.NODE_ENV === "development") {
+						console.log(`structurePosition: ${JSON.stringify(structurePosition)}`);
+					}
 
 					if (structurePosition) {
 						var lookAtResponse = room.lookAt(structurePosition.x, structurePosition.y);
@@ -237,7 +280,15 @@
 								if (object.type === LOOK_STRUCTURES || (object.type === LOOK_CONSTRUCTION_SITES && object.structure)) {
 									const structure = object.structure;
 
+									// remove an existing road to make way for structure
+									if (!WALKABLE_STRUCTURES.includes(structureType) && structure.structureType === STRUCTURE_ROAD) {
+										structure.destroy();
+									}
+
 									if (structure.structureType === structureType) {
+										if (process.env.NODE_ENV === "development") {
+											console.log(`structureFound = true object: ${JSON.stringify(object)}`);
+										}
 										structureFound = true;
 									}
 								}
@@ -245,8 +296,13 @@
 
 							if (!structureFound) {
 								const createSiteResponse = room.createConstructionSite(structurePosition.x, structurePosition.y, structureType);
+								if (process.env.NODE_ENV === "development") {
+									console.log(`createSiteResponse: ${JSON.stringify(createSiteResponse)}`);
+								}
+
 								switch (createSiteResponse) {
 									case OK:
+										structureBuilt = true;
 										return;
 									case ERR_FULL:
 										return;
@@ -257,7 +313,9 @@
 						}
 					}
 				}
-			});
+
+				structureIndex++;
+			}
 		}, // buildNextSite END
 
 		createRoomCreepRoles: (room) => {
@@ -281,12 +339,16 @@
 				var isCreepRoleValidToSpawn = null;
 				var noCreepsRequired = 0;
 
-				//console.log(`creepRole ${creepRole}`);
+				if (process.env.NODE_ENV === "development") {
+					console.log(`creepRole ${creepRole}`);
+				}
 
 				creepRoleSpawnConditions.forEach((spawnConditions) => {
 					var conditionResults = [];
 
-					//console.log(`spawnConditions ${JSON.stringify(spawnConditions)}`);
+					if (process.env.NODE_ENV === "development") {
+						console.log(`spawnConditions ${JSON.stringify(spawnConditions)}`);
+					}
 
 					for (var i = 0; i < spawnConditions.conditions.length; i++) {
 						const spawnCondition = spawnConditions.conditions[i];
@@ -430,7 +492,9 @@
 							throw new Error(`Operator not supported ${spawnConditions.operator}`);
 					}
 
-					//console.log(`conditionResults ${JSON.stringify(conditionResults)} `);
+					if (process.env.NODE_ENV === "development") {
+						console.log(`conditionResults ${JSON.stringify(conditionResults)} `);
+					}
 				});
 
 				if (!isCreepRoleValidToSpawn) {
@@ -447,7 +511,9 @@
 
 					var noCreepsRequired = 0;
 
-					//console.log(`numberCondition ${JSON.stringify(numberCondition)}.`);
+					if (process.env.NODE_ENV === "development") {
+						console.log(`numberCondition ${JSON.stringify(numberCondition)}.`);
+					}
 
 					switch (numberCondition.valueType) {
 						case CONDITION_VALUE_TYPES.CONTRTRUCTION_SITE:
@@ -491,13 +557,53 @@
 								});
 							}
 							break;
+						case CONDITION_VALUE_TYPES.SOURCE_WITH_CONTAINER:
+							if (!sources) {
+								sources = room.find(FIND_SOURCES);
+							}
+
+							if (process.env.NODE_ENV === "development") {
+								console.log(`sources ${JSON.stringify(sources)}`);
+							}
+
+							if (sources) {
+								sources.forEach((source) => {
+									if (!roomModule.positionHasNearbyThreat(source.pos)) {
+										const containers = room.find(FIND_STRUCTURES, {
+											filter: { structureType: STRUCTURE_CONTAINER },
+										});
+
+										if (process.env.NODE_ENV === "development") {
+											console.log(`containers ${JSON.stringify(containers)}`);
+										}
+
+										if (containers) {
+											for (const i in containers) {
+												const container = containers[i];
+
+												if (container.pos.isNearTo(source)) {
+													if (process.env.NODE_ENV === "development") {
+														console.log(`containers hits is near to`);
+													}
+													noCreepsRequired++;
+													break;
+												}
+											}
+										}
+									}
+								});
+							}
+							break;
 						case CONDITION_VALUE_TYPES.SOURCE_ACCESS:
 							if (!sources) {
 								sources = room.find(FIND_SOURCES);
 							}
 
 							if (sources) {
-								//console.log(`sources ${JSON.stringify(sources)}`);
+								if (process.env.NODE_ENV === "development") {
+									console.log(`sources ${JSON.stringify(sources)}`);
+								}
+
 								sources.forEach((source) => {
 									if (!roomModule.positionHasNearbyThreat(source.pos)) {
 										const freePos = getAccessiblePositions(source.pos);
@@ -592,7 +698,7 @@
 										console.log("failed to add creep to spawn");
 									}
 
-									return;
+									break;
 								}
 							}
 						}
@@ -699,6 +805,66 @@
 
 			return false;
 		}, // positionHasNearbyThreat
+
+		addCommonRoads: (room) => {
+			// calculate source paths
+			if (room.memory.roadPositionsAddedTime && room.memory.roadPositionsAddedTime + ROOM_ROAD_POSITION_ADDED_TIME < Game.time) {
+				const { getPosName } = require("../common/position");
+				room.memory.roadPositions = {};
+				const sources = room.find(FIND_SOURCES);
+
+				if (sources) {
+					sources.forEach((source) => {
+						// to spawn
+
+						const spawns = source.room.find(FIND_MY_STRUCTURES, {
+							filter: { STRUCTURE_SPAWN },
+						});
+
+						if (spawns) {
+							spawns.forEach((spawn) => {
+								var spawnResult = PathFinder.search(spawn.pos, { pos: source.pos, range: 1 });
+
+								if (!spawnResult.incomplete && spawnResult.path) {
+									spawnResult.path.forEach((pos) => {
+										room.memory.roadPositions[getPosName(pos.x, pos.y)] = pos;
+									});
+								}
+							});
+						}
+
+						// to controller
+						var controllerResult = PathFinder.search(source.room.controller.pos, { pos: source.pos, range: 1 });
+
+						if (!controllerResult.incomplete && controllerResult.path) {
+							controllerResult.path.forEach((pos) => {
+								room.memory.roadPositions[getPosName(pos.x, pos.y)] = pos;
+							});
+						}
+					});
+				}
+			}
+		},
+
+		getSourceMemory: (sourceId) => {
+			const source = Game.getObjectById(sourceId);
+
+			if (source) {
+				if (!source.room.memory.sources) {
+					source.room.memory.sources = {};
+				}
+
+				return source.room.memory.sources[source.id];
+			}
+		},
+
+		updateSourceMemory: (source, memory) => {
+			if (!source.room.memory.sources) {
+				source.room.memory.sources = {};
+			}
+
+			source.room.memory.sources[source.id] = memory;
+		},
 	};
 
 	global.App.roomModule = roomModule;

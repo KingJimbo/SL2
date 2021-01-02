@@ -1,5 +1,3 @@
-const { CREEP_ACTIONS } = require("../common/constants");
-
 (() => {
 	let creepModule = {
 		runCreeps: () => {
@@ -60,78 +58,11 @@ const { CREEP_ACTIONS } = require("../common/constants");
 				case CREEP_ROLES.HARVESTER:
 					creepModule.runHarvesterCreep(creep);
 					break;
+				case CREEP_ROLES.MINER:
+					creepModule.runMinerCreep(creep);
+					break;
 			}
 		}, // runCreep END
-
-		runIdleCreep: (creep) => {
-			let { creepRequisitionModule } = global.App;
-
-			if (!creep.memory.structureId && creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
-				creep.memory.currentAction = CREEP_ACTIONS.FIND_REQUEST;
-				creepModule.carryOutAction(creep);
-			}
-
-			if (creep.memory.structureId) {
-				creepModule.carryOutAction(creep);
-				return;
-			}
-
-			if (!creepRequisitionModule.isCreepIdle(creep)) {
-				//console.log("No creep name found idle creep memory adding to idle pool");
-				creepRequisitionModule.addCreepToIdlePool(creep.room, creep);
-			}
-
-			creep.moveTo(0, 0);
-		}, // runIdleCreep END
-
-		runHarvesterCreep: (creep) => {
-			var source = null;
-			const { creepRequisitionModule, roomModule } = global.App;
-
-			if (!creep.memory.sourceId) {
-				// if (process.env.NODE_ENV === "development") {
-				// 	console.log(`finding source ${creep.memory.sourceId}`);
-				// }
-
-				source = roomModule.findNextFreeSource(creep.room);
-
-				if (!source) {
-					creepRequisitionModule.addCreepToIdlePool(creep.room, creep);
-				} else {
-					//console.log(`adding source ${source.id}`);
-					creep.memory.sourceId = source.id;
-				}
-			}
-
-			source = Game.getObjectById(creep.memory.sourceId);
-
-			if (roomModule.positionHasNearbyThreat(source.pos)) {
-				creepRequisitionModule.addCreepToIdlePool(creep.room, creep);
-			}
-
-			if (!creep.room.memory.sources[creep.memory.sourceId]) {
-				creep.room.memory.sources[creep.memory.sourceId] = {};
-			}
-
-			if (!creep.room.memory.sources[creep.memory.sourceId].currentCreeps) {
-				creep.room.memory.sources[creep.memory.sourceId].currentCreeps = {};
-			}
-
-			if (!creep.room.memory.sources[creep.memory.sourceId].currentCreeps[creep.name]) {
-				creep.room.memory.sources[creep.memory.sourceId].currentCreeps[creep.name] = creep.name;
-			}
-
-			// if new
-			if (!creep.memory.currentAction || creep.memory.currentAction === CREEP_ACTIONS.HARVEST) {
-				if (creep.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-					creep.memory.currentAction = CREEP_ACTIONS.HARVEST;
-				} else {
-					creep.memory.currentAction = CREEP_ACTIONS.FIND_REQUEST;
-				}
-			}
-
-			creepModule.carryOutAction(creep);
-		}, // runHarvesterCreep END
 
 		removeCreepRole: (creep) => {
 			if (creep) {
@@ -222,6 +153,193 @@ const { CREEP_ACTIONS } = require("../common/constants");
 
 			return creepBodyResponse;
 		}, // getCreepBody END
+
+		carryOutAction: (creep) => {
+			switch (creep.memory.currentAction) {
+				case CREEP_ACTIONS.HARVEST:
+					creepModule.harvest(creep);
+					break;
+				case CREEP_ACTIONS.TRANSFER_RESOURCE:
+					creepModule.transferResource(creep);
+					break;
+				case CREEP_ACTIONS.UPGRADE_CONTROLLER:
+					creepModule.upgradeController(creep);
+					break;
+				case CREEP_ACTIONS.REPAIR_STRUCTURE:
+					creepModule.repairStructure(creep);
+					break;
+				case CREEP_ACTIONS.FIND_REQUEST:
+					creepModule.findRequest(creep);
+					break;
+			}
+		},
+
+		/* CREEP ROLES */
+
+		runIdleCreep: (creep) => {
+			let { creepRequisitionModule } = global.App;
+
+			if (!creep.memory.structureId && creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
+				creep.memory.currentAction = CREEP_ACTIONS.FIND_REQUEST;
+				creepModule.carryOutAction(creep);
+			}
+
+			if (creep.memory.structureId) {
+				creepModule.carryOutAction(creep);
+				return;
+			}
+
+			if (!creepRequisitionModule.isCreepIdle(creep)) {
+				//console.log("No creep name found idle creep memory adding to idle pool");
+				creepRequisitionModule.addCreepToIdlePool(creep.room, creep);
+			}
+
+			creep.moveTo(0, 0);
+		}, // runIdleCreep END
+
+		runHarvesterCreep: (creep) => {
+			var source = null;
+			const { creepRequisitionModule, roomModule } = global.App;
+
+			if (!creep.memory.sourceId) {
+				// if (process.env.NODE_ENV === "development") {
+				// 	console.log(`finding source ${creep.memory.sourceId}`);
+				// }
+
+				source = roomModule.findNextFreeSource(creep.room);
+
+				// no source check for spawns
+				if (source) {
+					//console.log(`adding source ${source.id}`);
+					creep.memory.sourceId = source.id;
+				} else {
+					creepRequisitionModule.addCreepToIdlePool(creep.room, creep);
+				}
+			}
+
+			if (creep.memory.sourceId) {
+				source = Game.getObjectById(creep.memory.sourceId);
+
+				if (roomModule.positionHasNearbyThreat(source.pos)) {
+					creepRequisitionModule.addCreepToIdlePool(creep.room, creep);
+				}
+
+				if (!creep.room.memory.sources[creep.memory.sourceId]) {
+					creep.room.memory.sources[creep.memory.sourceId] = {};
+				}
+
+				if (!creep.room.memory.sources[creep.memory.sourceId].currentCreeps) {
+					creep.room.memory.sources[creep.memory.sourceId].currentCreeps = {};
+				}
+
+				if (!creep.room.memory.sources[creep.memory.sourceId].currentCreeps[creep.name]) {
+					creep.room.memory.sources[creep.memory.sourceId].currentCreeps[creep.name] = creep.name;
+				}
+			}
+
+			// if new
+			if (!creep.memory.currentAction) {
+				if (creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
+					creep.memory.currentAction = CREEP_ACTIONS.FIND_REQUEST;
+				} else {
+					creep.memory.currentAction = CREEP_ACTIONS.HARVEST;
+				}
+			}
+
+			if (creep.memory.currentAction === CREEP_ACTIONS.HARVEST && creep.store.getFreeCapacity(RESOURCE_ENERGY) === 0) {
+				creep.memory.currentAction = CREEP_ACTIONS.FIND_REQUEST;
+			}
+
+			creepModule.carryOutAction(creep);
+		}, // runHarvesterCreep END
+
+		runMinerCreep: (creep) => {
+			const { creepRequisitionModule, roomModule } = global.App;
+
+			if (!creep.memory.sourceId) {
+				// if (process.env.NODE_ENV === "development") {
+				// 	console.log(`finding source ${creep.memory.sourceId}`);
+				// }
+
+				const sources = creep.room.find(FIND_SOURCES);
+
+				if (sources) {
+					for (const i in sources) {
+						const source = sources[i];
+
+						if (source) {
+							if (!roomModule.positionHasNearbyThreat(source.pos)) {
+								continue;
+							}
+
+							if (process.env.NODE_ENV === "development") {
+								console.log(`Doesn't have threat`);
+							}
+
+							let sourceMemory = roomModule.getSourceMemory(source.id);
+
+							if (!sourceMemory) {
+								sourceMemory = {};
+							}
+
+							if (process.env.NODE_ENV === "development") {
+								console.log(`sourceMemory ${JSON.stringify(sourceMemory)}`);
+							}
+
+							if (sourceMemory.minerName && sourceMemory.minerName !== creep.name) {
+								let creep = Game.creeps[sourceMemory.minerName];
+
+								if (!creep) {
+									delete sourceMemory.minerName;
+								}
+							}
+
+							if (!sourceMemory.minerName) {
+								let nearByContainer = null;
+
+								const containers = room.find(FIND_STRUCTURES, {
+									filter: { structureType: STRUCTURE_CONTAINER },
+								});
+
+								if (containers) {
+									for (const i in containers) {
+										const container = containers[i];
+
+										if (container.pos.isNearTo(source)) {
+											nearByContainer = container;
+											break;
+										}
+									}
+								}
+
+								if (nearByContainer) {
+									sourceMemory.minerName = creep.name;
+									creep.memory.sourceId = source.id;
+									creep.memory.miningPosition = nearByContainer.pos;
+									roomModule.updateSourceMemory(source, sourceMemory);
+								}
+							}
+						}
+					}
+				}
+
+				// no source check for spawns
+				if (!creep.memory.sourceId) {
+					creepRequisitionModule.addCreepToIdlePool(creep.room, creep);
+				}
+			}
+
+			// if new
+			if (!creep.memory.currentAction) {
+				creep.memory.currentAction = CREEP_ACTIONS.MINE_SOURCE;
+			}
+
+			creepModule.carryOutAction(creep);
+		}, // runMinerCreep END
+
+		/* CREEP ROLES END */
+
+		/* CREEP ACTIONS */
 
 		harvest: (creep) => {
 			const source = Game.getObjectById(creep.memory.sourceId);
@@ -381,6 +499,50 @@ const { CREEP_ACTIONS } = require("../common/constants");
 			}
 		},
 
+		mineSource: (creep) => {
+			const source = Game.getObjectById(creep.memory.sourceId);
+			const { roomModule } = global.App;
+
+			if (roomModule.positionHasNearbyThreat(source.pos)) {
+				let sourceMemory = roomModule.getSourceMemory(creep.memory.sourceId);
+				delete sourceMemory.minerName;
+				roomModule.updateSourceMemory(source, sourceMemory);
+				creep.memory.sourceId = null;
+				creepModule.runCreep(creep);
+				return;
+			}
+
+			if (!creep.memory.miningPosition) {
+				const containers = room.find(FIND_STRUCTURES, {
+					filter: { structureType: STRUCTURE_CONTAINER },
+				});
+
+				if (containers) {
+					for (const i in containers) {
+						const container = containers[i];
+
+						if (container.pos.isNearTo(source)) {
+							creep.memory.miningPosition = container.pos;
+						}
+					}
+				}
+			}
+
+			const result = creep.harvest(source);
+			switch (result) {
+				case OK:
+					break;
+				case ERR_NOT_IN_RANGE:
+					creep.moveTo(creep.memory.miningPosition);
+					break;
+				default:
+					if (process.env.NODE_ENV === "development") {
+						console.log(`Unhandled harvest error ${result}`);
+					}
+					break;
+			}
+		},
+
 		findRequest: (creep) => {
 			const { resourceModule } = global.App;
 			let structure = resourceModule.assignCreepToNextEnergyRequest(creep);
@@ -388,25 +550,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 			creepModule.runCreep(creep);
 		},
 
-		carryOutAction: (creep) => {
-			switch (creep.memory.currentAction) {
-				case CREEP_ACTIONS.HARVEST:
-					creepModule.harvest(creep);
-					break;
-				case CREEP_ACTIONS.TRANSFER_RESOURCE:
-					creepModule.transferResource(creep);
-					break;
-				case CREEP_ACTIONS.UPGRADE_CONTROLLER:
-					creepModule.upgradeController(creep);
-					break;
-				case CREEP_ACTIONS.REPAIR_STRUCTURE:
-					creepModule.repairStructure(creep);
-					break;
-				case CREEP_ACTIONS.FIND_REQUEST:
-					creepModule.findRequest(creep);
-					break;
-			}
-		},
+		/* CREEP ACTIONS END */
 	};
 
 	global.App.creepModule = creepModule;

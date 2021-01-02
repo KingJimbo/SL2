@@ -20,15 +20,29 @@
 
 			const { resourceModule } = global.App;
 
-			const spawnCapacityFree = spawn.store.getFreeCapacity(RESOURCE_ENERGY);
+			if (spawn.memory.creepToSpawn) {
+				const spawnCapacityFree = spawn.store.getFreeCapacity(RESOURCE_ENERGY);
 
-			if (process.env.NODE_ENV === "development") {
-				console.log(`spawnCapacityFree ${JSON.stringify(spawnCapacityFree)}`);
+				if (process.env.NODE_ENV === "development") {
+					console.log(`spawnCapacityFree ${JSON.stringify(spawnCapacityFree)}`);
+				}
+				resourceModule.addStructureResourceRequest(spawn, RESOURCE_ENERGY, spawnCapacityFree);
 			}
 
-			resourceModule.addStructureResourceRequest(spawn, RESOURCE_ENERGY, spawnCapacityFree);
+			let energyCapacity = spawn.room.energyCapacityAvailable,
+				room = spawn.room;
 
-			const creepBodyResponse = spawnModule.getCreepBody(spawn.memory.creepToSpawn.memory.type, spawn.room.energyCapacityAvailable);
+			let essentialWorkerCreeps = room.find(FIND_MY_CREEPS, {
+				filter: (creep) => {
+					return ESSENTIAL_CREEP_ROLES.includes(creep.memory.role);
+				},
+			});
+
+			if (!essentialWorkerCreeps || essentialWorkerCreeps.length === 0) {
+				energyCapacity = spawn.room.energyAvailable;
+			}
+
+			const creepBodyResponse = spawnModule.getCreepBody(spawn.memory.creepToSpawn.memory.type, energyCapacity);
 
 			if (process.env.NODE_ENV === "development") {
 				console.log("creep body type result:");
@@ -36,7 +50,7 @@
 				console.log(`spawn.room.energyAvailable ${JSON.stringify(spawn.room.energyAvailable)}`);
 			}
 
-			if (creepBodyResponse.cost <= spawn.room.energyAvailable) {
+			if (creepBodyResponse && creepBodyResponse.cost <= spawn.room.energyAvailable) {
 				var spawnCreepResult = spawn.spawnCreep(creepBodyResponse.creepBody, memoryModule.getNextCreepName(), {
 					memory: spawn.memory.creepToSpawn.memory,
 				});
@@ -47,7 +61,6 @@
 
 				switch (spawnCreepResult) {
 					case OK:
-						spawn.memory.creepToSpawn = null;
 						break;
 					default:
 						console.log(`failed to spawn spawnCreepResult ${spawnCreepResult}`);
@@ -128,6 +141,11 @@
 			if (ratio === 0) {
 				console.log("not enough energy capacity to generate creep template");
 				return;
+			}
+
+			// limit creep to max ratio
+			if (creepTemplate.maxRatio && ratio > creepTemplate.maxRatio) {
+				ratio = creepTemplate.maxRatio;
 			}
 
 			for (const bodyPart in creepTemplate) {

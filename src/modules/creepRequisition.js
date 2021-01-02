@@ -6,6 +6,10 @@
 				return false;
 			}
 
+			if (process.env.NODE_ENV === "development") {
+				console.log(`get idle creep of type ${type}`);
+			}
+
 			let idleRoom = null;
 
 			var roomType = typeof room;
@@ -24,7 +28,12 @@
 			let idleCreeps = idleRoom.memory.idleCreeps[type];
 
 			if (!idleCreeps) {
-				//console.log(`can not find idleCreeps type in room memory. type ${type} roomMemory: ${JSON.stringify(idleRoom.memory.idleCreeps)}`);
+				if (process.env.NODE_ENV === "development") {
+					console.log(
+						`can not find idleCreeps type in room memory. type ${type} roomMemory: ${JSON.stringify(idleRoom.memory.idleCreeps)}`
+					);
+				}
+
 				return false;
 			}
 
@@ -113,7 +122,10 @@
 
 			// already tried or already creep to spawn
 			if (room.memory.spawnsCheckedTime && room.memory.spawnsCheckedTime === Game.time) {
-				//console.log(`checked spawns already time ${Game.time}`);
+				if (process.env.NODE_ENV === "development") {
+					console.log(`checked spawns already time ${Game.time}`);
+				}
+
 				return false;
 			}
 
@@ -121,7 +133,9 @@
 				filter: { structureType: STRUCTURE_SPAWN },
 			});
 
-			//console.log(`spawns ${JSON.stringify(spawns)}`);
+			if (process.env.NODE_ENV === "development") {
+				console.log(`spawns ${JSON.stringify(spawns)}`);
+			}
 
 			var noSpawnsChecked = 0;
 			let creepAddedToSpawn = false;
@@ -129,14 +143,18 @@
 				let spawn = spawns[noSpawnsChecked];
 
 				if (!spawn.memory.creepToSpawn) {
-					//console.log(`adding memory to spawn ${JSON.stringify(memory)}`);
+					if (process.env.NODE_ENV === "development") {
+						console.log(`adding memory to spawn ${JSON.stringify(memory)}`);
+					}
 
 					memory.type = type;
 					spawn.memory.creepToSpawn = { memory };
 					creepAddedToSpawn = true;
 				}
 
-				//console.log(`checking spawn ${JSON.stringify(spawn)}`);
+				if (process.env.NODE_ENV === "development") {
+					console.log(`checking spawn ${JSON.stringify(spawn)}`);
+				}
 
 				noSpawnsChecked++;
 			}

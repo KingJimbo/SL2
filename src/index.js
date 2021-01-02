@@ -21,6 +21,7 @@ module.exports.loop = function () {
 	require("./modules/room");
 	require("./modules/roomSurvey");
 	require("./modules/structure");
+	require("./common/overrides");
 
 	if (process.env.NODE_ENV === "development") {
 		if (console.attachLogger) console.attachLogger(global.App);
