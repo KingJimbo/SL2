@@ -22,11 +22,26 @@
 				roomSurveyModule.surveyRoomForStructures(room);
 
 				// delete requests and start fresh every time
-				delete room.memory.resourceRequests;
+				//delete room.memory.resourceRequests;
 
-				roomModule.createRoomCreepRoles(room);
+				room.memory.requests = {
+					build: {},
+					claimController: {},
+					dismantle: {},
+					drop: {},
+					harvest: {},
+					pickup: {},
+					repair: {},
+					reserveController: {},
+					signController: {},
+					transfer: {},
+					upgradeController: {},
+					withdraw: {},
+				};
 
-				roomModule.checkCreeps(room);
+				//roomModule.createRoomCreepRoles(room);
+
+				//roomModule.checkCreeps(room);
 
 				roomModule.checkRoomSites(room);
 
