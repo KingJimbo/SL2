@@ -1,5 +1,5 @@
 (() => {
-	const { getAccessiblePositions } = require("../common/position");
+	const { getAccessiblePositions, getPosName } = require("../common/position");
 	let resourceModule = {
 		/* BUILD REQUEST FUNCTIONS */
 
@@ -205,7 +205,6 @@
 		/* PICKUP REQUEST FUNCTIONS */
 
 		addPickupRequest: (pos, resourceType, amount) => {
-			const { getPosName } = require("../common/position");
 			let room = Game.rooms[pos.roomName];
 
 			if (!pos || !resourceType || !amount || amount < 1) {
@@ -218,28 +217,24 @@
 
 			var positionName = getPosName(pos.x, pos.y);
 
-			if (!room.memory.requests.pickup[positionName]) {
-				room.memory.requests.pickup[positionName] = {
-					pos,
-				};
+			if (!room.memory.pickups[positionName]) {
+				room.memory.pickups[positionName] = {};
 			}
 
-			if (!room.memory.requests.pickup[positionName][resourceType]) {
-				room.memory.requests.pickup[positionName][resourceType] = {
+			if (!room.memory.pickups[positionName][resourceType]) {
+				room.memory.pickups[positionName][resourceType] = {
 					amount: 0,
 					pendingAmount: 0,
 					pendingCreepNames: {},
 				};
 			}
 
-			let pickupMemory = room.memory.requests.pickup[positionName][resourceType];
+			let pickupMemory = room.memory.pickups[positionName][resourceType];
+
+			pickupMemory.amount = amount;
 
 			if (process.env.NODE_ENV === "development") {
 				console.log(`pickupMemory ${JSON.stringify(pickupMemory)}`);
-			}
-
-			if (amount !== pickupMemory.amount) {
-				pickupMemory.amount = amount;
 			}
 
 			pickupMemory.pendingAmount = 0;
@@ -257,7 +252,7 @@
 						return;
 					}
 
-					pickupMemory.pendingAmount += creep.store.getUsedCapacity(resourceType);
+					pickupMemory.pendingAmount += creep.store.getFreeCapacity(resourceType);
 				});
 			}
 
@@ -266,29 +261,33 @@
 				if (!room.memory.requests.pickup[positionName]) {
 					room.memory.requests.pickup[positionName] = {};
 
-					if (!room.memory.requests.pickup[positionName][resourceType]) {
-						room.memory.requests.pickup[positionName][resourceType] = pos;
+					if (!room.memory.requests.pickup[resourceType][positionName]) {
+						room.memory.requests.pickup[resourceType][positionName] = pos;
 					}
 
 					if (process.env.NODE_ENV === "development") {
 						console.log(
-							`Added resource request for structure ${JSON.stringify(room.memory.requests.pickup[positionName][resourceType])}`
+							`Added resource request for structure ${JSON.stringify(room.memory.requests.pickup[resourceType][positionName])}`
 						);
 					}
 				}
 			} else {
 				if (process.env.NODE_ENV === "development") {
 					console.log(`positionName ${JSON.stringify(positionName)}`);
-					console.log(`Deleting resource request for position ${JSON.stringify(room.memory.requests.pickup[positionName][resourceType])}`);
+					console.log(`Deleting resource request for position ${JSON.stringify(room.memory.requests.pickup[resourceType][positionName])}`);
 				}
 
-				delete room.memory.requests.pickup[positionName][resourceType];
+				delete room.memory.requests.pickup[resourceType][positionName];
 			}
 
-			room.memory.requests.pickup[positionName][resourceType] = pickupMemory;
+			room.memory.pickups[positionName][resourceType] = pickupMemory;
 		}, // addPickupRequest END
 
+		assignCreepToNextPickupRequest: (creep) => {},
+
 		/* PICKUP REQUEST FUNCTIONS END */
+
+		/*------------- REPAIR REQUEST FUNCTIONS -----------------*/
 
 		addRepairRequest: (structure) => {
 			if (!structure) {
@@ -325,6 +324,77 @@
 				}
 			}
 		}, // addRepairRequest END
+
+		assignRepairerToNextRequest: (repairer) => {
+			let room = repairer.room,
+				assignedStructure = null;
+
+			for (const structureType in RESOURCE_ORDER_STRUCTURE_PRIORITY) {
+				let structures = room.memory.requests.repair[structureType];
+				for (const structureId in structures) {
+					const structure = Game.getObjectById(structureId);
+
+					if (structure) {
+						resourceModule.verifyRepairMemory(structure);
+						let structureMemory = room.memory.structureMemory[structure.structureType][structure.id];
+
+						if (!structureMemory.repairerId) {
+							structureMemory.repairerId = repairer.id;
+							room.memory.structureMemory[structure.structureType][structure.id] = structureMemory;
+							assignedStructure = structure;
+							break;
+						}
+					}
+				}
+
+				if (assignedStructure) {
+					break;
+				}
+			}
+
+			if (assignedStructure) {
+				delete room.memory.requests.repair[assignedStructure.structureType][assignedStructure.id];
+			}
+
+			return assignedStructure;
+		},
+
+		verifyRepairMemory: (structure) => {
+			let structureMemory = room.memory.structureMemory[structure.structureType][structure.id];
+
+			if (structure.hits < structure.hitsMax) {
+				delete structureMemory.repairerId;
+				room.memory.structureMemory[structure.structureType][structure.id] = structureMemory;
+				return;
+			}
+
+			if (structureMemory.repairerId) {
+				const repairer = Game.getObjectById(structureMemory.repairerId);
+
+				if (repairer) {
+					const isTower = !repairer.memory;
+					let repairerMemory = null;
+
+					if (isTower) {
+						if (!room.memory.structureMemory[STRUCTURE_TOWER][repairer.id]) {
+							room.memory.structureMemory[STRUCTURE_TOWER][repairer.id] = {};
+						}
+						repairerMemory = room.memory.structureMemory[STRUCTURE_TOWER][repairer.id];
+					} else {
+						repairerMemory = repairer.memory;
+					}
+
+					if (repairerMemory.repairStructureId !== structureId) {
+						delete structureMemory.repairerId;
+						room.memory.structureMemory[structure.structureType][structure.id] = structureMemory;
+					}
+				}
+			}
+		}, // verifyRepairMemory END
+
+		/*----------- REPAIR REQUEST FUNCTIONS END ---------------*/
+
+		/* TRANSFER REQUEST FUNCTIONS */
 
 		addTransferRequest: (structure, resourceType, amount) => {
 			if ((!structure, !resourceType)) {
@@ -364,27 +434,89 @@
 				structureResourceRequestMemory.amount = amount;
 			}
 
-			structureResourceRequestMemory.pendingAmount = 0;
+			structureResourceMemory = resourceModule.calculateTransferPendingAmount(structureResourceMemory, resourceType);
 
-			const creepNames = Object.keys(structureResourceRequestMemory.pendingCreepNames);
+			structure.room.memory.structureMemory[structure.structureType][structure.id].transferRequests[
+				resourceType
+			] = structureResourceRequestMemory;
+
+			resourceModule.verifyStructureResourceMemory(structure, resourceType);
+		}, // addTransferRequest END
+
+		assignCreepToNextTransferRequest: (creep) => {
+			let room = creep.room;
+			assignedStructure = null;
+
+			for (const resourceType in room.memory.requests.transfer) {
+				let structures = structure.room.memory.requests.transfer[resourceType];
+
+				for (const structureType in RESOURCE_ORDER_STRUCTURE_PRIORITY) {
+					let structureMemories = structures[structureType];
+
+					for (const structureId in structureMemories) {
+						const structure = Game.getObjectById(structureId);
+
+						if (structure) {
+							assignedStructure = structure;
+							resourceModule.addStructureMemory(structure);
+
+							let structureResourceMemory =
+								structure.room.memory.structureMemory[structure.structureType][structure.id].transferRequests[resourceType];
+
+							structureResourceMemory = resourceModule.calculateTransferPendingAmount(structureResourceMemory, resourceType);
+
+							structure.room.memory.structureMemory[structure.structureType][structure.id].transferRequests[
+								resourceType
+							] = structureResourceMemory;
+							resourceModule.verifyStructureResourceMemory(structure, resourceType);
+							break;
+						}
+					}
+
+					if (assignedStructure) {
+						break;
+					}
+				}
+				if (assignedStructure) {
+					break;
+				}
+			}
+
+			return assignedStructure;
+		}, // assignCreepToNextTransferRequest END
+
+		calculateTransferPendingAmount: (structureResourceMemory, resourceType) => {
+			structureResourceMemory.pendingAmount = 0;
+
+			const creepNames = Object.keys(structureResourceMemory.pendingCreepNames);
+
+			if (!creepNames) {
+				creepNames = [];
+			}
 
 			if (creepNames && creepNames.length > 0) {
 				creepNames.forEach((creepName) => {
-					//
 					let creep = Game.creeps[creepName];
 
 					// if a creep is invalid remove
 					if (!creep) {
-						delete structureResourceRequestMemory.pendingCreepNames[creepName];
+						delete structureResourceMemory.pendingCreepNames[creepName];
 						return;
 					}
 
-					structureResourceRequestMemory.pendingAmount += creep.store.getUsedCapacity(resourceType);
+					structureResourceMemory.pendingAmount += creep.store.getUsedCapacity(resourceType);
 				});
 			}
 
+			return structureResourceMemory;
+		}, // calculateTransferPendingAmount END
+
+		verifyStructureResourceMemory: (structure, resourceType) => {
+			let room = source.room,
+				structureResourceMemory = structure.room.memory.structureMemory[structure.structureType][structure.id].transferRequests[resourceType];
+
 			// if pending is less than total submit a request to the room
-			if (structureResourceRequestMemory.pendingAmount < structureResourceRequestMemory.amount) {
+			if (structureResourceMemory.pendingAmount < structureResourceMemory.amount) {
 				if (!structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id]) {
 					structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id] = structure.id;
 
@@ -408,11 +540,11 @@
 
 				delete structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id];
 			}
+		}, // verifySourceMemory END
 
-			structure.room.memory.structureMemory[structure.structureType][structure.id].transferRequests[
-				resourceType
-			] = structureResourceRequestMemory;
-		}, // addTransferRequest END
+		/*------------- TRANSFER REQUEST FUNCTIONS END ----------*/
+
+		/* UPGRADE CONTROLLER REQUEST FUNCTIONS */
 
 		addUpgradeControllerRequest: (controller) => {
 			if (!controller) {
@@ -427,6 +559,10 @@
 				delete structure.room.memory.requests.upgradeController[controller.id];
 			}
 		}, // addUpgradeControllerRequest END
+
+		/* UPGRADE CONTROLLER REQUEST FUNCTIONS END */
+
+		/* WITHDRAW REQUEST FUNCTIONS */
 
 		addWithdrawRequest: (structure, resourceType, amount) => {
 			if ((!structure, !resourceType)) {
@@ -515,6 +651,8 @@
 				resourceType
 			] = structureResourceRequestMemory;
 		}, // addWithdrawRequest END
+
+		/* WITHDRAW REQUEST FUNCTIONS END */
 
 		addStructureMemory: (structure) => {
 			if (!structure.room.memory.structureMemory) {
@@ -787,7 +925,7 @@
 			// 		transfer: {},
 			// 		upgradeController: {},
 			// 		withdraw: {},
-		},
+		}, // cleanUpRequestMemory END
 	};
 
 	global.App.resourceModule = resourceModule;
