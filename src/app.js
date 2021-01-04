@@ -12,6 +12,8 @@
 			roomModule.runRooms();
 
 			creepModule.runCreeps();
+
+			spawnModule.runSpawns();
 		},
 	};
 

@@ -17,7 +17,7 @@
 			}
 
 			if (room.controller.my) {
-				let { roomSurveyModule } = global.App;
+				let { roomSurveyModule, spawnModule } = global.App;
 
 				roomSurveyModule.surveyRoomForStructures(room);
 
@@ -38,6 +38,8 @@
 					upgradeController: {},
 					withdraw: {},
 				};
+
+				resourceModule.cleanUpRequestMemory(room);
 
 				//roomModule.createRoomCreepRoles(room);
 
@@ -130,7 +132,7 @@
 							console.log(`adding site request`);
 						}
 
-						resourceModule.addStructureResourceRequest(site, RESOURCE_ENERGY, progressLeft);
+						resourceModule.addBuildRequest(site);
 					}
 				});
 			}
@@ -150,14 +152,15 @@
 				return;
 			}
 
-			const { resourceModule, spawnModule, structureModule } = global.App;
+			const { spawnModule, structureModule } = global.App;
 
 			structures.forEach((structure) => {
 				structureModule.checkStructure(structure);
 
 				switch (structure.structureType) {
 					case STRUCTURE_SPAWN:
-						spawnModule.runSpawn(structure);
+						//spawnModule.runSpawn(structure);
+						structureModule.runSpawn(structure);
 						break;
 					case STRUCTURE_EXTENSION:
 						structureModule.runExtension(structure);
@@ -197,6 +200,9 @@
 					// 	break;
 					case STRUCTURE_CONTAINER:
 						structureModule.runContainer(structure);
+						break;
+					case STRUCTURE_CONTROLLER:
+						structureModule.runController(structure);
 						break;
 					// case STRUCTURE_NUKER:
 					// 	spawnModule.runSpawn(structure);

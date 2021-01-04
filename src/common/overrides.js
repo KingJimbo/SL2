@@ -21,5 +21,16 @@
 			return false;
 		};
 	}
+
+	// if (!StructureTower.prototype._attack) {
+	// 	StructureTower.prototype._attack = StructureTower.prototype.attack;
+
+	// 	StructureTower.prototype.attack = function (objectToAttack) {
+	// 		if (objectToAttack) {
+	// 			return this._attack(objectToAttack);
+	// 		}
+	// 	};
+	// }
+
 	/* CREEP OVERRIDES END */
 })();

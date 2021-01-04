@@ -2,7 +2,7 @@ let structureModule = {
 	checkStructure: (structure) => {
 		//
 		if (structure.hits < structure.hitsMax) {
-			resourceModule.addStructureRepairRequest(structure);
+			resourceModule.addRepairRequest(structure);
 		}
 	},
 
@@ -10,7 +10,7 @@ let structureModule = {
 		const { resourceModule } = global.App;
 
 		const freeCapacity = extension.store.getFreeCapacity(RESOURCE_ENERGY);
-		resourceModule.addStructureResourceRequest(extension, RESOURCE_ENERGY, freeCapacity);
+		resourceModule.addTransferRequest(extension, RESOURCE_ENERGY, freeCapacity);
 	}, // runExtension END
 
 	runRoad: (road) => {
@@ -26,28 +26,87 @@ let structureModule = {
 	},
 
 	runTower: (tower) => {
-		if (tower.room.memory.isUnderAttack) {
-			const freeCapacity = tower.store.getFreeCapacity(RESOURCE_ENERGY);
+		const freeCapacity = tower.store.getFreeCapacity(RESOURCE_ENERGY);
+		let actionResult = null;
 
-			if (freeCapacity) {
-				resourceModule.addStructureResourceRequest(tower, RESOURCE_ENERGY, freeCapacity);
+		if (freeCapacity) {
+			resourceModule.addTransferRequest(tower, RESOURCE_ENERGY, freeCapacity);
+		}
+
+		if (tower.room.memory.isUnderAttack) {
+			for (const creepId in room.memory.threats.creeps) {
+				const hostileCreep = Game.getObjectById(creepId);
+
+				if (hostileCreep) {
+					actionResult = tower.attack(hostileCreep);
+					break;
+				}
+			}
+		} else {
+			//....first heal any damaged creeps
+			for (let name in Game.creeps) {
+				// get the creep object
+				var creep = Game.creeps[name];
+				if (creep.hits < creep.hitsMax) {
+					actionResult = tower.heal(creep);
+					break;
+				}
 			}
 
-			return;
+			// if no action taken yet repair
+			if (!actionResult) {
+				let towerMemory = resourceModule.getStructureMemory(tower),
+					structure = null;
+
+				if (towerMemory.repairStructureId) {
+					structure = Game.getObjectById(towerMemory.repairStructureId);
+
+					if (structure && structure.hitsMax !== structure.hits) {
+						actionResult = tower.repair(structure);
+					} else {
+						towerMemory.repairStructureId = null;
+					}
+				}
+
+				if (!towerMemory.repairStructureId) {
+					structure = resourceModule.assignRepairerToNextRequest(tower);
+
+					if (structure) {
+						towerMemory.repairStructureId = structure.id;
+						actionResult = tower.repair(structure);
+					}
+				}
+			}
 		}
 
-		const usedCapacity = tower.store.getUsedCapacity(RESOURCE_ENERGY);
-
-		if (usedCapacity < MIN_TOWER_ENERGY_CAPACITY) {
-			const requiredEnergy = MIN_TOWER_ENERGY_CAPACITY - usedCapacity;
-
-			resourceModule.addStructureResourceRequest(tower, RESOURCE_ENERGY, requiredEnergy);
+		switch (actionResult) {
+			default:
+				if (process.env.NODE_ENV === "development") {
+					console.log(`tower action result ${actionResult}`);
+				}
+				break;
 		}
+
+		return actionResult;
 	},
 
 	runContainer: (container) => {
 		// do nothing for now
 		//const usedCapacity = container.store.getUsedCapacity(RESOURCE_ENERGY);)
+	},
+
+	runController: (controller) => {
+		if (controller.progress < controller.progressTotal) {
+			resourceModule.addUpgradeControllerRequest(controller);
+		}
+	},
+
+	runSpawn: (spawn) => {
+		// do nothing for now
+		const { resourceModule } = global.App;
+
+		const freeCapacity = extension.store.getFreeCapacity(RESOURCE_ENERGY);
+		resourceModule.addTransferRequest(spawn, RESOURCE_ENERGY, freeCapacity);
 	},
 };
 

@@ -1,3 +1,5 @@
+const { CREEP_ACTIONS } = require("../common/constants");
+
 (() => {
 	let creepModule = {
 		runCreeps: () => {
@@ -55,8 +57,8 @@
 				case CREEP_ROLES.IDLE:
 					creepModule.runIdleCreep(creep);
 					break;
-				case CREEP_ROLES.HARVESTER:
-					creepModule.runHarvesterCreep(creep);
+				case CREEP_ROLES.UTILITY:
+					creepModule.runUtilityCreep(creep);
 					break;
 				case CREEP_ROLES.MINER:
 					creepModule.runMinerCreep(creep);
@@ -197,61 +199,86 @@
 			creep.moveTo(0, 0);
 		}, // runIdleCreep END
 
-		runHarvesterCreep: (creep) => {
-			var source = null;
-			const { creepRequisitionModule, roomModule } = global.App;
+		runUtilityCreep: (creep) => {
+			const { resourceModule, roomModule } = global.App;
 
-			if (!creep.memory.sourceId) {
-				// if (process.env.NODE_ENV === "development") {
-				// 	console.log(`finding source ${creep.memory.sourceId}`);
-				// }
-
-				source = roomModule.findNextFreeSource(creep.room);
-
-				// no source check for spawns
-				if (source) {
-					//console.log(`adding source ${source.id}`);
-					creep.memory.sourceId = source.id;
-				} else {
-					creepRequisitionModule.addCreepToIdlePool(creep.room, creep);
-				}
-			}
-
-			if (creep.memory.sourceId) {
-				source = Game.getObjectById(creep.memory.sourceId);
-
-				if (roomModule.positionHasNearbyThreat(source.pos)) {
-					creepRequisitionModule.addCreepToIdlePool(creep.room, creep);
-				}
-
-				if (!creep.room.memory.sources[creep.memory.sourceId]) {
-					creep.room.memory.sources[creep.memory.sourceId] = {};
-				}
-
-				if (!creep.room.memory.sources[creep.memory.sourceId].currentCreeps) {
-					creep.room.memory.sources[creep.memory.sourceId].currentCreeps = {};
-				}
-
-				if (!creep.room.memory.sources[creep.memory.sourceId].currentCreeps[creep.name]) {
-					creep.room.memory.sources[creep.memory.sourceId].currentCreeps[creep.name] = creep.name;
-				}
-			}
-
-			// if new
 			if (!creep.memory.currentAction) {
-				if (creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
-					creep.memory.currentAction = CREEP_ACTIONS.FIND_REQUEST;
-				} else {
-					creep.memory.currentAction = CREEP_ACTIONS.HARVEST;
+				if (creep.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+					let harvestObject = resourceModule.assignCreepToNextHarvestRequest(creep);
+
+					if (harvestObject) {
+						creep.memory.harvestObjectId = harvestObject.id;
+						creep.memory.currentAction = CREEP_ACTIONS.HARVEST;
+
+						if (roomModule.positionHasNearbyThreat(harvestObject.pos)) {
+							creep.memory.harvestObjectId = null;
+							delete source.room.memory.sources[source.id].currentCreeps[creep.name];
+							creepModule.runCreep(creep);
+							return;
+						}
+
+						return creepModule.carryOutAction(creep);
+					}
+
+					const withdrawData = resourceModule.assignCreepToNextWithdrawRequest(creep);
+
+					if (withdrawData) {
+						creep.memory.currentAction = CREEP_ACTIONS.WITHDRAW_RESOURCE;
+						creep.memory.withdrawId = withdrawData.withdrawStructure.id;
+						creep.memory.destinationId = withdrawData.destinationId;
+
+						return creepModule.carryOutAction(creep);
+					}
+				}
+
+				const transferData = resourceModule.assignCreepToNextTransferRequest(creep);
+
+				if (transferData) {
+					creep.memory.currentAction = CREEP_ACTIONS.TRANSFER_RESOURCE;
+					creep.memory.resourceType = transferData.resourceType;
+					creep.memory.transferStructureId = transferData.structure.id;
+
+					return creepModule.carryOutAction(creep);
+				}
+
+				const repairData = resourceModule.assignCreepToNextRepairRequest(creep);
+
+				if (repairData) {
+					creep.memory.currentAction = CREEP_ACTIONS.REPAIR_STRUCTURE;
+					creep.memory.repairStructureId = repairData.id;
+
+					return creepModule.carryOutAction(creep);
+				}
+
+				const buildData = resourceModule.assignCreepToNextBuildRequest(creep);
+
+				if (buildData) {
+					creep.memory.currentAction = CREEP_ACTIONS.BUILD_STRUCTURE;
+					creep.memory.structureId = buildData.id;
+
+					return creepModule.carryOutAction(creep);
+				}
+
+				const pickupData = resourceModule.assignCreepToNextPickupRequest(creep);
+
+				if (pickupData) {
+					creep.memory.currentAction = CREEP_ACTIONS.PICKUP_RESOURCE;
+					creep.memory.pickupPosition = pickupData.pos;
+					creep.memory.resourceType = pickupData.resourceType;
+
+					return creepModule.carryOutAction(creep);
+				}
+
+				const controllerId = resourceModule.getUpgradeControllerRequest(creep);
+
+				if (controllerId) {
+					creep.memory.currentAction = CREEP_ACTIONS.UPGRADE_CONTROLLER;
+					creep.memory.controllerId = controllerId;
+
+					return creepModule.carryOutAction(creep);
 				}
 			}
-
-			if (creep.memory.currentAction === CREEP_ACTIONS.HARVEST && creep.store.getFreeCapacity(RESOURCE_ENERGY) === 0) {
-				creep.memory.currentAction = CREEP_ACTIONS.FIND_REQUEST;
-			}
-
-			creepModule.carryOutAction(creep);
-		}, // runHarvesterCreep END
+		}, // runUtilityCreep END
 
 		runMinerCreep: (creep) => {
 			const { creepRequisitionModule, roomModule } = global.App;
@@ -342,21 +369,12 @@
 		/* CREEP ACTIONS */
 
 		harvest: (creep) => {
-			const source = Game.getObjectById(creep.memory.sourceId);
-			const { roomModule } = global.App;
-
-			if (roomModule.positionHasNearbyThreat(source.pos)) {
-				creep.memory.sourceId = null;
-				delete source.room.memory.sources[source.id].currentCreeps[creep.name];
-				creepModule.runCreep(creep);
-			}
-
-			const result = creep.harvest(source);
+			const result = creep.harvest(harvestObject);
 			switch (result) {
 				case OK:
 					break;
 				case ERR_NOT_IN_RANGE:
-					creep.moveTo(source.pos);
+					creep.moveTo(harvestObject.pos);
 					break;
 				default:
 					if (process.env.NODE_ENV === "development") {
@@ -545,6 +563,7 @@
 
 		findRequest: (creep) => {
 			const { resourceModule } = global.App;
+
 			let structure = resourceModule.assignCreepToNextEnergyRequest(creep);
 			creep.memory.structureId = structure.id;
 			creepModule.runCreep(creep);

@@ -1,36 +1,146 @@
+const { CREEP_ROLES, CREEP_TYPES } = require("../common/constants");
+
 (() => {
 	const { resourceModule, memoryModule } = global.App;
-	let spawnModule = {
-		runRoomSpawns: (room) => {
-			let spawns = room.find(FIND_MY_STRUCTURES, {
-				filter: { structureType: STRUCTURE_SPAWN },
-			});
 
-			if (spawns) {
-				spawns.forEach((spawn) => {
-					spawnModule.runSpawn(spawn);
+	var CreepTypes = {};
+
+	let spawnModule = {
+		runSpawns: () => {
+			for (const roomName in Game.rooms) {
+				let room = Game.rooms[roomName];
+
+				room.memory.creepsToSpawn = spawnModule.calculateCreepsToSpawn(room);
+
+				let spawns = room.find(FIND_MY_STRUCTURES, {
+					filter: { structureType: STRUCTURE_SPAWN },
 				});
+
+				if (spawns) {
+					spawns.forEach((spawn) => {
+						spawnModule.runSpawn(spawn);
+					});
+				}
 			}
 		},
 
+		calculateCreepsToSpawn: (room) => {
+			var creepsToSpawn = [];
+
+			const harvestRequests = resourceModule.getAllHarvestRequests(room);
+
+			if (harvestRequests) {
+				harvestRequests.forEach((harvestId) => {
+					// get harvest creepToSpawn using harvestId & add to array
+					const creepToSpawn = spawnModule.getHarvestCreepToSpawn(room);
+					creepsToSpawn.push(creepToSpawn);
+				});
+			}
+
+			if (creepsToSpawn.length > 3) {
+				return creepsToSpawn;
+			}
+
+			const transferRequests = resourceModule.getAllTransferRequests(room);
+
+			if (transferRequests) {
+				transferRequests.forEach((structureId) => {
+					// get harvest creepToSpawn using harvestId & add to array
+					const creepToSpawn = spawnModule.getTransferCreepToSpawn(room);
+					creepsToSpawn.push(creepToSpawn);
+				});
+			}
+
+			if (creepsToSpawn.length > 3) {
+				return creepsToSpawn;
+			}
+
+			const repairRequests = resourceModule.getAllRepairRequests(room);
+
+			if (repairRequests) {
+				repairRequests.forEach((structureId) => {
+					// get harvest creepToSpawn using harvestId & add to array
+					const creepToSpawn = spawnModule.getTransferCreepToSpawn(room);
+					creepsToSpawn.push(creepToSpawn);
+				});
+			}
+
+			if (creepsToSpawn.length > 3) {
+				return creepsToSpawn;
+			}
+
+			const buildRequests = resourceModule.getAllBuildRequests(room);
+
+			if (buildRequests) {
+				buildRequests.forEach((siteId) => {
+					// get harvest creepToSpawn using harvestId & add to array
+					const creepToSpawn = spawnModule.getTransferCreepToSpawn(room);
+					creepsToSpawn.push(creepToSpawn);
+				});
+			}
+
+			if (creepsToSpawn.length > 3) {
+				return creepsToSpawn;
+			}
+
+			const pickupRequests = resourceModule.getAllPickupRequests(room);
+
+			if (pickupRequests) {
+				pickupRequests.forEach((pos) => {
+					// get harvest creepToSpawn using harvestId & add to array
+					const creepToSpawn = spawnModule.getTransferCreepToSpawn(room);
+					creepsToSpawn.push(creepToSpawn);
+				});
+			}
+
+			if (creepsToSpawn.length > 3) {
+				return creepsToSpawn;
+			}
+
+			const withdrawRequests = resourceModule.getAllWithdrawRequests(room);
+
+			if (withdrawRequests) {
+				withdrawRequests.forEach((structureId) => {
+					// get harvest creepToSpawn using harvestId & add to array
+					const creepToSpawn = spawnModule.getTransferCreepToSpawn(room);
+					creepsToSpawn.push(creepToSpawn);
+				});
+			}
+
+			if (creepsToSpawn.length > 3) {
+				return creepsToSpawn;
+			}
+
+			const upgradeControllerRequest = resourceModule.getUpgradeControllerRequest(room);
+
+			if (upgradeControllerRequest) {
+				// get upgrade controller creepToSpawn
+				const creepToSpawn = spawnModule.getTransferCreepToSpawn(room);
+				creepsToSpawn.push(creepToSpawn);
+			}
+
+			return creepsToSpawn;
+		},
+
 		runSpawn: (spawn) => {
-			if (!spawn.memory.creepToSpawn) {
+			if (!room.memory.creepsToSpawn && room.memory.creepsToSpawn.length === 0) {
 				return;
 			}
 
-			const { resourceModule } = global.App;
+			//const { resourceModule } = global.App;
 
-			if (spawn.memory.creepToSpawn) {
-				const spawnCapacityFree = spawn.store.getFreeCapacity(RESOURCE_ENERGY);
+			// if (room.memory.creepsToSpawn && room.memory.creepsToSpawn.length > 0) {
+			// 	const spawnCapacityFree = spawn.store.getFreeCapacity(RESOURCE_ENERGY);
 
-				if (process.env.NODE_ENV === "development") {
-					console.log(`spawnCapacityFree ${JSON.stringify(spawnCapacityFree)}`);
-				}
-				resourceModule.addStructureResourceRequest(spawn, RESOURCE_ENERGY, spawnCapacityFree);
-			}
+			// 	if (process.env.NODE_ENV === "development") {
+			// 		console.log(`spawnCapacityFree ${JSON.stringify(spawnCapacityFree)}`);
+			// 	}
+			// 	resourceModule.addTransferRequest(spawn, RESOURCE_ENERGY, spawnCapacityFree);
+			// }
 
 			let energyCapacity = spawn.room.energyCapacityAvailable,
-				room = spawn.room;
+				room = spawn.room,
+				creepToSpawn = room.memory.creepsToSpawn.shift();
 
 			let essentialWorkerCreeps = room.find(FIND_MY_CREEPS, {
 				filter: (creep) => {
@@ -42,7 +152,7 @@
 				energyCapacity = spawn.room.energyAvailable;
 			}
 
-			const creepBodyResponse = spawnModule.getCreepBody(spawn.memory.creepToSpawn.memory.type, energyCapacity);
+			const creepBodyResponse = spawnModule.getCreepBody(creepToSpawn.type, energyCapacity);
 
 			if (process.env.NODE_ENV === "development") {
 				console.log("creep body type result:");
@@ -52,7 +162,7 @@
 
 			if (creepBodyResponse && creepBodyResponse.cost <= spawn.room.energyAvailable) {
 				var spawnCreepResult = spawn.spawnCreep(creepBodyResponse.creepBody, memoryModule.getNextCreepName(), {
-					memory: spawn.memory.creepToSpawn.memory,
+					memory: { type: creepToSpawn.type, role: creepToSpawn.role },
 				});
 
 				if (process.env.NODE_ENV === "development") {
@@ -67,9 +177,6 @@
 						break;
 				}
 			}
-
-			// clear memory
-			spawn.memory.creepToSpawn = null;
 		},
 
 		getCreepBody: (creepType, availableEnergy) => {
@@ -166,6 +273,45 @@
 			}
 
 			return creepBodyResponse;
+		},
+
+		getHarvestCreepToSpawn: (room) => {
+			// determine what type of harvest creep is best
+			let harvestCreepType = CREEP_TYPES.UTILITY,
+				harvestCreepRole = CREEP_ROLES.HARVESTER;
+
+			if (room.energyCapacityAvailable > 300) {
+				const miners = room.find(FIND_MY_CREEPS, {
+					filter: (creep) => {
+						return creep.memory.role === CREEP_ROLES.MINER;
+					},
+				});
+
+				const haulers = room.find(FIND_MY_CREEPS, {
+					filter: (creep) => {
+						return creep.memory.role === CREEP_ROLES.HAULER;
+					},
+				});
+
+				if (miners && miners.length > 0 && haulers && haulers.length > 0) {
+					harvestCreepType = CREEP_TYPES.MINER;
+					harvestCreepRole = CREEP_ROLES.MINER;
+				}
+			}
+
+			return spawnModule.createCreepToSpawnObject(room.name, harvestCreepType, harvestCreepRole);
+		}, // getHarvestCreepToSpawn END
+
+		getTransferCreepToSpawn: (room) => {
+			// determine what type of harvest creep is best
+			let harvestCreepType = CREEP_TYPES.UTILITY,
+				harvestCreepRole = CREEP_ROLES.UTILITY;
+
+			return spawnModule.createCreepToSpawnObject(room.name, harvestCreepType, harvestCreepRole);
+		}, // getTransferCreepToSpawn END
+
+		createCreepToSpawnObject: (room, type, role) => {
+			return { room, type, role };
 		},
 	};
 
