@@ -1,7 +1,7 @@
 (() => {
 	let App = {
 		runApp: () => {
-			const { memoryModule, roomModule, creepModule } = global.App;
+			const { memoryModule, roomModule, creepModule, spawnModule } = global.App;
 
 			if (process.env.NODE_ENV === "development") {
 				console.log("runApp Start");

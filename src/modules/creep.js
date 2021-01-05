@@ -25,42 +25,15 @@ const { CREEP_ACTIONS } = require("../common/constants");
 				console.log(`run creep ${creep.name}`);
 			}
 
-			let { creepRequisitionModule } = global.App;
-
-			if (!creep.memory.role) {
-				//do somehting to reassign creep
-				console.log("No creep role found in memory adding to idle pool");
-				creepRequisitionModule.addCreepToIdlePool(creep.room, creep);
-			}
-
 			if (!creep.memory.type || creep.memory.type === "unknown") {
 				creep.memory.type = CREEP_TYPES.UTILITY;
 			}
 
-			// if (creep.memory.operationId) {
-			// 	let operation = getObject(OBJECT_TYPE.OPERATION, creep.memory.operationId);
-
-			// 	if (operation) {
-			// 		if (operation.creepRoles[creep.memory.role]) {
-			// 			if (!operation.creepRoles[creep.memory.role].creepData) {
-			// 				operation.creepRoles[creep.memory.role].creepData = {};
-			// 			}
-
-			// 			if (!operation.creepRoles[creep.memory.role].creepData[creep.name]) {
-			// 				operation.creepRoles[creep.memory.role].creepData[creep.name] = { name: creep.name };
-			// 			}
-			// 		}
-			// 	}
-			// }
-
-			switch (creep.memory.role) {
-				case CREEP_ROLES.IDLE:
-					creepModule.runIdleCreep(creep);
-					break;
-				case CREEP_ROLES.UTILITY:
+			switch (creep.memory.type) {
+				case CREEP_TYPES.UTILITY:
 					creepModule.runUtilityCreep(creep);
 					break;
-				case CREEP_ROLES.MINER:
+				case CREEP_TYPES.MINER:
 					creepModule.runMinerCreep(creep);
 					break;
 			}
@@ -158,20 +131,32 @@ const { CREEP_ACTIONS } = require("../common/constants");
 
 		carryOutAction: (creep) => {
 			switch (creep.memory.currentAction) {
-				case CREEP_ACTIONS.HARVEST:
-					creepModule.harvest(creep);
-					break;
-				case CREEP_ACTIONS.TRANSFER_RESOURCE:
-					creepModule.transferResource(creep);
-					break;
-				case CREEP_ACTIONS.UPGRADE_CONTROLLER:
-					creepModule.upgradeController(creep);
-					break;
-				case CREEP_ACTIONS.REPAIR_STRUCTURE:
-					creepModule.repairStructure(creep);
+				case CREEP_ACTIONS.BUILD:
+					creepModule.build(creep);
 					break;
 				case CREEP_ACTIONS.FIND_REQUEST:
 					creepModule.findRequest(creep);
+					break;
+				case CREEP_ACTIONS.HARVEST:
+					creepModule.harvest(creep);
+					break;
+				case CREEP_ACTIONS.IDLE:
+					creepModule.idle(creep);
+					break;
+				case CREEP_ACTIONS.MINE:
+					creepModule.mine(creep);
+					break;
+				case CREEP_ACTIONS.PICKUP:
+					creepModule.pickup(creep);
+					break;
+				case CREEP_ACTIONS.REPAIR:
+					creepModule.repair(creep);
+					break;
+				case CREEP_ACTIONS.TRANSFER:
+					creepModule.transfer(creep);
+					break;
+				case CREEP_ACTIONS.UPGRADE:
+					creepModule.upgrade(creep);
 					break;
 			}
 		},
@@ -200,84 +185,87 @@ const { CREEP_ACTIONS } = require("../common/constants");
 		}, // runIdleCreep END
 
 		runUtilityCreep: (creep) => {
-			const { resourceModule, roomModule } = global.App;
+			const { resourceModule } = global.App;
 
 			if (!creep.memory.currentAction) {
-				if (creep.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-					let harvestObject = resourceModule.assignCreepToNextHarvestRequest(creep);
+				if (creep.store.getUsedCapacity() > 0) {
+					for (const resourceType in Object.keys(creep.store)) {
+						const transferData = resourceModule.assignCreepToNextTransferRequest(creep, resourceType);
 
-					if (harvestObject) {
-						creep.memory.harvestObjectId = harvestObject.id;
-						creep.memory.currentAction = CREEP_ACTIONS.HARVEST;
+						if (transferData) {
+							creep.memory.currentAction = CREEP_ACTIONS.TRANSFER;
+							creep.memory.resourceType = resourceType;
+							creep.memory.structureId = transferData.structure.id;
 
-						if (roomModule.positionHasNearbyThreat(harvestObject.pos)) {
-							creep.memory.harvestObjectId = null;
-							delete source.room.memory.sources[source.id].currentCreeps[creep.name];
-							creepModule.runCreep(creep);
-							return;
+							return creepModule.carryOutAction(creep);
 						}
 
-						return creepModule.carryOutAction(creep);
+						if (resourceType === RESOURCE_ENERGY) {
+							const repairData = resourceModule.assignCreepToNextRepairRequest(creep);
+
+							if (repairData) {
+								creep.memory.currentAction = CREEP_ACTIONS.REPAIR;
+								creep.memory.structureId = repairData.id;
+
+								return creepModule.carryOutAction(creep);
+							}
+
+							const buildData = resourceModule.assignCreepToNextBuildRequest(creep);
+
+							if (buildData) {
+								creep.memory.currentAction = CREEP_ACTIONS.BUILD;
+								creep.memory.structureId = buildData.id;
+
+								return creepModule.carryOutAction(creep);
+							}
+
+							const controllerId = resourceModule.getUpgradeControllerRequest(creep);
+
+							if (controllerId) {
+								creep.memory.currentAction = CREEP_ACTIONS.UPGRADE;
+								creep.memory.structureId = controllerId;
+
+								return creepModule.carryOutAction(creep);
+							}
+						}
 					}
-
-					const withdrawData = resourceModule.assignCreepToNextWithdrawRequest(creep);
-
-					if (withdrawData) {
-						creep.memory.currentAction = CREEP_ACTIONS.WITHDRAW_RESOURCE;
-						creep.memory.withdrawId = withdrawData.withdrawStructure.id;
-						creep.memory.destinationId = withdrawData.destinationId;
-
-						return creepModule.carryOutAction(creep);
-					}
-				}
-
-				const transferData = resourceModule.assignCreepToNextTransferRequest(creep);
-
-				if (transferData) {
-					creep.memory.currentAction = CREEP_ACTIONS.TRANSFER_RESOURCE;
-					creep.memory.resourceType = transferData.resourceType;
-					creep.memory.transferStructureId = transferData.structure.id;
-
-					return creepModule.carryOutAction(creep);
-				}
-
-				const repairData = resourceModule.assignCreepToNextRepairRequest(creep);
-
-				if (repairData) {
-					creep.memory.currentAction = CREEP_ACTIONS.REPAIR_STRUCTURE;
-					creep.memory.repairStructureId = repairData.id;
-
-					return creepModule.carryOutAction(creep);
-				}
-
-				const buildData = resourceModule.assignCreepToNextBuildRequest(creep);
-
-				if (buildData) {
-					creep.memory.currentAction = CREEP_ACTIONS.BUILD_STRUCTURE;
-					creep.memory.structureId = buildData.id;
-
-					return creepModule.carryOutAction(creep);
 				}
 
 				const pickupData = resourceModule.assignCreepToNextPickupRequest(creep);
 
 				if (pickupData) {
-					creep.memory.currentAction = CREEP_ACTIONS.PICKUP_RESOURCE;
+					creep.memory.currentAction = CREEP_ACTIONS.PICKUP;
 					creep.memory.pickupPosition = pickupData.pos;
 					creep.memory.resourceType = pickupData.resourceType;
 
 					return creepModule.carryOutAction(creep);
 				}
 
-				const controllerId = resourceModule.getUpgradeControllerRequest(creep);
+				let harvestObject = resourceModule.assignCreepToNextHarvestRequest(creep);
 
-				if (controllerId) {
-					creep.memory.currentAction = CREEP_ACTIONS.UPGRADE_CONTROLLER;
-					creep.memory.controllerId = controllerId;
+				if (harvestObject) {
+					creep.memory.harvestObjectId = harvestObject.id;
+					creep.memory.resourceType = harvestObject.resourceType;
+					creep.memory.currentAction = CREEP_ACTIONS.HARVEST;
 
 					return creepModule.carryOutAction(creep);
 				}
+
+				const withdrawData = resourceModule.assignCreepToNextWithdrawRequest(creep);
+
+				if (withdrawData) {
+					creep.memory.currentAction = CREEP_ACTIONS.WITHDRAW;
+					creep.memory.structureId = withdrawData.withdrawStructure.id;
+					creep.memory.destinationId = withdrawData.destinationId;
+
+					return creepModule.carryOutAction(creep);
+				}
+
+				creep.memory.currentAction = CREEP_ACTIONS.IDLE;
+				return creepModule.carryOutAction(creep);
 			}
+
+			return creepModule.carryOutAction(creep);
 		}, // runUtilityCreep END
 
 		runMinerCreep: (creep) => {
@@ -367,8 +355,29 @@ const { CREEP_ACTIONS } = require("../common/constants");
 		/* CREEP ROLES END */
 
 		/* CREEP ACTIONS */
+		idle: (creep) => {
+			return creep.moveTo(0, 0);
+		}, // harvest END
 
-		harvest: (creep) => {
+		build: (creep) => {
+			const site = Game.getObjectById(creep.memory.structureId);
+
+			if (process.env.NODE_ENV === "development") {
+				if (!site) {
+					console.log(`Can't find a site with id of ${creep.memory.structureId}`);
+				}
+			}
+
+			if (
+				typeof site.progress === "undefined" ||
+				creep.store.getUsedCapacity(RESOURCE_ENERGY) === 0 ||
+				roomModule.positionHasNearbyThreat(site.pos)
+			) {
+				resourceModule.removeCreepFromBuildRequest(creep);
+				creepModule.clearCreepMemory(creep);
+				return creepModule.runCreep(creep);
+			}
+
 			const result = creep.harvest(harvestObject);
 			switch (result) {
 				case OK:
@@ -382,50 +391,121 @@ const { CREEP_ACTIONS } = require("../common/constants");
 					}
 					break;
 			}
+
+			return result;
 		}, // harvest END
 
-		transferResource: (creep) => {
+		harvest: (creep) => {
+			const harvestObject = Game.getObjectById(creep.memory.harvestObjectId);
+
+			if (creep.store.getFreeCapacity(creep.memory.resourceType) === 0 || roomModule.positionHasNearbyThreat(harvestObject.pos)) {
+				resourceModule.removeCreepFromHarvestRequest(creep);
+				creepModule.clearCreepMemory(creep);
+				return creepModule.runCreep(creep);
+			}
+
+			const result = creep.harvest(harvestObject);
+			switch (result) {
+				case OK:
+					break;
+				case ERR_NOT_IN_RANGE:
+					creep.moveTo(harvestObject.pos);
+					break;
+				case ERR_NOT_ENOUGH_RESOURCES:
+				case ERR_TIRED:
+					resourceModule.removeCreepFromHarvestRequest(creep);
+					creepModule.clearCreepMemory(creep);
+					return creepModule.runCreep(creep);
+				default:
+					if (process.env.NODE_ENV === "development") {
+						console.log(`Unhandled harvest error ${result}`);
+					}
+					break;
+			}
+
+			return result;
+		}, // harvest END
+
+		pickup: (creep) => {
+			const { resourceModule } = global.App,
+				position = creep.memory.pickupPosition;
+
+			if (!position || creep.store.getFreeCapacity(creep.memory.resourceType) === 0 || roomModule.positionHasNearbyThreat(position)) {
+				resourceModule.removeCreepFromPickupRequest(creep);
+				creepModule.clearCreepMemory(creep);
+				return creepModule.runCreep(creep);
+			}
+
+			const resource = creep.room.find(FIND_DROPPED_RESOURCES, {
+				filter: (resource) => {
+					return (
+						resource.resourceType === creep.memory.resourceType &&
+						resource.pos.roomName === position.roomName &&
+						resource.pos.x === position.pos.x &&
+						resource.pos.y === position.pos.y
+					);
+				},
+			});
+
+			if (!resource) {
+				if (process.env.NODE_ENV === "development") {
+					console.log(`Can't find resource at ${JSON.stringify(position)}`);
+				}
+
+				resourceModule.removeCreepFromPickupRequest(creep);
+				creepModule.clearCreepMemory(creep);
+				return creepModule.runCreep(creep);
+			}
+
+			const result = creep.pickup(harvestObject);
+			switch (result) {
+				case OK:
+					break;
+				case ERR_NOT_IN_RANGE:
+					creep.moveTo(harvestObject.pos);
+					break;
+				case ERR_FULL:
+					resourceModule.removeCreepFromPickupRequest(creep);
+					creepModule.clearCreepMemory(creep);
+					return creepModule.runCreep(creep);
+				default:
+					if (process.env.NODE_ENV === "development") {
+						console.log(`Unhandled harvest error ${result}`);
+					}
+					break;
+			}
+
+			return result;
+		}, // harvest END
+
+		transfer: (creep) => {
 			let { resourceModule } = global.App;
 
 			let structure = Game.getObjectById(creep.memory.structureId);
 
-			if (!structure) {
-				creep.memory.currentAction = null;
-				creep.memory.structureId = null;
-				creepModule.runCreep(creep);
+			if (
+				!structure ||
+				creep.getUsedCapacity(creep.memory.resourceType) === 0 ||
+				structure.store.getFreeCapacity(creep.memory.resourceType) === 0
+			) {
+				resourceModule.removeCreepFromTransferRequest(creep);
+				creepModule.clearCreepMemory(creep);
+				return creepModule.runCreep(creep);
 			}
 
 			if (structure) {
-				let transferResult = null;
+				let transferResult = creep.transfer(structure);
 
-				if (typeof structure.progress !== "undefined") {
-					if (process.env.NODE_ENV === "development") {
-						console.log(`hit build`);
-					}
-					transferResult = creep.build(structure);
-				} else {
-					if (process.env.NODE_ENV === "development") {
-						console.log(`hit transfer`);
-					}
-					const freeCapacity = structure.store.getFreeCapacity(creep.memory.resourceType);
-					const usedCapacity = creep.store.getUsedCapacity(creep.memory.resourceType);
+				const freeCapacity = structure.store.getFreeCapacity(creep.memory.resourceType);
+				const usedCapacity = creep.store.getUsedCapacity(creep.memory.resourceType);
 
-					if (freeCapacity === 0) {
-						resourceModule.removeCreepFromResourceRequest(creep, structure, creep.memory.resourceType);
-						creep.memory.currentAction = null;
-						creep.memory.structureId = null;
-						creepModule.runCreep(creep);
-						return;
-					}
+				let capacity = usedCapacity;
 
-					let capacity = usedCapacity;
-
-					if (freeCapacity < usedCapacity) {
-						capacity = freeCapacity;
-					}
-
-					transferResult = creep.transfer(structure, creep.memory.resourceType, capacity);
+				if (freeCapacity < usedCapacity) {
+					capacity = freeCapacity;
 				}
+
+				transferResult = creep.transfer(structure, creep.memory.resourceType, capacity);
 
 				if (process.env.NODE_ENV === "development") {
 					console.log(`transfer result ${transferResult}`);
@@ -436,21 +516,13 @@ const { CREEP_ACTIONS } = require("../common/constants");
 						creep.moveTo(structure.pos);
 						break;
 					case ERR_NOT_ENOUGH_RESOURCES:
-						resourceModule.removeCreepFromResourceRequest(creep, structure, creep.memory.resourceType);
-						creep.memory.currentAction = null;
-						creep.memory.structureId = null;
-						creepModule.runCreep(creep);
-						break;
+						resourceModule.removeCreepFromTransferRequest(creep);
+						creepModule.clearCreepMemory(creep);
+						return creepModule.runCreep(creep);
 					case ERR_FULL:
-						// resourceModule.removeCreepFromResourceRequest(creep, structure, creep.memory.resourceType);
-						// let structure = resourceModule.assignCreepToNextEnergyRequest(creep);
-						// creep.memory.structureId = structure.id;
-						// creepModule.carryOutAction(creep);
-						resourceModule.removeCreepFromResourceRequest(creep, structure, creep.memory.resourceType);
-						creep.memory.currentAction = null;
-						creep.memory.structureId = null;
-						creepModule.runCreep(creep);
-						break;
+						resourceModule.removeCreepFromTransferRequest(creep);
+						creepModule.clearCreepMemory(creep);
+						return creepModule.runCreep(creep);
 					default:
 						if (process.env.NODE_ENV === "development") {
 							console.log(`transfer result ${transferResult}`);
@@ -458,34 +530,30 @@ const { CREEP_ACTIONS } = require("../common/constants");
 						break;
 				}
 			}
-		}, // transferResource END
+		}, // transfer END
 
-		repairStructure: (creep) => {
+		repair: (creep) => {
 			let { resourceModule } = global.App;
 
 			if (creep.memory.structureId) {
 				let destination = Game.getObjectById(creep.memory.structureId);
 
-				if (destination) {
-					if (creep.store.getUsedCapacity(RESOURCE_ENERGY) === 0 || destination.hits === destination.hitsMax) {
-						creep.memory.currentAction = CREEP_ACTIONS.HARVEST;
-						creepModule.runCreep(creep);
-						return;
-					}
+				if (!destination || creep.store.getUsedCapacity(RESOURCE_ENERGY) === 0 || destination.hits === destination.hitsMax) {
+					resourceModule.removeRepairerFromRepairRequest(creep);
+					creepModule.clearCreepMemory(creep);
+					return creepModule.runCreep(creep);
+				}
 
-					let transferResult = creep.repair(destination);
+				let transferResult = creep.repair(destination);
 
-					switch (transferResult) {
-						case ERR_NOT_IN_RANGE:
-							creep.moveTo(destination.pos);
-							break;
-						case ERR_NOT_ENOUGH_RESOURCES:
-							resourceModule.removeCreepFromRepairRequest(destination);
-							creep.memory.currentAction = null;
-							creep.memory.structureId = null;
-							creepModule.runCreep(creep);
-							break;
-					}
+				switch (transferResult) {
+					case ERR_NOT_IN_RANGE:
+						creep.moveTo(destination.pos);
+						break;
+					case ERR_NOT_ENOUGH_RESOURCES:
+						resourceModule.removeRepairerFromRepairRequest(creep);
+						creepModule.clearCreepMemory(creep);
+						return creepModule.runCreep(creep);
 				}
 			}
 		}, // repairStructure END
@@ -495,27 +563,28 @@ const { CREEP_ACTIONS } = require("../common/constants");
 				creep.memory.structureId = creep.room.controller.id;
 			}
 
-			let destination = Game.getObjectById(creep.memory.structureId);
+			let controller = Game.getObjectById(creep.memory.structureId);
 
 			if (process.env.NODE_ENV === "development") {
-				if (!destination) {
+				if (!controller) {
 					console.log(`Can't find controller! ${creep.memory.structureId}`);
 				}
 			}
 
-			if (destination) {
-				switch (creep.upgradeController(destination)) {
-					case ERR_NOT_IN_RANGE:
-						creep.moveTo(destination.pos);
-						break;
-					case ERR_NOT_ENOUGH_RESOURCES:
-						creep.memory.structureId = null;
-						creep.memory.currentAction = null;
-						creepModule.runCreep(creep);
-						break;
-				}
+			if (!controller || creep.store.getUsedCapacity(RESOURCE_ENERGY) === 0) {
+				creepModule.clearCreepMemory(creep);
+				return creepModule.runCreep(creep);
 			}
-		},
+
+			switch (creep.upgradeController(controller)) {
+				case ERR_NOT_IN_RANGE:
+					creep.moveTo(controller.pos);
+					break;
+				case ERR_NOT_ENOUGH_RESOURCES:
+					creepModule.clearCreepMemory(creep);
+					return creepModule.runCreep(creep);
+			}
+		}, // upgradeController END
 
 		mineSource: (creep) => {
 			const source = Game.getObjectById(creep.memory.sourceId);
@@ -559,7 +628,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 					}
 					break;
 			}
-		},
+		}, // mineSource END
 
 		findRequest: (creep) => {
 			const { resourceModule } = global.App;
@@ -570,6 +639,15 @@ const { CREEP_ACTIONS } = require("../common/constants");
 		},
 
 		/* CREEP ACTIONS END */
+
+		clearCreepMemory: (creep) => {
+			delete creep.memory.currentAction;
+			delete creep.memory.harvestObjectId;
+			delete creep.memory.pickupPosition;
+			delete creep.memory.structureId;
+			delete creep.memory.destinationId;
+			delete creep.memory.resourceType;
+		},
 	};
 
 	global.App.creepModule = creepModule;

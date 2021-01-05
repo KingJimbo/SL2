@@ -34,7 +34,7 @@ const constants = {
 		scout: "scout",
 	},
 
-	ESSENTIAL_CREEP_ROLES: ["harvester", "miner"],
+	ESSENTIAL_CREEP_TYPES: ["utility", "miner"],
 
 	CREEP_BODIES: {
 		utility: {
@@ -190,13 +190,17 @@ const constants = {
 		CREEP: "creep",
 	},
 	CREEP_ACTIONS: {
-		GO_TO_DESTINATION: "goToDestination",
-		HARVEST: "harvest",
-		TRANSFER_RESOURCE: "transferResource",
-		REPAIR_STRUCTURE: "repairStructure",
-		UPGRADE_CONTROLLER: "upgradeController",
+		BUILD: "build",
 		FIND_REQUEST: "findRequest",
-		MINE_SOURCE: "mineSource",
+		GO_TO: "goTo",
+		HARVEST: "harvest",
+		IDLE: "idle",
+		MINE: "mine",
+		PICKUP: "pickup",
+		REPAIR: "repair",
+		TRANSFER: "transfer",
+		UPGRADE: "upgrade",
+		WITHDRAW: "withdraw",
 	},
 
 	CONDITION_OPERATORS: {

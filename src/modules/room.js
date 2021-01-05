@@ -17,7 +17,7 @@
 			}
 
 			if (room.controller.my) {
-				let { roomSurveyModule, spawnModule } = global.App;
+				let { roomSurveyModule, resourceModule } = global.App;
 
 				roomSurveyModule.surveyRoomForStructures(room);
 

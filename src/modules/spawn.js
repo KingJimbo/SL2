@@ -123,7 +123,7 @@ const { CREEP_ROLES, CREEP_TYPES } = require("../common/constants");
 		},
 
 		runSpawn: (spawn) => {
-			if (!room.memory.creepsToSpawn && room.memory.creepsToSpawn.length === 0) {
+			if (!spawn.room.memory.creepsToSpawn && spawn.room.memory.creepsToSpawn.length === 0) {
 				return;
 			}
 
@@ -144,7 +144,7 @@ const { CREEP_ROLES, CREEP_TYPES } = require("../common/constants");
 
 			let essentialWorkerCreeps = room.find(FIND_MY_CREEPS, {
 				filter: (creep) => {
-					return ESSENTIAL_CREEP_ROLES.includes(creep.memory.role);
+					return ESSENTIAL_CREEP_TYPES.includes(creep.memory.type);
 				},
 			});
 
@@ -162,7 +162,7 @@ const { CREEP_ROLES, CREEP_TYPES } = require("../common/constants");
 
 			if (creepBodyResponse && creepBodyResponse.cost <= spawn.room.energyAvailable) {
 				var spawnCreepResult = spawn.spawnCreep(creepBodyResponse.creepBody, memoryModule.getNextCreepName(), {
-					memory: { type: creepToSpawn.type, role: creepToSpawn.role },
+					memory: { type: creepToSpawn.type },
 				});
 
 				if (process.env.NODE_ENV === "development") {

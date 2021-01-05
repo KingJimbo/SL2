@@ -96,6 +96,8 @@ let structureModule = {
 	},
 
 	runController: (controller) => {
+		const { resourceModule } = global.App;
+
 		if (controller.progress < controller.progressTotal) {
 			resourceModule.addUpgradeControllerRequest(controller);
 		}
@@ -105,7 +107,7 @@ let structureModule = {
 		// do nothing for now
 		const { resourceModule } = global.App;
 
-		const freeCapacity = extension.store.getFreeCapacity(RESOURCE_ENERGY);
+		const freeCapacity = spawn.store.getFreeCapacity(RESOURCE_ENERGY);
 		resourceModule.addTransferRequest(spawn, RESOURCE_ENERGY, freeCapacity);
 	},
 };

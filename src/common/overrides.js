@@ -22,6 +22,16 @@
 		};
 	}
 
+	if (!Creep.prototype.getCarriedResourceTypes) {
+		Creep.prototype.getCarriedResourceTypes = function () {
+			if (this.store.getUsedCapacity() === 0) {
+				return null;
+			}
+
+			return Object.keys(this.store);
+		};
+	}
+
 	// if (!StructureTower.prototype._attack) {
 	// 	StructureTower.prototype._attack = StructureTower.prototype.attack;
 
