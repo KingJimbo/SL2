@@ -41,48 +41,6 @@ const { CREEP_ROLES, CREEP_TYPES } = require("../common/constants");
 				return creepsToSpawn;
 			}
 
-			const transferRequests = resourceModule.getAllTransferRequests(room);
-
-			if (transferRequests) {
-				transferRequests.forEach((structureId) => {
-					// get harvest creepToSpawn using harvestId & add to array
-					const creepToSpawn = spawnModule.getTransferCreepToSpawn(room);
-					creepsToSpawn.push(creepToSpawn);
-				});
-			}
-
-			if (creepsToSpawn.length > 3) {
-				return creepsToSpawn;
-			}
-
-			const repairRequests = resourceModule.getAllRepairRequests(room);
-
-			if (repairRequests) {
-				repairRequests.forEach((structureId) => {
-					// get harvest creepToSpawn using harvestId & add to array
-					const creepToSpawn = spawnModule.getTransferCreepToSpawn(room);
-					creepsToSpawn.push(creepToSpawn);
-				});
-			}
-
-			if (creepsToSpawn.length > 3) {
-				return creepsToSpawn;
-			}
-
-			const buildRequests = resourceModule.getAllBuildRequests(room);
-
-			if (buildRequests) {
-				buildRequests.forEach((siteId) => {
-					// get harvest creepToSpawn using harvestId & add to array
-					const creepToSpawn = spawnModule.getTransferCreepToSpawn(room);
-					creepsToSpawn.push(creepToSpawn);
-				});
-			}
-
-			if (creepsToSpawn.length > 3) {
-				return creepsToSpawn;
-			}
-
 			const pickupRequests = resourceModule.getAllPickupRequests(room);
 
 			if (pickupRequests) {
@@ -107,16 +65,60 @@ const { CREEP_ROLES, CREEP_TYPES } = require("../common/constants");
 				});
 			}
 
-			if (creepsToSpawn.length > 3) {
-				return creepsToSpawn;
-			}
+			if (room.controller.level > 3) {
+				if (creepsToSpawn.length > 3) {
+					return creepsToSpawn;
+				}
 
-			const upgradeControllerRequest = resourceModule.getUpgradeControllerRequest(room);
+				const transferRequests = resourceModule.getAllTransferRequests(room);
 
-			if (upgradeControllerRequest) {
-				// get upgrade controller creepToSpawn
-				const creepToSpawn = spawnModule.getTransferCreepToSpawn(room);
-				creepsToSpawn.push(creepToSpawn);
+				if (transferRequests) {
+					transferRequests.forEach((structureId) => {
+						// get harvest creepToSpawn using harvestId & add to array
+						const creepToSpawn = spawnModule.getTransferCreepToSpawn(room);
+						creepsToSpawn.push(creepToSpawn);
+					});
+				}
+
+				if (creepsToSpawn.length > 3) {
+					return creepsToSpawn;
+				}
+
+				const repairRequests = resourceModule.getAllRepairRequests(room);
+
+				if (repairRequests) {
+					repairRequests.forEach((structureId) => {
+						// get harvest creepToSpawn using harvestId & add to array
+						const creepToSpawn = spawnModule.getTransferCreepToSpawn(room);
+						creepsToSpawn.push(creepToSpawn);
+					});
+				}
+
+				if (creepsToSpawn.length > 3) {
+					return creepsToSpawn;
+				}
+
+				const buildRequests = resourceModule.getAllBuildRequests(room);
+
+				if (buildRequests) {
+					buildRequests.forEach((siteId) => {
+						// get harvest creepToSpawn using harvestId & add to array
+						const creepToSpawn = spawnModule.getTransferCreepToSpawn(room);
+						creepsToSpawn.push(creepToSpawn);
+					});
+				}
+
+				if (creepsToSpawn.length > 3) {
+					return creepsToSpawn;
+				}
+
+				const upgradeControllerRequest = resourceModule.getUpgradeControllerRequest(room);
+
+				if (upgradeControllerRequest) {
+					// get upgrade controller creepToSpawn
+					const creepToSpawn = spawnModule.getTransferCreepToSpawn(room);
+					creepsToSpawn.push(creepToSpawn);
+				}
 			}
 
 			return creepsToSpawn;
@@ -141,6 +143,10 @@ const { CREEP_ROLES, CREEP_TYPES } = require("../common/constants");
 			let energyCapacity = spawn.room.energyCapacityAvailable,
 				room = spawn.room,
 				creepToSpawn = room.memory.creepsToSpawn.shift();
+
+			if (!creepToSpawn) {
+				return;
+			}
 
 			let essentialWorkerCreeps = room.find(FIND_MY_CREEPS, {
 				filter: (creep) => {

@@ -58,21 +58,21 @@ let structureModule = {
 				let towerMemory = resourceModule.getStructureMemory(tower),
 					structure = null;
 
-				if (towerMemory.repairStructureId) {
-					structure = Game.getObjectById(towerMemory.repairStructureId);
+				if (towerMemory.structureId) {
+					structure = Game.getObjectById(towerMemory.structureId);
 
 					if (structure && structure.hitsMax !== structure.hits) {
 						actionResult = tower.repair(structure);
 					} else {
-						towerMemory.repairStructureId = null;
+						towerMemory.structureId = null;
 					}
 				}
 
-				if (!towerMemory.repairStructureId) {
+				if (!towerMemory.structureId) {
 					structure = resourceModule.assignRepairerToNextRequest(tower);
 
 					if (structure) {
-						towerMemory.repairStructureId = structure.id;
+						towerMemory.structureId = structure.id;
 						actionResult = tower.repair(structure);
 					}
 				}

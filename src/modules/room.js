@@ -24,22 +24,9 @@
 				// delete requests and start fresh every time
 				//delete room.memory.resourceRequests;
 
-				room.memory.requests = {
-					build: {},
-					claimController: {},
-					dismantle: {},
-					drop: {},
-					harvest: {},
-					pickup: {},
-					repair: {},
-					reserveController: {},
-					signController: {},
-					transfer: {},
-					upgradeController: {},
-					withdraw: {},
-				};
-
 				resourceModule.cleanUpRequestMemory(room);
+
+				roomModule.checkResourceObjects(room);
 
 				//roomModule.createRoomCreepRoles(room);
 
@@ -865,7 +852,7 @@
 					});
 				}
 			}
-		},
+		}, // addCommonRoads END
 
 		getSourceMemory: (sourceId) => {
 			const source = Game.getObjectById(sourceId);
@@ -877,7 +864,7 @@
 
 				return source.room.memory.sources[source.id];
 			}
-		},
+		}, // getSourceMemory END
 
 		updateSourceMemory: (source, memory) => {
 			if (!source.room.memory.sources) {
@@ -885,7 +872,41 @@
 			}
 
 			source.room.memory.sources[source.id] = memory;
-		},
+		}, // updateSourceMemory END
+
+		checkResourceObjects: (room) => {
+			const { resourceModule } = global.App;
+
+			const sources = room.find(FIND_SOURCES);
+
+			if (sources) {
+				sources.forEach((source) => {
+					resourceModule.addHarvestRequest(source, source.energy);
+				});
+			}
+
+			if (room.controller.level > 3) {
+				const storages = room.find(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_STORAGE } });
+
+				if (storages && storages.length > 0) {
+					const minerals = room.find(FIND_MINERALS);
+
+					if (minerals) {
+						minerals.forEach((mineral) => {
+							resourceModule.addHarvestRequest(mineral, mineral.mineralAmount);
+						});
+					}
+				}
+			}
+
+			const droppedResources = room.find(FIND_DROPPED_RESOURCES);
+
+			if (droppedResources) {
+				droppedResources.forEach((droppedResource) => {
+					resourceModule.addPickupRequest(droppedResource);
+				});
+			}
+		}, // checkResourceObjects END
 	};
 
 	global.App.roomModule = roomModule;

@@ -187,21 +187,33 @@ const { CREEP_ACTIONS } = require("../common/constants");
 		runUtilityCreep: (creep) => {
 			const { resourceModule } = global.App;
 
-			if (!creep.memory.currentAction) {
+			if (!creep.memory.currentAction || creep.memory.currentAction === CREEP_ACTIONS.IDLE) {
 				if (creep.store.getUsedCapacity() > 0) {
-					for (const resourceType in Object.keys(creep.store)) {
+					const resourceTypes = Object.keys(creep.store);
+
+					for (const i in resourceTypes) {
+						const resourceType = resourceTypes[i];
+
+						// if (process.env.NODE_ENV === "development") {
+						// 	console.log(
+						// 		`resourceType ${resourceType}, RESOURCES[resourceType] ${
+						// 			RESOURCES[resourceType]
+						// 		}, Object.keys(creep.store) ${JSON.stringify(Object.keys(creep.store))}`
+						// 	);
+						// }
+
 						const transferData = resourceModule.assignCreepToNextTransferRequest(creep, resourceType);
 
 						if (transferData) {
 							creep.memory.currentAction = CREEP_ACTIONS.TRANSFER;
 							creep.memory.resourceType = resourceType;
-							creep.memory.structureId = transferData.structure.id;
+							creep.memory.structureId = transferData.id;
 
 							return creepModule.carryOutAction(creep);
 						}
 
 						if (resourceType === RESOURCE_ENERGY) {
-							const repairData = resourceModule.assignCreepToNextRepairRequest(creep);
+							const repairData = resourceModule.assignRepairerToNextRequest(creep);
 
 							if (repairData) {
 								creep.memory.currentAction = CREEP_ACTIONS.REPAIR;
@@ -219,7 +231,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 								return creepModule.carryOutAction(creep);
 							}
 
-							const controllerId = resourceModule.getUpgradeControllerRequest(creep);
+							const controllerId = resourceModule.getUpgradeControllerRequest(creep.room);
 
 							if (controllerId) {
 								creep.memory.currentAction = CREEP_ACTIONS.UPGRADE;
@@ -360,7 +372,8 @@ const { CREEP_ACTIONS } = require("../common/constants");
 		}, // harvest END
 
 		build: (creep) => {
-			const site = Game.getObjectById(creep.memory.structureId);
+			const site = Game.getObjectById(creep.memory.structureId),
+				{ roomModule, resourceModule } = global.App;
 
 			if (process.env.NODE_ENV === "development") {
 				if (!site) {
@@ -378,12 +391,12 @@ const { CREEP_ACTIONS } = require("../common/constants");
 				return creepModule.runCreep(creep);
 			}
 
-			const result = creep.harvest(harvestObject);
+			const result = creep.build(site);
 			switch (result) {
 				case OK:
 					break;
 				case ERR_NOT_IN_RANGE:
-					creep.moveTo(harvestObject.pos);
+					creep.moveTo(site.pos);
 					break;
 				default:
 					if (process.env.NODE_ENV === "development") {
@@ -396,7 +409,8 @@ const { CREEP_ACTIONS } = require("../common/constants");
 		}, // harvest END
 
 		harvest: (creep) => {
-			const harvestObject = Game.getObjectById(creep.memory.harvestObjectId);
+			const harvestObject = Game.getObjectById(creep.memory.harvestObjectId),
+				{ resourceModule, roomModule } = global.App;
 
 			if (creep.store.getFreeCapacity(creep.memory.resourceType) === 0 || roomModule.positionHasNearbyThreat(harvestObject.pos)) {
 				resourceModule.removeCreepFromHarvestRequest(creep);
@@ -412,7 +426,6 @@ const { CREEP_ACTIONS } = require("../common/constants");
 					creep.moveTo(harvestObject.pos);
 					break;
 				case ERR_NOT_ENOUGH_RESOURCES:
-				case ERR_TIRED:
 					resourceModule.removeCreepFromHarvestRequest(creep);
 					creepModule.clearCreepMemory(creep);
 					return creepModule.runCreep(creep);
@@ -485,7 +498,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 
 			if (
 				!structure ||
-				creep.getUsedCapacity(creep.memory.resourceType) === 0 ||
+				creep.store.getUsedCapacity(creep.memory.resourceType) === 0 ||
 				structure.store.getFreeCapacity(creep.memory.resourceType) === 0
 			) {
 				resourceModule.removeCreepFromTransferRequest(creep);
@@ -558,7 +571,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 			}
 		}, // repairStructure END
 
-		upgradeController: (creep) => {
+		upgrade: (creep) => {
 			if (!creep.memory.structureId) {
 				creep.memory.structureId = creep.room.controller.id;
 			}
