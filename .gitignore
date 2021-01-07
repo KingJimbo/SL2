@@ -78,3 +78,4 @@ typings/
 # Custom
 dist/*
 dist/main.js
+webpack.staging.config.js
