@@ -8,7 +8,7 @@ const position = {
 	},
 
 	getPositionFromDirection: (originalPos, direction, distance) => {
-		//console.log(`getPositionFromDirection: ${JSON.stringify(originalPos)}, ${JSON.stringify(direction)}, ${JSON.stringify(distance)}`);
+		//global.logger.log(`getPositionFromDirection: ${JSON.stringify(originalPos)}, ${JSON.stringify(direction)}, ${JSON.stringify(distance)}`);
 
 		if (!originalPos) {
 			return null;
@@ -51,24 +51,24 @@ const position = {
 				y += distance;
 				break;
 			default:
-				//console.log(`return null`);
+				//global.logger.log(`return null`);
 				return null;
 		}
 
 		if (position.isPosNearEdge(x, y)) {
-			//console.log(`near edge`);
+			//global.logger.log(`near edge`);
 			return null;
 		}
 
 		let returnedPosition = { x, y, direction };
-		//console.log(`returnedPosition: ${JSON.stringify(returnedPosition)}`);
+		//global.logger.log(`returnedPosition: ${JSON.stringify(returnedPosition)}`);
 
 		return returnedPosition;
 	}, // getPositionFromDirection END
 
 	getAccessiblePositions: (pos) => {
 		if (!pos) {
-			console.log("getAccessiblePositions invalid parameter");
+			global.logger.log("getAccessiblePositions invalid parameter");
 		}
 
 		var room = Game.rooms[pos.roomName];

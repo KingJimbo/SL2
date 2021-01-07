@@ -2,12 +2,12 @@
 	let creepRequisitionModule = {
 		getIdleCreep: (room, type, memory) => {
 			if (!room || !type) {
-				console.log("getIdleCreep: invalid parameters!");
+				global.logger.log("getIdleCreep: invalid parameters!");
 				return false;
 			}
 
 			if (process.env.NODE_ENV === "development") {
-				console.log(`get idle creep of type ${type}`);
+				global.logger.log(`get idle creep of type ${type}`);
 			}
 
 			let idleRoom = null;
@@ -29,7 +29,7 @@
 
 			if (!idleCreeps) {
 				if (process.env.NODE_ENV === "development") {
-					console.log(
+					global.logger.log(
 						`can not find idleCreeps type in room memory. type ${type} roomMemory: ${JSON.stringify(idleRoom.memory.idleCreeps)}`
 					);
 				}
@@ -45,7 +45,7 @@
 
 				let creep = Game.creeps[idleCreep];
 				if (creep) {
-					//console.log(`idle creep found. creep: ${creep.name} type:${type}`);
+					//global.logger.log(`idle creep found. creep: ${creep.name} type:${type}`);
 
 					if (memory) {
 						creep.memory = memory;
@@ -64,7 +64,7 @@
 			}
 			idleRoom.memory.idleCreeps[type] = idleCreeps;
 
-			//console.log(`no idle creep found in idleCreep Queue of type: ${type}`);
+			//global.logger.log(`no idle creep found in idleCreep Queue of type: ${type}`);
 
 			return false;
 		},
@@ -74,7 +74,7 @@
 			}
 
 			if (!room || !creep) {
-				console.log("addCreepToIdlePool: invalid parameters!");
+				global.logger.log("addCreepToIdlePool: invalid parameters!");
 				return;
 			}
 
@@ -83,7 +83,7 @@
 			}
 
 			if (!creep.memory.type) {
-				console.log("addCreepToIdlePool: unknown creep type");
+				global.logger.log("addCreepToIdlePool: unknown creep type");
 				creep.memory.type = CREEP_TYPES.UTILITY;
 			}
 
@@ -94,13 +94,13 @@
 			}
 
 			if (!room.memory.idleCreeps[creep.memory.type].includes(creep.name)) {
-				//console.log('adding creep to idle pool');
+				//global.logger.log('adding creep to idle pool');
 				room.memory.idleCreeps[creep.memory.type].push(creep.name);
 				Memory.idleCreeps[creep.name] = creep.name;
 				creep.memory.role = "idle";
 			} else {
 				Memory.idleCreeps[creep.name] = creep.name;
-				//console.log('creep already in idle pool');
+				//global.logger.log('creep already in idle pool');
 			}
 		},
 		isCreepIdle: (creep) => {
@@ -111,19 +111,19 @@
 		},
 		addCreepToSpawn: (roomName, type, memory) => {
 			if (!roomName || !type || !memory) {
-				console.log("addCreepToRoomSpawnQueue: Invalid parameters!");
+				global.logger.log("addCreepToRoomSpawnQueue: Invalid parameters!");
 			}
 
 			let room = Game.rooms[roomName];
 
 			if (!room) {
-				console.log(`Could not find room of name ${room}`);
+				global.logger.log(`Could not find room of name ${room}`);
 			}
 
 			// already tried or already creep to spawn
 			if (room.memory.spawnsCheckedTime && room.memory.spawnsCheckedTime === Game.time) {
 				if (process.env.NODE_ENV === "development") {
-					console.log(`checked spawns already time ${Game.time}`);
+					global.logger.log(`checked spawns already time ${Game.time}`);
 				}
 
 				return false;
@@ -134,7 +134,7 @@
 			});
 
 			if (process.env.NODE_ENV === "development") {
-				console.log(`spawns ${JSON.stringify(spawns)}`);
+				global.logger.log(`spawns ${JSON.stringify(spawns)}`);
 			}
 
 			var noSpawnsChecked = 0;
@@ -144,7 +144,7 @@
 
 				if (!spawn.memory.creepToSpawn) {
 					if (process.env.NODE_ENV === "development") {
-						console.log(`adding memory to spawn ${JSON.stringify(memory)}`);
+						global.logger.log(`adding memory to spawn ${JSON.stringify(memory)}`);
 					}
 
 					memory.type = type;
@@ -153,7 +153,7 @@
 				}
 
 				if (process.env.NODE_ENV === "development") {
-					console.log(`checking spawn ${JSON.stringify(spawn)}`);
+					global.logger.log(`checking spawn ${JSON.stringify(spawn)}`);
 				}
 
 				noSpawnsChecked++;

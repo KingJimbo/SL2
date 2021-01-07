@@ -31,24 +31,24 @@
 					roomSurveyModule.roomTerrain = room.getTerrain();
 				}
 
-				//console.log(`terrainData = ${JSON.stringify(this.roomTerrain)}`);
+				//global.logger.log(`terrainData = ${JSON.stringify(this.roomTerrain)}`);
 
 				roomSurveyModule.sources = room.find(FIND_SOURCES);
 
-				//console.log(`sources = ${JSON.stringify(this.sources)}`);
+				//global.logger.log(`sources = ${JSON.stringify(this.sources)}`);
 
 				roomSurveyModule.minerals = room.find(FIND_MINERALS);
 
-				//console.log(`minerals = ${JSON.stringify(this.minerals)}`);
+				//global.logger.log(`minerals = ${JSON.stringify(this.minerals)}`);
 
 				//roomSurveyModule.exits = room.find(FIND_EXIT);
 
-				//console.log(`exits = ${JSON.stringify(this.exits)}`);
+				//global.logger.log(`exits = ${JSON.stringify(this.exits)}`);
 
 				//roomSurveyModule.roomSurveyData.totalExits = roomSurveyModule.exits.length;
 
 				const lookAtArray = room.lookAtArea(0, 0, COORDINATES_MAX_SIZE, COORDINATES_MAX_SIZE, true); // as array
-				//console.log(`lookAtArray = ${JSON.stringify(lookAtArray.length)}`);
+				//global.logger.log(`lookAtArray = ${JSON.stringify(lookAtArray.length)}`);
 
 				for (const i in lookAtArray) {
 					const lookAtItem = lookAtArray[i];
@@ -60,10 +60,10 @@
 					}
 				}
 
-				//console.log("setting structure map");
+				//global.logger.log("setting structure map");
 				roomSurveyModule.generateStructureMap(roomSurveyModule.roomSurveyData);
 
-				console.log(`roomSurveyModule = ${JSON.stringify(roomSurveyModule)}`);
+				global.logger.log(`roomSurveyModule = ${JSON.stringify(roomSurveyModule)}`);
 
 				room.memory.structureMap = roomSurveyModule.roomSurveyData.structureMap;
 				room.memory.structureMapGeneratedTime = Game.time;
@@ -72,7 +72,7 @@
 		}, // surveyRoomForStructures END
 
 		checkPosition: (pos) => {
-			//console.log(`checkPostitionStart pos = ${JSON.stringify(pos)}`);
+			//global.logger.log(`checkPostitionStart pos = ${JSON.stringify(pos)}`);
 			let posSurveyData = {
 				canBuild: true,
 				canTravel: true,
@@ -94,25 +94,25 @@
 		}, // checkPosition END
 
 		checkPositionTerrain: (pos) => {
-			//console.log("checkPositionTerrain");
+			//global.logger.log("checkPositionTerrain");
 			const posTerrain = roomSurveyModule.roomTerrain.get(pos.x, pos.y);
-			//console.log(`posTerrain: ${JSON.stringify(posTerrain)}`);
+			//global.logger.log(`posTerrain: ${JSON.stringify(posTerrain)}`);
 			switch (posTerrain) {
 				case 0: //plain
-					//console.log("checkPositionTerrain Plain");
+					//global.logger.log("checkPositionTerrain Plain");
 					return { canBuild: !isPosNearEdge(pos.x, pos.y), terrain: "Plain" };
 				case TERRAIN_MASK_WALL: //wall
-					//console.log("checkPositionTerrain Wall");
+					//global.logger.log("checkPositionTerrain Wall");
 					return { canBuild: false, canTravel: false, terrain: "Wall" };
 				case TERRAIN_MASK_SWAMP: //swamp
-					//console.log("checkPositionTerrain Swamp");
+					//global.logger.log("checkPositionTerrain Swamp");
 					return { canBuild: !isPosNearEdge(pos.x, pos.y), canTravel: false, terrain: "Swamp" };
 			}
 		}, // checkPositionTerrain END
 
 		getPositionDistanceData: (posToCheck) => {
-			//console.log("getPositionDistanceData");
-			//console.log(`posToCheck: ${JSON.stringify(posToCheck)}`);
+			//global.logger.log("getPositionDistanceData");
+			//global.logger.log(`posToCheck: ${JSON.stringify(posToCheck)}`);
 
 			let positionDistanceData = {
 				distances: {
@@ -131,15 +131,15 @@
 				for (const i in roomSurveyModule.sources) {
 					const source = roomSurveyModule.sources[i];
 					const searchObject = { pos: source.pos, range: 1 };
-					// console.log(`pos: ${JSON.stringify(pos)}`);
-					// console.log(`searchObject: ${JSON.stringify(searchObject)}`);
+					// global.logger.log(`pos: ${JSON.stringify(pos)}`);
+					// global.logger.log(`searchObject: ${JSON.stringify(searchObject)}`);
 					//var ret = PathFinder.search(pos, searchObject);
 					var ret = PathFinder.search(pos, { pos: source.pos, range: 1 });
 					positionDistanceData.distances.sources.push({ id: source.id, cost: ret.cost });
 					positionDistanceData.totalDistance += ret.cost;
 				}
 
-				// //console.log("getPositionDistanceData got sources");
+				// //global.logger.log("getPositionDistanceData got sources");
 
 				roomSurveyModule.minerals.forEach((mineral) => {
 					var ret = PathFinder.search(pos, { pos: mineral.pos, range: 1 });
@@ -169,7 +169,7 @@
 
 			// 	if (positionData.canTravel && positionData.canBuild) {
 			// 		let totalSourceDistancePossible = 0;
-			// 		//console.log(`positionData = ${JSON.stringify(positionData)}`);
+			// 		//global.logger.log(`positionData = ${JSON.stringify(positionData)}`);
 			// 		positionData.distances.sources.forEach((distance) => {
 			// 			// checking globally nearest source distance
 			// 			if (distance.cost < nearestSourceDistance) {
@@ -207,10 +207,10 @@
 			// 			weightControllerDistance = weights.spawn.nearController * controllerDistance,
 			// 			weightDefendability = weights.spawn.defendability * exitPathCount;
 
-			// 		// console.log(`posNearestSourceDistance: ${JSON.stringify(posNearestSourceDistance)}`);
-			// 		// console.log(`totalSourceDistance: ${JSON.stringify(totalSourceDistance)}`);
-			// 		// console.log(`controllerDistance: ${JSON.stringify(controllerDistance)}`);
-			// 		// console.log(`exitPathCount: ${JSON.stringify(exitPathCount)}`);
+			// 		// global.logger.log(`posNearestSourceDistance: ${JSON.stringify(posNearestSourceDistance)}`);
+			// 		// global.logger.log(`totalSourceDistance: ${JSON.stringify(totalSourceDistance)}`);
+			// 		// global.logger.log(`controllerDistance: ${JSON.stringify(controllerDistance)}`);
+			// 		// global.logger.log(`exitPathCount: ${JSON.stringify(exitPathCount)}`);
 
 			// 		let spawnWeight = weightNearestSourceDistance + weightTotalNearestSourceDistance + weightControllerDistance + weightDefendability;
 
@@ -220,7 +220,7 @@
 			// 		positionData.weightDefendability = weightDefendability;
 			// 		positionData.spawnWeight = spawnWeight;
 
-			// 		//console.log(`spawnWeight: ${JSON.stringify(spawnWeight)}`);
+			// 		//global.logger.log(`spawnWeight: ${JSON.stringify(spawnWeight)}`);
 
 			// 		if (spawnWeight < bestSpawnWeight) {
 			// 			bestSpawnWeight = spawnWeight;
@@ -234,7 +234,7 @@
 			var freePositions = getAccessiblePositions(roomSurveyModule.room.controller.pos);
 
 			if (process.env.NODE_ENV === "development") {
-				console.log(`freePositions ${JSON.stringify(freePositions)}`);
+				global.logger.log(`freePositions ${JSON.stringify(freePositions)}`);
 			}
 
 			if (freePositions) {
@@ -244,21 +244,21 @@
 			}
 
 			if (!idealSpawnPosition) {
-				console.log("generateStructureMap: can not find ideal spawn position!");
+				global.logger.log("generateStructureMap: can not find ideal spawn position!");
 				return;
 			}
 
 			if (process.env.NODE_ENV === "development") {
-				console.log(`hit structure map initialisation`);
+				global.logger.log(`hit structure map initialisation`);
 			}
 
 			surveyData.structureMap = {};
 
 			let structureArray = [];
-			//console.log(`STRUCTURE_PRIORITY: ${JSON.stringify(STRUCTURE_PRIORITY)}`);
+			//global.logger.log(`STRUCTURE_PRIORITY: ${JSON.stringify(STRUCTURE_PRIORITY)}`);
 			for (const j in STRUCTURE_PRIORITY) {
-				//console.log(`type: ${JSON.stringify(type)}`);
-				//console.log(`CONTROLLER_STRUCTURES: ${JSON.stringify(CONTROLLER_STRUCTURES)}`);
+				//global.logger.log(`type: ${JSON.stringify(type)}`);
+				//global.logger.log(`CONTROLLER_STRUCTURES: ${JSON.stringify(CONTROLLER_STRUCTURES)}`);
 				const type = STRUCTURE_PRIORITY[j];
 				let structureMax = CONTROLLER_STRUCTURES[type][8];
 
@@ -268,7 +268,7 @@
 			}
 
 			roomSurveyModule.structureArray = structureArray;
-			//console.log(`structureArray: ${JSON.stringify(structureArray)}`);
+			//global.logger.log(`structureArray: ${JSON.stringify(structureArray)}`);
 
 			roomSurveyModule.mapContainers();
 			roomSurveyModule.mapStructures(roomSurveyModule.structureArray, idealSpawnPosition);
@@ -301,12 +301,12 @@
 				let centrePosition = centrePositions.shift();
 				const centrePositionId = getPosName(centrePosition.x, centrePosition.y);
 
-				// console.log(`centrePositions: ${JSON.stringify(centrePositions)}`);
-				// console.log(`centrePosition: ${JSON.stringify(centrePosition)}`);
+				// global.logger.log(`centrePositions: ${JSON.stringify(centrePositions)}`);
+				// global.logger.log(`centrePosition: ${JSON.stringify(centrePosition)}`);
 
 				let centrePositionData = roomSurveyModule.roomSurveyData.positionData[centrePositionId];
-				// console.log(`positionData: ${JSON.stringify(this.roomSurveyData.positionData)}`);
-				// console.log(`centrePositionData: ${JSON.stringify(centrePositionData)}`);
+				// global.logger.log(`positionData: ${JSON.stringify(this.roomSurveyData.positionData)}`);
+				// global.logger.log(`centrePositionData: ${JSON.stringify(centrePositionData)}`);
 
 				if (centrePositionData && centrePositionData.canTravel && !centrePositionData.hasStructure) {
 					if (!roomSurveyModule.roomSurveyData.structureMap[STRUCTURE_ROAD]) {
@@ -320,13 +320,13 @@
 
 				const blockPositions = roomSurveyModule.getDefaultBaseTemplatePositionBlock(centrePosition);
 
-				//console.log(`blockPositions: ${JSON.stringify(blockPositions)}`);
+				//global.logger.log(`blockPositions: ${JSON.stringify(blockPositions)}`);
 
 				for (const i in blockPositions) {
 					const blockPosition = blockPositions[i],
 						blockPositionId = getPosName(blockPosition.x, blockPosition.y);
 
-					//console.log(`blockPosition: ${JSON.stringify(blockPosition)}`);
+					//global.logger.log(`blockPosition: ${JSON.stringify(blockPosition)}`);
 
 					let blockPositionData = roomSurveyModule.roomSurveyData.positionData[blockPositionId];
 
@@ -345,14 +345,14 @@
 							// find connecting block centre & add to centrePositions
 							let connectingBlockCentrePosition = getPositionFromDirection(blockPosition, blockPosition.direction, 1);
 
-							//console.log(`connectingBlockCentrePosition: ${JSON.stringify(connectingBlockCentrePosition)}`);
+							//global.logger.log(`connectingBlockCentrePosition: ${JSON.stringify(connectingBlockCentrePosition)}`);
 
 							if (connectingBlockCentrePosition) {
 								connectingBlockCentrePosition.isRoad = true;
 								const connectingBlockCentrePositionId = getPosName(blockPosition.x, blockPosition.y);
-								//console.log(`connectingBlockCentrePositionId: ${JSON.stringify(connectingBlockCentrePositionId)}`);
+								//global.logger.log(`connectingBlockCentrePositionId: ${JSON.stringify(connectingBlockCentrePositionId)}`);
 								if (!positionsChecked[connectingBlockCentrePositionId]) {
-									//console.log(`connectingBlockCentrePosition: ${JSON.stringify(connectingBlockCentrePosition)}`);
+									//global.logger.log(`connectingBlockCentrePosition: ${JSON.stringify(connectingBlockCentrePosition)}`);
 									centrePositions.push(connectingBlockCentrePosition);
 								}
 							}
@@ -454,11 +454,11 @@
 			let count = 0;
 
 			roomSurveyModule.exitPositions.forEach((pos) => {
-				//console.log(`pos: ${JSON.stringify(pos)}`);
+				//global.logger.log(`pos: ${JSON.stringify(pos)}`);
 				let id = getPosName(pos.x, pos.y),
 					positionData = roomSurveyModule.roomSurveyData.positionData[id];
-				//console.log(`id: ${JSON.stringify(id)}`);
-				//console.log(`roomSurveyData.positionData: ${JSON.stringify(this.roomSurveyData.positionData)}`);
+				//global.logger.log(`id: ${JSON.stringify(id)}`);
+				//global.logger.log(`roomSurveyData.positionData: ${JSON.stringify(this.roomSurveyData.positionData)}`);
 
 				if (positionData && positionData.canTravel) {
 					var exitPathPosCount = roomSurveyModule.roomSurveyData.exitPathPosCounts[id];

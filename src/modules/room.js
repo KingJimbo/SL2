@@ -94,10 +94,10 @@
 			if (room.controller.level > 1) {
 				let sites = room.find(FIND_MY_CONSTRUCTION_SITES);
 
-				//console.log(`sites ${JSON.stringify(sites)}`);
+				//global.logger.log(`sites ${JSON.stringify(sites)}`);
 
 				if (!sites || sites.length === 0) {
-					//console.log(`build next site`);
+					//global.logger.log(`build next site`);
 					roomModule.buildNextSite(room);
 
 					sites = room.find(FIND_MY_CONSTRUCTION_SITES);
@@ -116,7 +116,7 @@
 
 					if (progressLeft > 0) {
 						if (process.env.NODE_ENV === "development") {
-							console.log(`adding site request`);
+							global.logger.log(`adding site request`);
 						}
 
 						resourceModule.addBuildRequest(site);
@@ -129,11 +129,11 @@
 			// don't add construction site orders until level 2
 			const structures = room.find(FIND_MY_STRUCTURES);
 
-			//console.log(`sites ${JSON.stringify(sites)}`);
+			//global.logger.log(`sites ${JSON.stringify(sites)}`);
 
 			if (!structures || structures.length === 0) {
 				if (process.env.NODE_ENV === "development") {
-					console.log("No structures found!");
+					global.logger.log("No structures found!");
 				}
 
 				return;
@@ -200,7 +200,7 @@
 					default:
 						// do nothing
 						if (process.env.NODE_ENV === "development") {
-							console.log(`We don't currently do anything with structure type: ${structure.structureType}`);
+							global.logger.log(`We don't currently do anything with structure type: ${structure.structureType}`);
 						}
 						break;
 				}
@@ -220,11 +220,11 @@
 				let structTypeArray = [];
 
 				if (process.env.NODE_ENV === "development") {
-					console.log(`structureType: ${structureType}`);
+					global.logger.log(`structureType: ${structureType}`);
 				}
 
 				if (!room.memory.structureMap[structureType]) {
-					console.log(`No room structureMap contains no structureType of ${structureType}`);
+					global.logger.log(`No room structureMap contains no structureType of ${structureType}`);
 					structureIndex++;
 					continue;
 				}
@@ -232,7 +232,7 @@
 				let availableNoOfStructures = CONTROLLER_STRUCTURES[structureType][room.controller.level],
 					totalCurrentStructures = 0;
 				if (process.env.NODE_ENV === "development") {
-					console.log(`availableNoOfStructures: ${availableNoOfStructures}`);
+					global.logger.log(`availableNoOfStructures: ${availableNoOfStructures}`);
 				}
 
 				const structures = room.find(FIND_MY_STRUCTURES, {
@@ -240,7 +240,7 @@
 				});
 
 				if (process.env.NODE_ENV === "development") {
-					console.log(`structures found ${JSON.stringify(structures)}`);
+					global.logger.log(`structures found ${JSON.stringify(structures)}`);
 				}
 
 				if (structures) {
@@ -269,14 +269,14 @@
 				}
 
 				if (process.env.NODE_ENV === "development") {
-					console.log(`structTypeArray: ${JSON.stringify(structTypeArray)}`);
+					global.logger.log(`structTypeArray: ${JSON.stringify(structTypeArray)}`);
 				}
 
 				while (structTypeArray && structTypeArray.length) {
 					const structurePosition = structTypeArray.shift();
 
 					if (process.env.NODE_ENV === "development") {
-						console.log(`structurePosition: ${JSON.stringify(structurePosition)}`);
+						global.logger.log(`structurePosition: ${JSON.stringify(structurePosition)}`);
 					}
 
 					if (structurePosition) {
@@ -295,7 +295,7 @@
 
 									if (structure.structureType === structureType) {
 										if (process.env.NODE_ENV === "development") {
-											console.log(`structureFound = true object: ${JSON.stringify(object)}`);
+											global.logger.log(`structureFound = true object: ${JSON.stringify(object)}`);
 										}
 										structureFound = true;
 									}
@@ -305,7 +305,7 @@
 							if (!structureFound) {
 								const createSiteResponse = room.createConstructionSite(structurePosition.x, structurePosition.y, structureType);
 								if (process.env.NODE_ENV === "development") {
-									console.log(`createSiteResponse: ${JSON.stringify(createSiteResponse)}`);
+									global.logger.log(`createSiteResponse: ${JSON.stringify(createSiteResponse)}`);
 								}
 
 								switch (createSiteResponse) {
@@ -315,7 +315,7 @@
 									case ERR_FULL:
 										return;
 									default:
-										console.log(`Failed to create construction site response = ${createSiteResponse}`);
+										global.logger.log(`Failed to create construction site response = ${createSiteResponse}`);
 								}
 							}
 						}
@@ -325,462 +325,6 @@
 				structureIndex++;
 			}
 		}, // buildNextSite END
-
-		createRoomCreepRoles: (room) => {
-			if (!room) {
-				throw new Error("Invalid Parameters");
-			}
-
-			if (!room.memory.creepRoles) {
-				room.memory.creepRoles = {};
-			}
-
-			let sources = null;
-
-			for (const creepRole in ROOM_CREEP_ROLE_SPAWN_CONDITIONS) {
-				const creepRoleSpawnConditions = ROOM_CREEP_ROLE_SPAWN_CONDITIONS[creepRole];
-
-				if (!creepRoleSpawnConditions) {
-					throw new Error(`can't find creepRoleSpawnConditions for ${creepRole}`);
-				}
-
-				var isCreepRoleValidToSpawn = null;
-				var noCreepsRequired = 0;
-
-				if (process.env.NODE_ENV === "development") {
-					console.log(`creepRole ${creepRole}`);
-				}
-
-				creepRoleSpawnConditions.forEach((spawnConditions) => {
-					var conditionResults = [];
-
-					if (process.env.NODE_ENV === "development") {
-						console.log(`spawnConditions ${JSON.stringify(spawnConditions)}`);
-					}
-
-					for (var i = 0; i < spawnConditions.conditions.length; i++) {
-						const spawnCondition = spawnConditions.conditions[i];
-						let conditionResult = false;
-						let conditionValueResult = 0;
-
-						switch (spawnCondition.valueType) {
-							case CONDITION_VALUE_TYPES.CONTRTRUCTION_SITE:
-								const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
-
-								if (sites) {
-									conditionValueResult = sites.length;
-								}
-
-								break;
-							case CONDITION_VALUE_TYPES.CONTROLLER_LEVEL:
-								conditionValueResult = room.controller.level;
-								break;
-							case CONDITION_VALUE_TYPES.CREEP_ROLE:
-								const creeps = room.find(FIND_MY_CREEPS, {
-									filter: (creep) => {
-										return creep.memory.role === spawnCondition.creepRole;
-									},
-								});
-
-								if (creeps) {
-									conditionValueResult = creeps.length;
-								}
-								break;
-							case CONDITION_VALUE_TYPES.ENERGY_TRANSPORT_REQUIRED:
-								// TODO
-								break;
-							case CONDITION_VALUE_TYPES.ROOM_TOTAL_ENERGY_CAPACITY:
-								conditionValueResult = room.energyCapacityAvailable;
-								break;
-							case CONDITION_VALUE_TYPES.SOURCE:
-								sources = room.find(FIND_SOURCES);
-
-								if (sources) {
-									sources.forEach((source) => {
-										if (!roomModule.positionHasNearbyThreat(source.pos)) {
-											conditionValueResult++;
-										}
-									});
-								}
-								break;
-							case CONDITION_VALUE_TYPES.SOURCE_ACCESS:
-								sources = room.find(FIND_SOURCES);
-
-								if (sources) {
-									//console.log(`sources ${JSON.stringify(sources)}`);
-									sources.forEach((source) => {
-										if (!roomModule.positionHasNearbyThreat(source.pos)) {
-											const freePos = getAccessiblePositions(source.pos);
-											if (freePos) {
-												if (!room.memory.sources) {
-													room.memory.sources = {};
-												}
-
-												if (!room.memory.sources[source.id]) {
-													room.memory.sources[source.id] = {
-														noRequiredCreeps: freePos.length,
-														currentCreeps: null,
-													};
-												}
-
-												conditionValueResult += freePos.length;
-											}
-										}
-									});
-								}
-								break;
-							case CONDITION_VALUE_TYPES.STRUCTURE_TYPE:
-								var structures = room.find(FIND_MY_STRUCTURES);
-
-								if (structures) {
-									conditionValueResult = structures.length;
-								}
-								break;
-							default:
-								throw new Error(`Value type not supported ${spawnCondition.valueType}`);
-						}
-
-						switch (spawnCondition.condition) {
-							case CONDITIONS.EQUALS:
-								if (conditionValueResult === spawnCondition.value) {
-									conditionResult = true;
-								}
-								break;
-							case CONDITIONS.LESS_THAN:
-								if (conditionValueResult < spawnCondition.value) {
-									conditionResult = true;
-								}
-								break;
-							case CONDITIONS.GREATER_THAN:
-								if (conditionValueResult > spawnCondition.value) {
-									conditionResult = true;
-								}
-								break;
-							case CONDITIONS.LESS_THAN_OR_EQUAL:
-								if (conditionValueResult <= spawnCondition.value) {
-									conditionResult = true;
-								}
-								break;
-							case CONDITIONS.GREATER_THAN_OR_EQUAL:
-								if (conditionValueResult >= spawnCondition.value) {
-									conditionResult = true;
-								}
-								break;
-							default:
-								throw new Error(`Condition type not supported ${spawnCondition.condition}`);
-						}
-
-						conditionResults.push(conditionResult);
-					}
-
-					switch (spawnConditions.operator) {
-						case CONDITION_OPERATORS.AND:
-							conditionResults.forEach((condition) => {
-								if (condition === false) {
-									isCreepRoleValidToSpawn = false;
-								}
-							});
-
-							if (isCreepRoleValidToSpawn === null) {
-								isCreepRoleValidToSpawn = true;
-							}
-							break;
-						case CONDITION_OPERATORS.OR:
-							conditionResults.forEach((condition) => {
-								if (condition === true) {
-									isCreepRoleValidToSpawn = true;
-								}
-							});
-
-							if (isCreepRoleValidToSpawn === null) {
-								isCreepRoleValidToSpawn = false;
-							}
-							break;
-						default:
-							throw new Error(`Operator not supported ${spawnConditions.operator}`);
-					}
-
-					if (process.env.NODE_ENV === "development") {
-						console.log(`conditionResults ${JSON.stringify(conditionResults)} `);
-					}
-				});
-
-				if (!isCreepRoleValidToSpawn) {
-					delete room.memory.creepRoles[creepRole];
-				}
-
-				if (isCreepRoleValidToSpawn) {
-					const numberCondition = ROOM_CREEP_NUMBER_CONDITIONS[creepRole];
-
-					if (!numberCondition) {
-						console.log(`No creep no. defined for ${creepRole}.`);
-						break;
-					}
-
-					var noCreepsRequired = 0;
-
-					if (process.env.NODE_ENV === "development") {
-						console.log(`numberCondition ${JSON.stringify(numberCondition)}.`);
-					}
-
-					switch (numberCondition.valueType) {
-						case CONDITION_VALUE_TYPES.CONTRTRUCTION_SITE:
-							const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
-
-							if (sites) {
-								noCreepsRequired = sites.length;
-							}
-
-							break;
-						case CONDITION_VALUE_TYPES.CONTROLLER_LEVEL:
-							conditionValueResult = room.controller.level;
-							break;
-						case CONDITION_VALUE_TYPES.CREEP_ROLE:
-							const creeps = room.find(FIND_MY_CREEPS, {
-								filter: (creep) => {
-									return creep.memory.role === spawnCondition.creepRole;
-								},
-							});
-
-							if (creeps) {
-								noCreepsRequired = creeps.length;
-							}
-							break;
-						case CONDITION_VALUE_TYPES.ENERGY_TRANSPORT_REQUIRED:
-							// TODO
-							break;
-						case CONDITION_VALUE_TYPES.ROOM_TOTAL_ENERGY_CAPACITY:
-							noCreepsRequired = room.energyCapacityAvailable;
-							break;
-						case CONDITION_VALUE_TYPES.SOURCE:
-							if (!sources) {
-								sources = room.find(FIND_SOURCES);
-							}
-
-							if (sources) {
-								sources.forEach((source) => {
-									if (!roomModule.positionHasNearbyThreat(source.pos)) {
-										noCreepsRequired++;
-									}
-								});
-							}
-							break;
-						case CONDITION_VALUE_TYPES.SOURCE_WITH_CONTAINER:
-							if (!sources) {
-								sources = room.find(FIND_SOURCES);
-							}
-
-							if (process.env.NODE_ENV === "development") {
-								console.log(`sources ${JSON.stringify(sources)}`);
-							}
-
-							if (sources) {
-								sources.forEach((source) => {
-									if (!roomModule.positionHasNearbyThreat(source.pos)) {
-										const containers = room.find(FIND_STRUCTURES, {
-											filter: { structureType: STRUCTURE_CONTAINER },
-										});
-
-										if (process.env.NODE_ENV === "development") {
-											console.log(`containers ${JSON.stringify(containers)}`);
-										}
-
-										if (containers) {
-											for (const i in containers) {
-												const container = containers[i];
-
-												if (container.pos.isNearTo(source)) {
-													if (process.env.NODE_ENV === "development") {
-														console.log(`containers hits is near to`);
-													}
-													noCreepsRequired++;
-													break;
-												}
-											}
-										}
-									}
-								});
-							}
-							break;
-						case CONDITION_VALUE_TYPES.SOURCE_ACCESS:
-							if (!sources) {
-								sources = room.find(FIND_SOURCES);
-							}
-
-							if (sources) {
-								if (process.env.NODE_ENV === "development") {
-									console.log(`sources ${JSON.stringify(sources)}`);
-								}
-
-								sources.forEach((source) => {
-									if (!roomModule.positionHasNearbyThreat(source.pos)) {
-										const freePos = getAccessiblePositions(source.pos);
-										if (freePos) {
-											noCreepsRequired += freePos.length;
-										}
-									}
-								});
-							}
-							break;
-						case CONDITION_VALUE_TYPES.STRUCTURE_TYPE:
-							var structures = room.find(FIND_MY_STRUCTURES);
-
-							if (structures) {
-								conditionValueResult = structures.length;
-							}
-							break;
-						default:
-							throw new Error(`Value type not supported ${numberCondition["valueType"]}`);
-					}
-
-					room.memory.creepRoles[creepRole] = {
-						noCreepsRequired: noCreepsRequired,
-					};
-				}
-			}
-		}, // createRoomCreepRoles END
-
-		checkCreeps: (room) => {
-			if (!room) {
-				throw new Error("Invalid Parameters");
-			}
-
-			if (!room.memory.creepRoles) {
-				throw new Error("No creep roles detected");
-			}
-
-			for (const creepRoleName in room.memory.creepRoles) {
-				const creepRole = room.memory.creepRoles[creepRoleName];
-
-				if (creepRole && creepRole.noCreepsRequired) {
-					// find creeps belonging to this role TODO make more efficient
-					const creeps = room.find(FIND_MY_CREEPS, {
-						filter: (creep) => {
-							return creep.memory.role && creep.memory.role === creepRoleName;
-						},
-					});
-
-					if (process.env.NODE_ENV === "development") {
-						console.log(`creepRole ${JSON.stringify(creepRole)}, creeps ${JSON.stringify(creeps)}`);
-					}
-
-					if (creeps && creeps.length < creepRole.noCreepsRequired) {
-						if (process.env.NODE_ENV === "development") {
-							console.log(`if (creeps && creeps.length < creepRole.noCreepsRequired) SUCCESS`);
-						}
-
-						for (var i = 0; i < creepRole.noCreepsRequired - creeps.length; i++) {
-							let noIdleCreeps = false;
-							let creep = null;
-							if (!noIdleCreeps) {
-								if (process.env.NODE_ENV === "development") {
-									console.log(`get idle creep`);
-								}
-								creep = creepRequisitionModule.getIdleCreep(room.name, CREEP_ROLES_TYPES[creepRoleName]);
-							}
-
-							if (creep) {
-								if (process.env.NODE_ENV === "development") {
-									console.log(`creep found ${JSON.stringify(creep)}`);
-								}
-
-								creep.memory.room = room.name;
-								creep.memory.role = creepRoleName;
-
-								if (process.env.NODE_ENV === "development") {
-									console.log(`creep memory ${JSON.stringify(creep.memory)}`);
-								}
-							} else {
-								noIdleCreeps = true;
-								if (process.env.NODE_ENV === "development") {
-									console.log(`creep not found`);
-								}
-
-								if (
-									!creepRequisitionModule.addCreepToSpawn(room.name, CREEP_ROLES_TYPES[creepRoleName], {
-										role: creepRoleName,
-										room: room.name,
-									})
-								) {
-									if (process.env.NODE_ENV === "development") {
-										console.log("failed to add creep to spawn");
-									}
-
-									break;
-								}
-							}
-						}
-					}
-				}
-			}
-		}, // checkCreeps END
-
-		findNextFreeSource: (room) => {
-			const sources = room.find(FIND_SOURCES);
-
-			if (sources) {
-				for (const i in sources) {
-					const source = sources[i];
-
-					if (roomModule.positionHasNearbyThreat(source.pos)) {
-						continue;
-					}
-
-					// check room memory for source data
-
-					if (!room.memory.sources) {
-						room.memory.sources = {};
-					}
-
-					var sourceData = room.memory.sources[source.id];
-
-					if (!sourceData) {
-						console.log(`No source Data found for ${source.id}`);
-						return source;
-					}
-
-					if (!sourceData.noRequiredCreeps) {
-						const freePos = getAccessiblePositions(source.pos);
-
-						sourceData.noRequiredCreeps = freePos.length;
-
-						room.memory.sources[source.id] = sourceData;
-
-						console.log(`No required no creeps detected for ${JSON.stringify(sourceData)}`);
-
-						return source;
-					}
-
-					let creepNames = Object.keys(sourceData.currentCreeps);
-
-					console.log(`creepNames ${JSON.stringify(creepNames)}`);
-
-					if (!creepNames) {
-						console.log(`No creep names detected for ${JSON.stringify(sourceData)}`);
-						return source;
-					}
-
-					creepNames.forEach((creepName) => {
-						let creep = Game.creeps[creepName];
-
-						if (!creep) {
-							console.log(`Deleting creep name ${JSON.stringify(creepName)}`);
-							delete room.memory.sources[source.id].currentCreeps[creepName];
-						}
-					});
-
-					creepNames = Object.keys(sourceData.currentCreeps);
-
-					console.log(`creepNames ${JSON.stringify(creepNames)}`);
-
-					if (creepNames.length < sourceData.noRequiredCreeps) {
-						return source;
-					}
-				}
-			}
-
-			return null;
-		}, // findNextFreeSource END
 
 		positionHasNearbyThreat: (pos) => {
 			if (!pos || !pos.x || !pos.y || !pos.roomName) {
@@ -804,7 +348,7 @@
 				const threatPosition = new RoomPosition(threatPos.x, threatPos.y, threatPos.roomName);
 				const pathFinderResponse = PathFinder.search(threatPosition, { pos: roomPosition, range: 1 });
 
-				//console.log(`pathFinderResponse ${JSON.stringify(pathFinderResponse)}`);
+				//global.logger.log(`pathFinderResponse ${JSON.stringify(pathFinderResponse)}`);
 
 				if (pathFinderResponse && !pathFinderResponse.inComplete && pathFinderResponse.path.length < HOSTILE_CREEP_PROXIMITY_DISTANCE) {
 					return true;

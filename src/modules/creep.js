@@ -22,7 +22,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 			}
 
 			if (process.env.NODE_ENV === "development") {
-				console.log(`run creep ${creep.name}`);
+				global.logger.log(`run creep ${creep.name}`);
 			}
 
 			if (!creep.memory.type || creep.memory.type === "unknown") {
@@ -46,9 +46,9 @@ const { CREEP_ACTIONS } = require("../common/constants");
 		}, // removeCreepRole END
 
 		getCreepBody: (creepType, availableEnergy) => {
-			//console.log('Start App.getCreepBody');
+			//global.logger.log('Start App.getCreepBody');
 			const creepTemplate = CREEP_BODIES[creepType];
-			//console.log(`creep template: ${JSON.stringify(creepTemplate)}`);
+			//global.logger.log(`creep template: ${JSON.stringify(creepTemplate)}`);
 
 			let currentCost = 0,
 				creepBodyResponse = {
@@ -74,7 +74,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 				// use spawn max energy to calculate max creep body possible
 				const creepTemplateItem = creepTemplate[bodyPart];
 
-				//console.log(`creepTemplateItem: ${JSON.stringify(creepTemplateItem)}`);
+				//global.logger.log(`creepTemplateItem: ${JSON.stringify(creepTemplateItem)}`);
 
 				if (creepTemplateItem.value > 0) {
 					let bodyCost = BODYPART_COST[bodyPart];
@@ -82,8 +82,8 @@ const { CREEP_ACTIONS } = require("../common/constants");
 					//bodyToSpend = availableEnergy * creepTemplateItem.value,
 					// Round down to nearest whole no. as you don't get half a body part.
 					//bodyNo = Math.floor(bodyToSpend / bodyCost);
-					//console.log(`availableEnergy: ${availableEnergy}`);
-					//console.log(`bodyPart: ${bodyPart} | bodyCost: ${bodyCost} | bodyToSpend: ${bodyToSpend} | bodyNo:${bodyNo}`);
+					//global.logger.log(`availableEnergy: ${availableEnergy}`);
+					//global.logger.log(`bodyPart: ${bodyPart} | bodyCost: ${bodyCost} | bodyToSpend: ${bodyToSpend} | bodyNo:${bodyNo}`);
 					// if (bodyNo === 0) {
 					// 	// no enough to add body part so return invalid target error
 					// 	return ERR_INVALID_TARGET;
@@ -107,7 +107,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 			let ratio = Math.floor(availableEnergy / ratioCost);
 
 			if (ratio === 0) {
-				console.log("not enough energy capacity to generate creep template");
+				global.logger.log("not enough energy capacity to generate creep template");
 				return;
 			}
 
@@ -177,7 +177,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 			}
 
 			if (!creepRequisitionModule.isCreepIdle(creep)) {
-				//console.log("No creep name found idle creep memory adding to idle pool");
+				//global.logger.log("No creep name found idle creep memory adding to idle pool");
 				creepRequisitionModule.addCreepToIdlePool(creep.room, creep);
 			}
 
@@ -194,8 +194,8 @@ const { CREEP_ACTIONS } = require("../common/constants");
 					for (const i in resourceTypes) {
 						const resourceType = resourceTypes[i];
 
-						// if (process.env.NODE_ENV === "development") {
-						// 	console.log(
+						// if (process.env.NODE_ENV === "development" ) {
+						// 	global.logger.log(
 						// 		`resourceType ${resourceType}, RESOURCES[resourceType] ${
 						// 			RESOURCES[resourceType]
 						// 		}, Object.keys(creep.store) ${JSON.stringify(Object.keys(creep.store))}`
@@ -284,8 +284,8 @@ const { CREEP_ACTIONS } = require("../common/constants");
 			const { creepRequisitionModule, roomModule } = global.App;
 
 			if (!creep.memory.sourceId) {
-				// if (process.env.NODE_ENV === "development") {
-				// 	console.log(`finding source ${creep.memory.sourceId}`);
+				// if (process.env.NODE_ENV === "development" ) {
+				// 	global.logger.log(`finding source ${creep.memory.sourceId}`);
 				// }
 
 				const sources = creep.room.find(FIND_SOURCES);
@@ -300,7 +300,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 							}
 
 							if (process.env.NODE_ENV === "development") {
-								console.log(`Doesn't have threat`);
+								global.logger.log(`Doesn't have threat`);
 							}
 
 							let sourceMemory = roomModule.getSourceMemory(source.id);
@@ -310,7 +310,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 							}
 
 							if (process.env.NODE_ENV === "development") {
-								console.log(`sourceMemory ${JSON.stringify(sourceMemory)}`);
+								global.logger.log(`sourceMemory ${JSON.stringify(sourceMemory)}`);
 							}
 
 							if (sourceMemory.minerName && sourceMemory.minerName !== creep.name) {
@@ -368,7 +368,10 @@ const { CREEP_ACTIONS } = require("../common/constants");
 
 		/* CREEP ACTIONS */
 		idle: (creep) => {
-			return creep.moveTo(0, 0);
+			if (creep.memory.spawnRoom) {
+				return creep.moveTo(new RoomPosition(25, 25, creep.memory.spawnRoom));
+			}
+			return creep.moveTo(25, 25);
 		}, // harvest END
 
 		build: (creep) => {
@@ -377,11 +380,12 @@ const { CREEP_ACTIONS } = require("../common/constants");
 
 			if (process.env.NODE_ENV === "development") {
 				if (!site) {
-					console.log(`Can't find a site with id of ${creep.memory.structureId}`);
+					global.logger.log(`Can't find a site with id of ${creep.memory.structureId}`);
 				}
 			}
 
 			if (
+				!site ||
 				typeof site.progress === "undefined" ||
 				creep.store.getUsedCapacity(RESOURCE_ENERGY) === 0 ||
 				roomModule.positionHasNearbyThreat(site.pos)
@@ -400,7 +404,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 					break;
 				default:
 					if (process.env.NODE_ENV === "development") {
-						console.log(`Unhandled harvest error ${result}`);
+						global.logger.log(`Unhandled harvest error ${result}`);
 					}
 					break;
 			}
@@ -431,7 +435,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 					return creepModule.runCreep(creep);
 				default:
 					if (process.env.NODE_ENV === "development") {
-						console.log(`Unhandled harvest error ${result}`);
+						global.logger.log(`Unhandled harvest error ${result}`);
 					}
 					break;
 			}
@@ -440,7 +444,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 		}, // harvest END
 
 		pickup: (creep) => {
-			const { resourceModule } = global.App,
+			const { resourceModule, roomModule } = global.App,
 				position = creep.memory.pickupPosition;
 
 			if (!position || creep.store.getFreeCapacity(creep.memory.resourceType) === 0 || roomModule.positionHasNearbyThreat(position)) {
@@ -454,15 +458,15 @@ const { CREEP_ACTIONS } = require("../common/constants");
 					return (
 						resource.resourceType === creep.memory.resourceType &&
 						resource.pos.roomName === position.roomName &&
-						resource.pos.x === position.pos.x &&
-						resource.pos.y === position.pos.y
+						resource.pos.x === position.x &&
+						resource.pos.y === position.y
 					);
 				},
 			});
 
 			if (!resource) {
 				if (process.env.NODE_ENV === "development") {
-					console.log(`Can't find resource at ${JSON.stringify(position)}`);
+					global.logger.log(`Can't find resource at ${JSON.stringify(position)}`);
 				}
 
 				resourceModule.removeCreepFromPickupRequest(creep);
@@ -470,21 +474,23 @@ const { CREEP_ACTIONS } = require("../common/constants");
 				return creepModule.runCreep(creep);
 			}
 
-			const result = creep.pickup(harvestObject);
+			const result = creep.pickup(resource);
+
+			if (process.env.NODE_ENV === "development") {
+				global.logger.log(`pickup result ${result}`);
+			}
 			switch (result) {
 				case OK:
 					break;
 				case ERR_NOT_IN_RANGE:
 					creep.moveTo(harvestObject.pos);
 					break;
+				case ERR_INVALID_TARGET:
 				case ERR_FULL:
 					resourceModule.removeCreepFromPickupRequest(creep);
 					creepModule.clearCreepMemory(creep);
 					return creepModule.runCreep(creep);
 				default:
-					if (process.env.NODE_ENV === "development") {
-						console.log(`Unhandled harvest error ${result}`);
-					}
 					break;
 			}
 
@@ -521,7 +527,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 				transferResult = creep.transfer(structure, creep.memory.resourceType, capacity);
 
 				if (process.env.NODE_ENV === "development") {
-					console.log(`transfer result ${transferResult}`);
+					global.logger.log(`transfer result ${transferResult}`);
 				}
 
 				switch (transferResult) {
@@ -538,7 +544,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 						return creepModule.runCreep(creep);
 					default:
 						if (process.env.NODE_ENV === "development") {
-							console.log(`transfer result ${transferResult}`);
+							global.logger.log(`transfer result ${transferResult}`);
 						}
 						break;
 				}
@@ -580,7 +586,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 
 			if (process.env.NODE_ENV === "development") {
 				if (!controller) {
-					console.log(`Can't find controller! ${creep.memory.structureId}`);
+					global.logger.log(`Can't find controller! ${creep.memory.structureId}`);
 				}
 			}
 
@@ -637,7 +643,7 @@ const { CREEP_ACTIONS } = require("../common/constants");
 					break;
 				default:
 					if (process.env.NODE_ENV === "development") {
-						console.log(`Unhandled harvest error ${result}`);
+						global.logger.log(`Unhandled harvest error ${result}`);
 					}
 					break;
 			}

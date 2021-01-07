@@ -1,11 +1,10 @@
 module.exports.loop = function () {
 	// start loop
 
-	//require("./common/logging");
-
 	if (process.env.NODE_ENV === "development") {
 		require("./common/logging");
-		console.log(`Start loop`);
+
+		global.logger.log(`Start loop`);
 	}
 
 	require("./common/constants");
@@ -24,7 +23,7 @@ module.exports.loop = function () {
 	require("./common/overrides");
 
 	if (process.env.NODE_ENV === "development") {
-		if (console.attachLogger) console.attachLogger(global.App);
+		if (global.logger.attachLogger) global.logger.attachLogger(global.App);
 	}
 
 	try {
@@ -35,7 +34,7 @@ module.exports.loop = function () {
 		// 	let roomStructureMap = roomSurveyModule.surveyRoomForStructures(room);
 		// 	let buildQueue = roomBuildModule.createBuildQueue(room);
 
-		// 	console.log(`buildQueue: ${JSON.stringify(buildQueue)}`);
+		// 	global.logger.log(`buildQueue: ${JSON.stringify(buildQueue)}`);
 		// }
 	} catch (error) {
 		const errorMessage = `An error has occured!
@@ -44,15 +43,20 @@ module.exports.loop = function () {
         error occured on file: ${error.filename} line: ${error.lineNumber} column: ${error.columnNumber}
         stacktrace: ${error.stack}`;
 
-		console.log(errorMessage);
+		if (process.env.NODE_ENV === "development") {
+			global.logger.log(errorMessage);
+		} else {
+			console.log(errorMessage);
+		}
 
 		if (process.env.NODE_ENV === "production") {
 			Game.notify(errorMessage, 180);
 		}
 	}
+	//global.logger.log(`process.env.uselogging ${JSON.stringify(process.env.uselogging)}`);
 
 	if (process.env.NODE_ENV === "development") {
-		console.log("End loop");
-		if (console.reportLog) console.reportLog();
+		global.logger.log("End loop");
+		if (global.logger.reportLog) global.logger.reportLog();
 	}
 };

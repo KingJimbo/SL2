@@ -82,7 +82,7 @@ let structureModule = {
 		switch (actionResult) {
 			default:
 				if (process.env.NODE_ENV === "development") {
-					console.log(`tower action result ${actionResult}`);
+					global.logger.log(`tower action result ${actionResult}`);
 				}
 				break;
 		}
@@ -107,8 +107,10 @@ let structureModule = {
 		// do nothing for now
 		const { resourceModule } = global.App;
 
-		const freeCapacity = spawn.store.getFreeCapacity(RESOURCE_ENERGY);
-		resourceModule.addTransferRequest(spawn, RESOURCE_ENERGY, freeCapacity);
+		if (spawn.room.memory.creepsToSpawn && spawn.room.memory.creepsToSpawn.length > 0) {
+			const freeCapacity = spawn.store.getFreeCapacity(RESOURCE_ENERGY);
+			resourceModule.addTransferRequest(spawn, RESOURCE_ENERGY, freeCapacity);
+		}
 	},
 };
 

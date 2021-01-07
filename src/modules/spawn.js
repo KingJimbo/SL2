@@ -134,8 +134,8 @@ const { CREEP_ROLES, CREEP_TYPES } = require("../common/constants");
 			// if (room.memory.creepsToSpawn && room.memory.creepsToSpawn.length > 0) {
 			// 	const spawnCapacityFree = spawn.store.getFreeCapacity(RESOURCE_ENERGY);
 
-			// 	if (process.env.NODE_ENV === "development") {
-			// 		console.log(`spawnCapacityFree ${JSON.stringify(spawnCapacityFree)}`);
+			// 	if (process.env.NODE_ENV === "development" ) {
+			// 		global.logger.log(`spawnCapacityFree ${JSON.stringify(spawnCapacityFree)}`);
 			// 	}
 			// 	resourceModule.addTransferRequest(spawn, RESOURCE_ENERGY, spawnCapacityFree);
 			// }
@@ -143,6 +143,7 @@ const { CREEP_ROLES, CREEP_TYPES } = require("../common/constants");
 			let energyCapacity = spawn.room.energyCapacityAvailable,
 				room = spawn.room,
 				creepToSpawn = room.memory.creepsToSpawn.shift();
+			const { resourceModule } = global.App;
 
 			if (!creepToSpawn) {
 				return;
@@ -161,36 +162,36 @@ const { CREEP_ROLES, CREEP_TYPES } = require("../common/constants");
 			const creepBodyResponse = spawnModule.getCreepBody(creepToSpawn.type, energyCapacity);
 
 			if (process.env.NODE_ENV === "development") {
-				console.log("creep body type result:");
-				console.log(JSON.stringify(creepBodyResponse));
-				console.log(`spawn.room.energyAvailable ${JSON.stringify(spawn.room.energyAvailable)}`);
+				global.logger.log("creep body type result:");
+				global.logger.log(JSON.stringify(creepBodyResponse));
+				global.logger.log(`spawn.room.energyAvailable ${JSON.stringify(spawn.room.energyAvailable)}`);
 			}
 
 			if (creepBodyResponse && creepBodyResponse.cost <= spawn.room.energyAvailable) {
 				var spawnCreepResult = spawn.spawnCreep(creepBodyResponse.creepBody, memoryModule.getNextCreepName(), {
-					memory: { type: creepToSpawn.type },
+					memory: { type: creepToSpawn.type, spawnRoom: spawn.room.name },
 				});
 
 				if (process.env.NODE_ENV === "development") {
-					console.log(`spawnCreepResult ${JSON.stringify(spawnCreepResult)}`);
+					global.logger.log(`spawnCreepResult ${JSON.stringify(spawnCreepResult)}`);
 				}
 
 				switch (spawnCreepResult) {
 					case OK:
 						break;
 					default:
-						console.log(`failed to spawn spawnCreepResult ${spawnCreepResult}`);
+						global.logger.log(`failed to spawn spawnCreepResult ${spawnCreepResult}`);
 						break;
 				}
 			}
 		},
 
 		getCreepBody: (creepType, availableEnergy) => {
-			//console.log('Start App.getCreepBody');
+			//global.logger.log('Start App.getCreepBody');
 			const creepTemplate = CREEP_BODIES[creepType];
 
 			if (process.env.NODE_ENV === "development") {
-				console.log(`creep template: ${JSON.stringify(creepTemplate)}`);
+				global.logger.log(`creep template: ${JSON.stringify(creepTemplate)}`);
 			}
 
 			let currentCost = 0,
@@ -218,7 +219,7 @@ const { CREEP_ROLES, CREEP_TYPES } = require("../common/constants");
 				const creepTemplateItem = creepTemplate[bodyPart];
 
 				if (process.env.NODE_ENV === "development") {
-					console.log(`creepTemplateItem: ${JSON.stringify(creepTemplateItem)}`);
+					global.logger.log(`creepTemplateItem: ${JSON.stringify(creepTemplateItem)}`);
 				}
 
 				if (creepTemplateItem.value > 0) {
@@ -227,8 +228,8 @@ const { CREEP_ROLES, CREEP_TYPES } = require("../common/constants");
 					//bodyToSpend = availableEnergy * creepTemplateItem.value,
 					// Round down to nearest whole no. as you don't get half a body part.
 					//bodyNo = Math.floor(bodyToSpend / bodyCost);
-					//console.log(`availableEnergy: ${availableEnergy}`);
-					//console.log(`bodyPart: ${bodyPart} | bodyCost: ${bodyCost} | bodyToSpend: ${bodyToSpend} | bodyNo:${bodyNo}`);
+					//global.logger.log(`availableEnergy: ${availableEnergy}`);
+					//global.logger.log(`bodyPart: ${bodyPart} | bodyCost: ${bodyCost} | bodyToSpend: ${bodyToSpend} | bodyNo:${bodyNo}`);
 					// if (bodyNo === 0) {
 					// 	// no enough to add body part so return invalid target error
 					// 	return ERR_INVALID_TARGET;
@@ -252,7 +253,7 @@ const { CREEP_ROLES, CREEP_TYPES } = require("../common/constants");
 			let ratio = Math.floor(availableEnergy / ratioCost);
 
 			if (ratio === 0) {
-				console.log("not enough energy capacity to generate creep template");
+				global.logger.log("not enough energy capacity to generate creep template");
 				return;
 			}
 

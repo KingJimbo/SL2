@@ -4,7 +4,7 @@ let memoryModule = {
 
 		if (!Memory.memoryIntialisedTime) {
 			if (process.env.NODE_ENV === "development") {
-				console.log(`initialiseMemory initiated`);
+				global.logger.log(`initialiseMemory initiated`);
 			}
 
 			Memory.objectIds = {};

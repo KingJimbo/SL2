@@ -4,7 +4,7 @@
 			const { memoryModule, roomModule, creepModule, spawnModule } = global.App;
 
 			if (process.env.NODE_ENV === "development") {
-				console.log("runApp Start");
+				global.logger.log("runApp Start");
 			}
 
 			memoryModule.initialiseMemory();
