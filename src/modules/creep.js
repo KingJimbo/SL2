@@ -288,7 +288,7 @@ const { CREEP_ACTIONS, CREEP_TYPES } = require("../common/constants");
 			const { resourceModule } = global.App;
 			let harvestObject = null;
 
-			if (!creep.memory.currentAction || creep.currentAction === CREEP_ACTIONS.IDLE) {
+			if (!creep.memory.currentAction || creep.memory.currentAction === CREEP_ACTIONS.IDLE) {
 				harvestObject = resourceModule.assignCreepToNextHarvestRequest(creep);
 
 				if (harvestObject) {
@@ -310,6 +310,10 @@ const { CREEP_ACTIONS, CREEP_TYPES } = require("../common/constants");
 
 			if (!harvestObject) {
 				harvestObject = Game.getObjectById(creep.memory.harvestObjectId);
+			}
+
+			if (process.env.NODE_ENV === "development") {
+				global.logger.log(`harvestObject ${JSON.stringify(harvestObject)}`, LOG_GROUPS.CREEP);
 			}
 
 			let containerToGoTo = null;
