@@ -1,3 +1,5 @@
+const { CREEP_TYPES } = require("../common/constants");
+
 (() => {
 	const { getAccessiblePositions, getPosName } = require("../common/position");
 	let resourceModule = {
@@ -19,9 +21,9 @@
 			let siteMemory = site.room.memory.structureMemory[site.structureType][site.id].buildRequest;
 			//let siteMemory = site.room.memory.constructionSites[site.id];
 
-			if (process.env.NODE_ENV === "development") {
-				global.logger.log(`site ${JSON.stringify(site)}, siteMemory ${JSON.stringify(siteMemory)}`);
-			}
+			// if (process.env.NODE_ENV === "development") {
+			// 	global.logger.log(`site ${JSON.stringify(site)}, siteMemory ${JSON.stringify(siteMemory)}`);
+			// }
 
 			let currentProgress = site.progressTotal - site.progress;
 			siteMemory.amount = currentProgress;
@@ -61,6 +63,8 @@
 				resourceModule.addStructureMemory(assignedSite);
 
 				let structureBuildMemory = assignedSite.room.memory.structureMemory[assignedSite.structureType][assignedSite.id].buildRequest;
+
+				structureBuildMemory.pendingCreepNames[creep.name] = creep.name;
 
 				structureBuildMemory = resourceModule.calculateBuildPendingAmount(structureBuildMemory);
 
@@ -103,19 +107,19 @@
 				if (!site.room.memory.requests.build[site.structureType][site.id]) {
 					site.room.memory.requests.build[site.structureType][site.id] = site.id;
 
-					if (process.env.NODE_ENV === "development") {
-						global.logger.log(
-							`Added resource request for structure ${JSON.stringify(site.room.memory.requests.build[site.structureType][site.id])}`
-						);
-					}
+					// if (process.env.NODE_ENV === "development") {
+					// 	global.logger.log(
+					// 		`Added resource request for structure ${JSON.stringify(site.room.memory.requests.build[site.structureType][site.id])}`
+					// 	);
+					// }
 				}
 			} else {
-				if (process.env.NODE_ENV === "development") {
-					global.logger.log(`structure ${JSON.stringify(site.id)}`);
-					global.logger.log(
-						`Deleting resource request for structure ${JSON.stringify(site.room.memory.requests.build[site.structureType][site.id])}`
-					);
-				}
+				// if (process.env.NODE_ENV === "development") {
+				// 	global.logger.log(`structure ${JSON.stringify(site.id)}`);
+				// 	global.logger.log(
+				// 		`Deleting resource request for structure ${JSON.stringify(site.room.memory.requests.build[site.structureType][site.id])}`
+				// 	);
+				// }
 
 				delete site.room.memory.requests.build[site.structureType][site.id];
 			}
@@ -184,13 +188,13 @@
 
 			harvestableObjectMemory.accessiblePositions = getAccessiblePositions(harvestableObject.pos);
 
-			if (process.env.NODE_ENV === "development") {
-				global.logger.log(`sourceMemory ${JSON.stringify(harvestableObjectMemory)}`);
-			}
+			// if (process.env.NODE_ENV === "development") {
+			// 	global.logger.log(`sourceMemory ${JSON.stringify(harvestableObjectMemory)}`);
+			// }
 
 			harvestableObjectMemory.amount = amount;
 
-			harvestableObjectMemory = resourceModule.calculateHarvestPendingAmount(harvestableObjectMemory);
+			harvestableObjectMemory = resourceModule.calculateHarvestPendingAmount(harvestableObjectMemory, harvestableObject);
 			harvestableObject.room.memory.harvestableObjects[harvestableObject.id] = harvestableObjectMemory;
 
 			resourceModule.verifyHarvestMemory(harvestableObject);
@@ -207,30 +211,58 @@
 			}
 
 			for (var sourceId in room.memory.requests.harvest) {
-				const source = Game.getObjectById(sourceId);
+				const harvestObject = Game.getObjectById(sourceId);
 
-				if (!source) {
+				if (!harvestObject) {
 					throw Error(`Can't find source belonging to source id ${sourceId}`);
 				}
 
-				assignedSource = source;
+				if (creep.memory.type === CREEP_TYPES.MINER) {
+					if (process.env.NODE_ENV === "development") {
+						global.logger.log(`harvestObject ${JSON.stringify(harvestObject)}`);
+					}
+
+					var objects = room.lookForAtSurroundingArea(LOOK_STRUCTURES, harvestObject.pos.x, harvestObject.pos.y, true);
+					var container = null;
+
+					if (objects) {
+						objects.forEach((object) => {
+							if (object.structure && object.structure.structureType === STRUCTURE_CONTAINER) {
+								container = object.structure;
+							}
+						});
+					}
+
+					if (container) {
+						const creeps = room.lookForAt(LOOK_CREEPS, container.pos);
+
+						if (!creeps || creeps.length === 0) {
+							assignedSource = harvestObject;
+							break;
+						}
+					}
+
+					if (process.env.NODE_ENV === "development") {
+						global.logger.log(`Can't find container in ${JSON.stringify(objects)} or found creeps at ${harvestObject.id}`);
+					}
+					continue;
+				}
+
+				assignedSource = harvestObject;
+
 				break;
 			}
 
 			if (assignedSource) {
-				let sourceMemory = room.memory.harvestableObjects[assignedSource.id];
-				sourceMemory.pendingCreepNames[creep.name] = creep.name;
-				sourceMemory = resourceModule.calculateHarvestPendingAmount(sourceMemory);
-				room.memory.harvestableObjects[sourceId] = sourceMemory;
-
-				resourceModule.verifyHarvestMemory(assignedSource);
-				return { id: assignedSource.id, resourceType: sourceMemory.resourceType };
+				let resourceType = assignedSource.mineralType ? assignedSource.mineralType : RESOURCE_ENERGY;
+				resourceModule.addCreepToHarvestObject(creep, assignedSource);
+				return { id: assignedSource.id, resourceType: resourceType };
 			}
 
 			return null;
 		}, // assignCreepToNextHarvestRequest END
 
-		calculateHarvestPendingAmount: (harvestableObjectMemory) => {
+		calculateHarvestPendingAmount: (harvestableObjectMemory, harvestableObject) => {
 			harvestableObjectMemory.pendingAmount = 0;
 
 			const creepNames = Object.keys(harvestableObjectMemory.pendingCreepNames);
@@ -239,9 +271,9 @@
 				creepNames = [];
 			}
 
-			if (process.env.NODE_ENV === "development") {
-				global.logger.log(`creepNames: ${JSON.stringify(creepNames)}`);
-			}
+			// if (process.env.NODE_ENV === "development") {
+			// 	global.logger.log(`creepNames: ${JSON.stringify(creepNames)}`);
+			// }
 
 			if (creepNames && creepNames.length > 0) {
 				creepNames.forEach((creepName) => {
@@ -249,20 +281,34 @@
 					let creep = Game.creeps[creepName];
 
 					// if a creep is invalid remove
-					if (!creep) {
-						if (process.env.NODE_ENV === "development") {
-							global.logger.log(`can't find creep ${JSON.stringify(creepName)}`);
-						}
+					if (!creep || creep.memory.harvestObjectId !== harvestableObject.id) {
+						// if (process.env.NODE_ENV === "development") {
+						// 	global.logger.log(`can't find creep ${JSON.stringify(creepName)}`);
+						// }
 						delete harvestableObjectMemory.pendingCreepNames[creepName];
 						return;
 					}
 
-					harvestableObjectMemory.pendingAmount += creep.getActiveBodyparts(WORK) * HARVEST_POWER;
+					if (!creep.willDieSoon()) {
+						harvestableObjectMemory.pendingAmount += creep.getActiveBodyparts(WORK) * HARVEST_POWER;
+					}
 				});
 			}
 
+			harvestableObjectMemory.currentHarvestAmount = harvestableObject.ticksToRegeneration
+				? harvestableObject.ticksToRegeneration * harvestableObjectMemory.pendingAmount
+				: ENERGY_REGEN_TIME * harvestableObjectMemory.pendingAmount;
+
 			return harvestableObjectMemory;
 		}, // calculateHarvestPendingAmount END
+
+		addCreepToHarvestObject: (creep, harvestObject) => {
+			let harvestObjectMemory = harvestObject.room.memory.harvestableObjects[harvestObject.id];
+			harvestObjectMemory.pendingCreepNames[creep.name] = creep.name;
+			harvestObjectMemory = resourceModule.calculateHarvestPendingAmount(harvestObjectMemory, harvestObject);
+			harvestObject.room.memory.harvestableObjects[harvestObject.id] = harvestObjectMemory;
+			resourceModule.verifyHarvestMemory(harvestObject);
+		}, // addCreepToHarvestObject END
 
 		verifyHarvestMemory: (harvestableObject) => {
 			let room = harvestableObject.room,
@@ -276,15 +322,15 @@
 				? harvestableObject.ticksToRegeneration * harvestableObjectMemory.pendingAmount
 				: ENERGY_REGEN_TIME * harvestableObjectMemory.pendingAmount;
 
-			if (process.env.NODE_ENV === "development") {
-				global.logger.log(`harvestableObject: ${JSON.stringify(harvestableObject)}`);
-				global.logger.log(
-					`positionHasNearbyThreat: ${JSON.stringify(roomModule.positionHasNearbyThreat(harvestableObject.pos))}, 
-                    harvestableObjectMemory: ${JSON.stringify(harvestableObjectMemory)},
-                    creepNames length: ${JSON.stringify(creepNames.length)},
-                    currentHarvestAmount: ${currentHarvestAmount}`
-				);
-			}
+			// if (process.env.NODE_ENV === "development") {
+			// 	global.logger.log(`harvestableObject: ${JSON.stringify(harvestableObject)}`);
+			// 	global.logger.log(
+			// 		`positionHasNearbyThreat: ${JSON.stringify(roomModule.positionHasNearbyThreat(harvestableObject.pos))},
+			//         harvestableObjectMemory: ${JSON.stringify(harvestableObjectMemory)},
+			//         creepNames length: ${JSON.stringify(creepNames.length)},
+			//         currentHarvestAmount: ${currentHarvestAmount}`
+			// 	);
+			// }
 
 			// if pending is less than total and source is currently accessible submit a request to the room
 			if (
@@ -295,23 +341,23 @@
 				if (!harvestableObject.room.memory.requests.harvest[harvestableObject.id]) {
 					harvestableObject.room.memory.requests.harvest[harvestableObject.id] = harvestableObject.id;
 
-					if (process.env.NODE_ENV === "development") {
-						global.logger.log(
-							`Added resource request for source ${JSON.stringify(
-								harvestableObject.room.memory.requests.harvest[harvestableObject.id]
-							)}`
-						);
-					}
+					// if (process.env.NODE_ENV === "development") {
+					// 	global.logger.log(
+					// 		`Added resource request for source ${JSON.stringify(
+					// 			harvestableObject.room.memory.requests.harvest[harvestableObject.id]
+					// 		)}`
+					// 	);
+					// }
 				}
 			} else {
-				if (process.env.NODE_ENV === "development") {
-					global.logger.log(`source ${JSON.stringify(harvestableObject.id)}`);
-					global.logger.log(
-						`Deleting resource request for structure ${JSON.stringify(
-							harvestableObject.room.memory.requests.harvest[harvestableObject.id]
-						)}`
-					);
-				}
+				// if (process.env.NODE_ENV === "development") {
+				// 	global.logger.log(`source ${JSON.stringify(harvestableObject.id)}`);
+				// 	global.logger.log(
+				// 		`Deleting resource request for structure ${JSON.stringify(
+				// 			harvestableObject.room.memory.requests.harvest[harvestableObject.id]
+				// 		)}`
+				// 	);
+				// }
 
 				delete harvestableObject.room.memory.requests.harvest[harvestableObject.id];
 			}
@@ -326,11 +372,13 @@
 		removeCreepFromHarvestRequest: (creep) => {
 			const harvestableObject = Game.getObjectById(creep.memory.harvestObjectId);
 
-			if (process.env.NODE_ENV === "development") {
-				global.logger.log(`Remove creep ${creep.name} from harvetsable object ${harvestableObject.id}`);
-			}
+			if (harvestableObject) {
+				// if (process.env.NODE_ENV === "development") {
+				// 	global.logger.log(`Remove creep ${creep.name} from harvetsable object ${harvestableObject.id}`);
+				// }
 
-			delete harvestableObject.room.memory.harvestableObjects[harvestableObject.id].pendingCreepNames[creep.name];
+				delete harvestableObject.room.memory.harvestableObjects[harvestableObject.id].pendingCreepNames[creep.name];
+			}
 
 			return true;
 		}, // removeCreepFromBuildRequest END
@@ -362,9 +410,9 @@
 
 			pickupMemory.amount = amount;
 
-			if (process.env.NODE_ENV === "development") {
-				global.logger.log(`pickupMemory ${JSON.stringify(pickupMemory)}`);
-			}
+			// if (process.env.NODE_ENV === "development") {
+			// 	global.logger.log(`pickupMemory ${JSON.stringify(pickupMemory)}`);
+			// }
 
 			pickupMemory = resourceModule.calculatePickupPendingAmount(pickupMemory);
 
@@ -439,31 +487,32 @@
 		}, // calculatePickupPendingAmount END
 
 		verifyPickupMemory: (pickupMemory, resourceType, pos) => {
+			const { roomModule } = global.App;
 			var positionName = getPosName(pos.x, pos.y),
 				room = Game.rooms[pos.roomName];
 
 			// if pending is less than total submit a request to the room
-			if (pickupMemory.pendingAmount < pickupMemory.amount) {
-				if (!room.memory.requests.pickup[positionName]) {
-					room.memory.requests.pickup[positionName] = {};
+			if (!roomModule.positionHasNearbyThreat(pos) && pickupMemory.pendingAmount < pickupMemory.amount) {
+				if (!room.memory.requests.pickup[resourceType]) {
+					room.memory.requests.pickup[resourceType] = {};
 
 					if (!room.memory.requests.pickup[resourceType][positionName]) {
 						room.memory.requests.pickup[resourceType][positionName] = pos;
 					}
 
-					if (process.env.NODE_ENV === "development") {
-						global.logger.log(
-							`Added pickup request for position ${JSON.stringify(room.memory.requests.pickup[resourceType][positionName])}`
-						);
-					}
+					// if (process.env.NODE_ENV === "development") {
+					// 	global.logger.log(
+					// 		`Added pickup request for position ${JSON.stringify(room.memory.requests.pickup[resourceType][positionName])}`
+					// 	);
+					// }
 				}
 			} else {
-				if (process.env.NODE_ENV === "development") {
-					global.logger.log(`positionName ${JSON.stringify(positionName)}`);
-					global.logger.log(
-						`Deleting pickup request for position ${JSON.stringify(room.memory.requests.pickup[resourceType][positionName])}`
-					);
-				}
+				// if (process.env.NODE_ENV === "development") {
+				// 	global.logger.log(`positionName ${JSON.stringify(positionName)}`);
+				// 	global.logger.log(
+				// 		`Deleting pickup request for position ${JSON.stringify(room.memory.requests.pickup[resourceType][positionName])}`
+				// 	);
+				// }
 
 				delete room.memory.requests.pickup[resourceType][positionName];
 			}
@@ -506,9 +555,9 @@
 			let room = Game.rooms[position.roomName];
 
 			if (!position) {
-				if (process.env.NODE_ENV === "development") {
-					global.logger.log(`Couldn't find any position in memory`);
-				}
+				// if (process.env.NODE_ENV === "development") {
+				// 	global.logger.log(`Couldn't find any position in memory`);
+				// }
 				return false;
 			}
 
@@ -705,9 +754,9 @@
 			let structureResourceRequestMemory =
 				structure.room.memory.structureMemory[structure.structureType][structure.id].transferRequests[resourceType];
 
-			if (process.env.NODE_ENV === "development") {
-				global.logger.log(`structureResourceRequestMemory ${JSON.stringify(structureResourceRequestMemory)}`);
-			}
+			// if (process.env.NODE_ENV === "development") {
+			// 	global.logger.log(`structureResourceRequestMemory ${JSON.stringify(structureResourceRequestMemory)}`);
+			// }
 
 			structureResourceRequestMemory.amount = amount;
 
@@ -725,25 +774,29 @@
 
 			let structures = creep.room.memory.requests.transfer[resourceType];
 
-			if (process.env.NODE_ENV === "development") {
-				global.logger.log(`structures ${JSON.stringify(structures)}`);
+			// if (process.env.NODE_ENV === "development") {
+			// 	global.logger.log(`structures ${JSON.stringify(structures)}`);
+			// }
+
+			if (!structures) {
+				return null;
 			}
 
 			for (const i in RESOURCE_ORDER_STRUCTURE_PRIORITY) {
 				const structureType = RESOURCE_ORDER_STRUCTURE_PRIORITY[i];
 				let structureMemories = structures[structureType];
 
-				if (process.env.NODE_ENV === "development") {
-					global.logger.log(`structureType ${structureType}, structureMemories ${JSON.stringify(structureMemories)}`);
-				}
+				// if (process.env.NODE_ENV === "development") {
+				// 	global.logger.log(`structureType ${structureType}, structureMemories ${JSON.stringify(structureMemories)}`);
+				// }
 
 				if (structureMemories) {
 					for (const structureId in structureMemories) {
 						const structure = Game.getObjectById(structureId);
 
-						if (process.env.NODE_ENV === "development") {
-							global.logger.log(`structure ${JSON.stringify(structure)}`);
-						}
+						// if (process.env.NODE_ENV === "development") {
+						// 	global.logger.log(`structure ${JSON.stringify(structure)}`);
+						// }
 
 						if (structure) {
 							assignedStructure = structure;
@@ -765,9 +818,9 @@
 						resourceType
 					];
 
-				if (process.env.NODE_ENV === "development") {
-					global.logger.log(`structureResourceMemory ${JSON.stringify(structureResourceMemory)}`);
-				}
+				// if (process.env.NODE_ENV === "development") {
+				// 	global.logger.log(`structureResourceMemory ${JSON.stringify(structureResourceMemory)}`);
+				// }
 
 				structureResourceMemory.pendingCreepNames[creep.name] = creep.name;
 
@@ -819,23 +872,23 @@
 				if (!structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id]) {
 					structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id] = structure.id;
 
-					if (process.env.NODE_ENV === "development") {
-						global.logger.log(
-							`Added resource request for structure ${JSON.stringify(
-								structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id]
-							)}`
-						);
-					}
+					// if (process.env.NODE_ENV === "development") {
+					// 	global.logger.log(
+					// 		`Added resource request for structure ${JSON.stringify(
+					// 			structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id]
+					// 		)}`
+					// 	);
+					// }
 				}
 			} else {
-				if (process.env.NODE_ENV === "development") {
-					global.logger.log(`structure ${JSON.stringify(structure.id)}`);
-					global.logger.log(
-						`Deleting resource request for structure ${JSON.stringify(
-							structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id]
-						)}`
-					);
-				}
+				// if (process.env.NODE_ENV === "development") {
+				// 	global.logger.log(`structure ${JSON.stringify(structure.id)}`);
+				// 	global.logger.log(
+				// 		`Deleting resource request for structure ${JSON.stringify(
+				// 			structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id]
+				// 		)}`
+				// 	);
+				// }
 
 				delete structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id];
 			}
@@ -903,13 +956,15 @@
 		/* WITHDRAW REQUEST FUNCTIONS */
 
 		addWithdrawRequest: (structure, resourceType, amount, destination) => {
-			if (!structure || !resourceType || !destination) {
+			if (!structure || !resourceType) {
 				throw Error(
 					`Invalid parameters structure  ${JSON.stringify(structure)}, resourceType ${JSON.stringify(
 						resourceType
 					)}, amount ${JSON.stringify(amount)}, destination ${JSON.stringify(destination)}`
 				);
 			}
+
+			const { roomModule } = global.App;
 
 			if (!structure.room.memory.requests.withdraw[resourceType]) {
 				structure.room.memory.requests.withdraw[resourceType] = {};
@@ -935,20 +990,23 @@
 			let structureWithdrawRequestMemory =
 				structure.room.memory.structureMemory[structure.structureType][structure.id].withdrawRequests[resourceType];
 
-			if (process.env.NODE_ENV === "development") {
-				global.logger.log(`structureWithdrawRequestMemory ${JSON.stringify(structureWithdrawRequestMemory)}`);
-			}
+			// if (process.env.NODE_ENV === "development") {
+			// 	global.logger.log(`structureWithdrawRequestMemory ${JSON.stringify(structureWithdrawRequestMemory)}`);
+			// }
 
 			structureWithdrawRequestMemory.amount = amount;
-			structureWithdrawRequestMemory.destinationId = destination.id;
 
-			structureWithdrawRequestMemory = roomModule.calculateWithdrawPendingAmount(structureWithdrawRequestMemory, resourceType);
+			if (destination) {
+				structureWithdrawRequestMemory.destinationId = destination.id;
+			}
+
+			structureWithdrawRequestMemory = resourceModule.calculateWithdrawPendingAmount(structureWithdrawRequestMemory, resourceType);
 
 			structure.room.memory.structureMemory[structure.structureType][structure.id].withdrawRequests[
 				resourceType
 			] = structureWithdrawRequestMemory;
 
-			roomModule.verifyWithdrawMemory(structure, resourceType);
+			resourceModule.verifyWithdrawMemory(structure, resourceType);
 		}, // addWithdrawRequest END
 
 		assignCreepToNextWithdrawRequest: (creep) => {
@@ -1036,23 +1094,23 @@
 				if (!structure.room.memory.requests.withdraw[resourceType][structure.structureType][structure.id]) {
 					structure.room.memory.requests.withdraw[resourceType][structure.structureType][structure.id] = structure.id;
 
-					if (process.env.NODE_ENV === "development") {
-						global.logger.log(
-							`Added resource request for structure ${JSON.stringify(
-								structure.room.memory.requests.withdraw[resourceType][structure.structureType][structure.id]
-							)}`
-						);
-					}
+					// if (process.env.NODE_ENV === "development") {
+					// 	global.logger.log(
+					// 		`Added resource request for structure ${JSON.stringify(
+					// 			structure.room.memory.requests.withdraw[resourceType][structure.structureType][structure.id]
+					// 		)}`
+					// 	);
+					// }
 				}
 			} else {
-				if (process.env.NODE_ENV === "development") {
-					global.logger.log(`structure ${JSON.stringify(structure.id)}`);
-					global.logger.log(
-						`Deleting resource request for structure ${JSON.stringify(
-							structure.room.memory.requests.withdraw[resourceType][structure.structureType][structure.id]
-						)}`
-					);
-				}
+				// if (process.env.NODE_ENV === "development") {
+				// 	global.logger.log(`structure ${JSON.stringify(structure.id)}`);
+				// 	global.logger.log(
+				// 		`Deleting resource request for structure ${JSON.stringify(
+				// 			structure.room.memory.requests.withdraw[resourceType][structure.structureType][structure.id]
+				// 		)}`
+				// 	);
+				// }
 
 				delete structure.room.memory.requests.withdraw[resourceType][structure.structureType][structure.id];
 			}

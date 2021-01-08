@@ -4,16 +4,8 @@ const constants = {
 	MIN_TOWER_ENERGY_CAPACITY: 200,
 	HOSTILE_CREEP_PROXIMITY_DISTANCE: 6,
 	ROOM_ROAD_POSITION_ADDED_TIME: 100,
+	CREEP_WILL_DIE_SOON_TICK_VALUE: 50,
 
-	CREEP_ROLES: {
-		BUILDER: "builder",
-		HARVESTER: "harvester",
-		HAULER: "hauler",
-		IDLE: "idle",
-		MINER: "miner",
-		REPAIRER: "repairer",
-		SCOUT: "scout",
-	},
 	CREEP_TYPES: {
 		UTILITY: "utility",
 		MINER: "miner",
@@ -24,14 +16,6 @@ const constants = {
 		TANK: "tank",
 		HEALER: "healer",
 		SCOUT: "scout",
-	},
-	CREEP_ROLES_TYPES: {
-		builder: "utility",
-		harvester: "utility",
-		hauler: "hauler",
-		miner: "miner",
-		repairer: "utility",
-		scout: "scout",
 	},
 
 	RESOURCES: {
@@ -134,7 +118,9 @@ const constants = {
 		RESOURCE_ESSENCE,
 	},
 
-	ESSENTIAL_CREEP_TYPES: ["utility", "miner"],
+	ESSENTIAL_HARVEST_TYPES: ["utility", "miner"],
+
+	ESSENTIAL_MINER_TYPES: ["utility", "hauler"],
 
 	CREEP_BODIES: {
 		utility: {

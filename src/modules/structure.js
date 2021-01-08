@@ -81,9 +81,9 @@ let structureModule = {
 
 		switch (actionResult) {
 			default:
-				if (process.env.NODE_ENV === "development") {
-					global.logger.log(`tower action result ${actionResult}`);
-				}
+				// if (process.env.NODE_ENV === "development") {
+				// 	global.logger.log(`tower action result ${actionResult}`);
+				// }
 				break;
 		}
 
@@ -93,6 +93,14 @@ let structureModule = {
 	runContainer: (container) => {
 		// do nothing for now
 		//const usedCapacity = container.store.getUsedCapacity(RESOURCE_ENERGY);)
+		const usedCapacity = container.store.getUsedCapacity(),
+			{ resourceModule } = global.App;
+
+		if (usedCapacity > 0) {
+			for (const resourceType in container.store) {
+				resourceModule.addWithdrawRequest(container, resourceType, container.store.getUsedCapacity(resourceType));
+			}
+		}
 	},
 
 	runController: (controller) => {

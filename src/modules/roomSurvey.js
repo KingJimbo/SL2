@@ -233,9 +233,9 @@
 
 			var freePositions = getAccessiblePositions(roomSurveyModule.room.controller.pos);
 
-			if (process.env.NODE_ENV === "development") {
-				global.logger.log(`freePositions ${JSON.stringify(freePositions)}`);
-			}
+			// if (process.env.NODE_ENV === "development") {
+			// 	global.logger.log(`freePositions ${JSON.stringify(freePositions)}`);
+			// }
 
 			if (freePositions) {
 				const firstPos = freePositions[0];
@@ -248,9 +248,9 @@
 				return;
 			}
 
-			if (process.env.NODE_ENV === "development") {
-				global.logger.log(`hit structure map initialisation`);
-			}
+			// if (process.env.NODE_ENV === "development") {
+			// 	global.logger.log(`hit structure map initialisation`);
+			// }
 
 			surveyData.structureMap = {};
 

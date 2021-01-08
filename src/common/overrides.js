@@ -22,13 +22,28 @@
 		};
 	}
 
-	if (!Creep.prototype.getCarriedResourceTypes) {
-		Creep.prototype.getCarriedResourceTypes = function () {
-			if (this.store.getUsedCapacity() === 0) {
-				return null;
+	if (!Creep.prototype.willDieSoon) {
+		Creep.prototype.willDieSoon = function () {
+			return this.ticksToLive < CREEP_WILL_DIE_SOON_TICK_VALUE;
+		};
+	}
+
+	if (!Room.prototype.lookForAtSurroundingArea) {
+		Room.prototype.lookForAtSurroundingArea = function (type, x, y, asArray, distance) {
+			if (!distance) {
+				distance = 1;
 			}
 
-			return Object.keys(this.store);
+			const top = y - distance,
+				left = x - distance,
+				right = x + distance,
+				bottom = y + distance;
+
+			if (process.env.NODE_ENV === "development") {
+				global.logger.log(`type: ${type}, top: ${top}, left: ${left}, right: ${right}, bottom: ${bottom}`);
+			}
+
+			return this.lookForAtArea(type, top, left, bottom, right, asArray);
 		};
 	}
 

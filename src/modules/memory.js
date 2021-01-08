@@ -3,13 +3,11 @@ let memoryModule = {
 		// initialise memory start
 
 		if (!Memory.memoryIntialisedTime) {
-			if (process.env.NODE_ENV === "development") {
-				global.logger.log(`initialiseMemory initiated`);
-			}
+			// if (process.env.NODE_ENV === "development") {
+			// 	global.logger.log(`initialiseMemory initiated`);
+			// }
 
 			Memory.objectIds = {};
-			Memory.resourceOrders = {};
-			Memory.resourceOrderItems = {};
 			Memory.structureMemory = {};
 			Memory.memoryIntialisedTime = Game.time;
 

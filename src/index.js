@@ -1,9 +1,6 @@
 module.exports.loop = function () {
-	// start loop
-
 	if (process.env.NODE_ENV === "development") {
 		require("./common/logging");
-
 		global.logger.log(`Start loop`);
 	}
 
@@ -13,10 +10,7 @@ module.exports.loop = function () {
 	require("./modules/memory");
 	require("./modules/resource");
 	require("./modules/spawn");
-
 	require("./modules/creep");
-	require("./modules/creepRequisition");
-
 	require("./modules/room");
 	require("./modules/roomSurvey");
 	require("./modules/structure");
@@ -28,14 +22,6 @@ module.exports.loop = function () {
 
 	try {
 		App.runApp();
-
-		// for (var i in Game.rooms) {
-		// 	let room = Game.rooms[i];
-		// 	let roomStructureMap = roomSurveyModule.surveyRoomForStructures(room);
-		// 	let buildQueue = roomBuildModule.createBuildQueue(room);
-
-		// 	global.logger.log(`buildQueue: ${JSON.stringify(buildQueue)}`);
-		// }
 	} catch (error) {
 		const errorMessage = `An error has occured!
         message: ${error.message}
@@ -53,10 +39,12 @@ module.exports.loop = function () {
 			Game.notify(errorMessage, 180);
 		}
 	}
-	//global.logger.log(`process.env.uselogging ${JSON.stringify(process.env.uselogging)}`);
 
 	if (process.env.NODE_ENV === "development") {
-		global.logger.log("End loop");
-		if (global.logger.reportLog) global.logger.reportLog();
+		global.logger.log(`End loop`);
+
+		if (global.logger.condenseLog) {
+			global.logger.reportLog();
+		}
 	}
 };
