@@ -9,8 +9,10 @@ let structureModule = {
 	runExtension: (extension) => {
 		const { resourceModule } = global.App;
 
-		const freeCapacity = extension.store.getFreeCapacity(RESOURCE_ENERGY);
-		resourceModule.addTransferRequest(extension, RESOURCE_ENERGY, freeCapacity);
+		if (extension.room.memory.creepsToSpawn) {
+			const freeCapacity = extension.store.getFreeCapacity(RESOURCE_ENERGY);
+			resourceModule.addTransferRequest(extension, RESOURCE_ENERGY, freeCapacity);
+		}
 	}, // runExtension END
 
 	runRoad: (road) => {

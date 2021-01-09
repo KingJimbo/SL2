@@ -51,6 +51,10 @@
 		getRoomExits: (room) => {
 			let exits = {};
 
+			if (!room.memory.exits) {
+				room.memory.exits = {};
+			}
+
 			if (!room.memory.exits[TOP]) {
 				const exitTop = room.find(FIND_EXIT_TOP);
 				if (exitTop && exitTop.length > 0) {
@@ -377,6 +381,10 @@
 				}
 
 				if (structureType === STRUCTURE_ROAD) {
+					if (!room.memory.roadPositions) {
+						room.memory.roadPositions = {};
+					}
+
 					let positionKeys = Object.keys(room.memory.roadPositions);
 
 					if (positionKeys) {

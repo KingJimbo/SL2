@@ -206,6 +206,17 @@ const { CREEP_ACTIONS, CREEP_TYPES } = require("../common/constants");
 						// 	);
 						// }
 
+						if (creep.room.controller.ticksToDowngrade < MIN_CONTROLLER_TICKS_TO_DOWNGRADE) {
+							const controllerId = resourceModule.getUpgradeControllerRequest(creep.room);
+
+							if (controllerId) {
+								creep.memory.currentAction = CREEP_ACTIONS.UPGRADE;
+								creep.memory.structureId = controllerId;
+
+								return creepModule.carryOutAction(creep);
+							}
+						}
+
 						const transferData = resourceModule.assignCreepToNextTransferRequest(creep, resourceType);
 
 						if (transferData) {

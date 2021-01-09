@@ -63,7 +63,7 @@
 				//global.logger.log("setting structure map");
 				roomSurveyModule.generateStructureMap(roomSurveyModule.roomSurveyData);
 
-				global.logger.log(`roomSurveyModule = ${JSON.stringify(roomSurveyModule)}`);
+				//global.logger.log(`roomSurveyModule = ${JSON.stringify(roomSurveyModule)}`);
 
 				room.memory.structureMap = roomSurveyModule.roomSurveyData.structureMap;
 				room.memory.structureMapGeneratedTime = Game.time;
@@ -244,7 +244,7 @@
 			}
 
 			if (!idealSpawnPosition) {
-				global.logger.log("generateStructureMap: can not find ideal spawn position!");
+				//global.logger.log("generateStructureMap: can not find ideal spawn position!");
 				return;
 			}
 

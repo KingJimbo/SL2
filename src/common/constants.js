@@ -218,6 +218,7 @@ const constants = {
 		},
 	},
 	RESOURCE_ORDER_STRUCTURE_PRIORITY: [
+		"extension",
 		"spawn",
 		"storage",
 		"terminal",
@@ -225,7 +226,6 @@ const constants = {
 		"factory",
 		"nuker",
 		"lab",
-		"extension",
 		"tower",
 		"container",
 		"road",
