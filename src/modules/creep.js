@@ -162,6 +162,9 @@ const { CREEP_ACTIONS, CREEP_TYPES } = require("../common/constants");
 				case CREEP_ACTIONS.UPGRADE:
 					creepModule.upgrade(creep);
 					break;
+				case CREEP_ACTIONS.WITHDRAW:
+					creepModule.withdraw(creep);
+					break;
 			}
 		},
 
@@ -284,6 +287,7 @@ const { CREEP_ACTIONS, CREEP_TYPES } = require("../common/constants");
 					creep.memory.currentAction = CREEP_ACTIONS.WITHDRAW;
 					creep.memory.structureId = withdrawData.withdrawStructure.id;
 					creep.memory.destinationId = withdrawData.destinationId;
+					creep.memory.resourceType = withdrawData.resourceType;
 
 					return creepModule.carryOutAction(creep);
 				}
@@ -377,6 +381,15 @@ const { CREEP_ACTIONS, CREEP_TYPES } = require("../common/constants");
 		runScoutCreep: (creep) => {
 			const { roomModule } = global.App;
 
+			// is a global scout
+			if (creep.memory.roomName) {
+				if (creep.room.name === creep.memory.roomName) {
+					creep.room.memory.scoutName = creep.name;
+				}
+
+				return creep.moveTo(new RoomPosition(25, 25, creep.memory.roomName));
+			}
+
 			// is a local scout
 			if (creep.memory.direction) {
 				if (creep.room.name !== creep.memory.spawnRoom) {
@@ -384,29 +397,33 @@ const { CREEP_ACTIONS, CREEP_TYPES } = require("../common/constants");
 
 					roomModule.updateRoomExitDataRoomName(room, creep.memory.direction, creep.room.name);
 					creep.room.memory.scoutName = creep.name;
+					creep.room.memory.roomName = creep.room.name;
 					return; // scouting room so exit
 				}
 
-				const exits = creep.memory.find(creep.memory.direction);
+				roomModule.assignScoutToLocalScoutRequest(creep);
 
-				if (exits) {
+				const exits = creep.room.find(GET_FIND_DIRECTION[creep.memory.direction]);
+
+				if (process.env.NODE_ENV === "development") {
+					global.logger.log(`exits ${JSON.stringify(exits)}, direction ${creep.memory.direction}`);
+				}
+
+				if (exits && exits.length) {
 					const exit = exits[0];
 					if (creep.pos.isEqualTo(exit)) {
-						creep.exitRoom(creep.memory.direction);
+						if (process.env.NODE_ENV === "development") {
+							global.logger.log(`is equal to`);
+						}
+
+						return creep.exitRoom(creep.memory.direction);
 					} else {
-						creep.moveTo(exit);
+						if (process.env.NODE_ENV === "development") {
+							global.logger.log(`move to ${JSON.stringify(exit)}`);
+						}
+						return creep.moveTo(exit);
 					}
 				}
-			}
-
-			// is a global scout
-			if (creep.memory.roomName) {
-				if (creep.room.name === creep.memory.roomName) {
-					creep.room.memory.scoutName = creep.name;
-					return; // scouting room so exit
-				}
-
-				return creep.moveTo(new RoomPosition(25, 25, creep.memory.roomName));
 			}
 		}, // runMinerCreep END
 
@@ -680,6 +697,11 @@ const { CREEP_ACTIONS, CREEP_TYPES } = require("../common/constants");
 			}
 
 			const result = creep.withdraw(structure, creep.memory.resourceType, capacity);
+
+			if (process.env.NODE_ENV === "development") {
+				global.logger.log(`withdraw result ${JSON.stringify(result)}`, LOG_GROUPS.CREEP);
+			}
+
 			switch (result) {
 				case OK:
 					break;
@@ -687,6 +709,7 @@ const { CREEP_ACTIONS, CREEP_TYPES } = require("../common/constants");
 					creep.moveTo(structure.pos);
 					break;
 				case ERR_NOT_ENOUGH_RESOURCES:
+				case ERR_INVALID_ARGS:
 					resourceModule.removeCreepFromWithdrawRequest(creep);
 					creepModule.clearCreepMemory(creep);
 					return creepModule.runCreep(creep);

@@ -364,7 +364,11 @@ const { CREEP_TYPES } = require("../common/constants");
 		}, // verifySourceMemory END
 
 		getAllHarvestRequests: (room) => {
-			const harvestRequests = Object.keys(room.memory.requests.harvest);
+			let harvestRequests = [];
+
+			if (room.memory.requests.harvest) {
+				harvestRequests = Object.keys(room.memory.requests.harvest);
+			}
 
 			return harvestRequests;
 		}, // getAllHarvestRequests END
@@ -1015,7 +1019,7 @@ const { CREEP_TYPES } = require("../common/constants");
 				assignedResourceType;
 
 			for (const resourceType in room.memory.requests.withdraw) {
-				let structures = structure.room.memory.requests.withdraw[resourceType];
+				let structures = creep.room.memory.requests.withdraw[resourceType];
 
 				for (const i in RESOURCE_ORDER_STRUCTURE_PRIORITY) {
 					const structureType = RESOURCE_ORDER_STRUCTURE_PRIORITY[i];
@@ -1043,10 +1047,22 @@ const { CREEP_TYPES } = require("../common/constants");
 			if (assignedStructure && assignedResourceType) {
 				resourceModule.addStructureMemory(assignedStructure);
 
+				if (
+					!assignedStructure.room.memory.structureMemory[assignedStructure.structureType][assignedStructure.id].withdrawRequests[
+						assignedResourceType
+					]
+				) {
+					assignedStructure.room.memory.structureMemory[assignedStructure.structureType][assignedStructure.id].withdrawRequests[
+						assignedResourceType
+					] = { amount: 0, pendingAmount: 0, pendingCreepNames: {} };
+				}
+
 				let structureResourceMemory =
 					assignedStructure.room.memory.structureMemory[assignedStructure.structureType][assignedStructure.id].withdrawRequests[
 						assignedResourceType
 					];
+
+				structureResourceMemory.pendingCreepNames[creep.name] = creep.name;
 
 				structureResourceMemory = resourceModule.calculateWithdrawPendingAmount(structureResourceMemory, assignedResourceType);
 
@@ -1056,10 +1072,14 @@ const { CREEP_TYPES } = require("../common/constants");
 
 				resourceModule.verifyWithdrawMemory(assignedStructure, assignedResourceType);
 
-				return { withdrawStructure: assignedStructure, destinationId: structureResourceMemory.destinationId };
+				return {
+					withdrawStructure: assignedStructure,
+					destinationId: structureResourceMemory.destinationId,
+					resourceType: assignedResourceType,
+				};
 			}
 
-			return assignedStructure;
+			return null;
 		}, // assignCreepToNextWithdrawRequest END
 
 		calculateWithdrawPendingAmount: (withdrawMemory, resourceType) => {
@@ -1129,6 +1149,28 @@ const { CREEP_TYPES } = require("../common/constants");
 
 			return withdrawRequests;
 		}, // getAllWithdrawRequests END
+
+		removeCreepFromWithdrawRequest: (creep) => {
+			const structure = Game.getObjectById(creep.memory.structureId);
+
+			if (structure) {
+				resourceModule.addStructureMemory(structure);
+				let structureTransferMemory =
+					structure.room.memory.structureMemory[structure.structureType][structure.id].withdrawRequests[creep.memory.resourceType];
+
+				if (structureTransferMemory) {
+					if (structureTransferMemory.pendingCreepNames) {
+						delete structureTransferMemory.pendingCreepNames[creep.name];
+					}
+
+					structure.room.memory.structureMemory[structure.structureType][structure.id].withdrawRequests[
+						creep.memory.resourceType
+					] = structureTransferMemory;
+				}
+			}
+
+			return true;
+		}, // removeCreepFromWithdrawRequest END
 
 		/* WITHDRAW REQUEST FUNCTIONS END */
 

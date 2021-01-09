@@ -58,28 +58,28 @@
 			if (!room.memory.exits[TOP]) {
 				const exitTop = room.find(FIND_EXIT_TOP);
 				if (exitTop && exitTop.length > 0) {
-					exits[TOP] = null;
+					exits[TOP] = { scout: null, roomName: null };
 				}
 			}
 
 			if (!room.memory.exits[RIGHT]) {
 				const exitRight = room.find(FIND_EXIT_RIGHT);
 				if (exitRight && exitRight.length > 0) {
-					exits[RIGHT] = null;
+					exits[RIGHT] = { scout: null, roomName: null };
 				}
 			}
 
 			if (!room.memory.exits[BOTTOM]) {
 				const exitBottom = room.find(FIND_EXIT_BOTTOM);
 				if (exitBottom && exitBottom.length > 0) {
-					exits[BOTTOM] = null;
+					exits[BOTTOM] = { scout: null, roomName: null };
 				}
 			}
 
 			if (!room.memory.exits[LEFT]) {
 				const exitLeft = room.find(FIND_EXIT_LEFT);
 				if (exitLeft && exitLeft.length > 0) {
-					exits[LEFT] = null;
+					exits[LEFT] = { scout: null, roomName: null };
 				}
 			}
 
@@ -88,9 +88,22 @@
 			return exits;
 		}, // getNoRoomExits END
 
+		assignScoutToLocalScoutRequest: (scout) => {
+			const direction = scout.memory.direction,
+				//roomName = scout.room.name,
+				scoutName = scout.name;
+
+			//scout.room.memory.exits[direction].roomName = roomName;
+			scout.room.memory.exits[direction].scout = scoutName;
+		}, // assignScoutToLocalScoutRequest END
+
 		updateRoomExitDataRoomName: (room, direction, roomName) => {
-			room.memory.exits[direction] = roomName;
+			room.memory.exits[direction].roomName = roomName;
 		}, // updateRoomExitDataRoomName END
+
+		addScoutToLocalScoutRequest: (scout, direction) => {
+			creep.room.memory.exits[direction].scout = scout.name;
+		},
 
 		addScoutRequests: (room) => {
 			for (const i in room.memory.exits) {
@@ -104,7 +117,7 @@
 				}
 
 				// not valid so ad request
-				if (!exitData || !roomToCheck || !scout) {
+				if (!exitData || !exitData.roomName || (!exitData.roomName && !exitData.scout) || !roomToCheck || !scout) {
 					roomModule.addLocalScoutRequest(room, i);
 				}
 			}
@@ -343,8 +356,8 @@
 			let structureBuilt = false,
 				structureIndex = 0;
 
-			while (!structureBuilt && structureIndex < STRUCTURE_PRIORITY.length) {
-				const structureType = STRUCTURE_PRIORITY[structureIndex];
+			while (!structureBuilt && structureIndex < RESOURCE_ORDER_STRUCTURE_PRIORITY.length) {
+				const structureType = RESOURCE_ORDER_STRUCTURE_PRIORITY[structureIndex];
 				let structTypeArray = [];
 
 				// if (process.env.NODE_ENV === "development") {

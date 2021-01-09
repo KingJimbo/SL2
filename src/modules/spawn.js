@@ -8,16 +8,18 @@ const { CREEP_TYPES } = require("../common/constants");
 			for (const roomName in Game.rooms) {
 				let room = Game.rooms[roomName];
 
-				room.memory.creepsToSpawn = spawnModule.calculateCreepsToSpawn(room);
+				if (room.controller.my) {
+					room.memory.creepsToSpawn = spawnModule.calculateCreepsToSpawn(room);
 
-				let spawns = room.find(FIND_MY_STRUCTURES, {
-					filter: { structureType: STRUCTURE_SPAWN },
-				});
-
-				if (spawns) {
-					spawns.forEach((spawn) => {
-						spawnModule.runSpawn(spawn);
+					let spawns = room.find(FIND_MY_STRUCTURES, {
+						filter: { structureType: STRUCTURE_SPAWN },
 					});
+
+					if (spawns) {
+						spawns.forEach((spawn) => {
+							spawnModule.runSpawn(spawn);
+						});
+					}
 				}
 			}
 		}, // runSpawns END
@@ -200,8 +202,14 @@ const { CREEP_TYPES } = require("../common/constants");
 			}
 
 			if (creepBodyResponse && creepBodyResponse.cost <= spawn.room.energyAvailable) {
+				const memory = { type: creepToSpawn.type, spawnRoom: spawn.room.name, ...creepToSpawn.memory };
+
+				if (process.env.NODE_ENV === "development") {
+					global.logger.log(`creep memory to spawn ${JSON.stringify(memory)}`, LOG_GROUPS.SPAWN);
+				}
+
 				var spawnCreepResult = spawn.spawnCreep(creepBodyResponse.creepBody, memoryModule.getNextCreepName(), {
-					memory: { type: creepToSpawn.type, spawnRoom: spawn.room.name, ...creepToSpawn.memory },
+					memory,
 				});
 
 				// if (process.env.NODE_ENV === "development") {
@@ -361,17 +369,11 @@ const { CREEP_TYPES } = require("../common/constants");
 			// determine what type of harvest creep is best
 			let creepType = CREEP_TYPES.SCOUT;
 
-			const creepToSpawn = spawnModule.createCreepToSpawnObject(room.name, creepType);
-
 			if (roomName) {
-				return { ...creepToSpawn, roomName };
+				return spawnModule.createCreepToSpawnObject(room.name, creepType, { roomName }); // { ...creepToSpawn, roomName };
+			} else if (direction) {
+				return spawnModule.createCreepToSpawnObject(room.name, creepType, { direction }); //{ ...creepToSpawn, direction };
 			}
-
-			if (direction) {
-				return { ...creepToSpawn, direction };
-			}
-
-			return creepToSpawn;
 		}, // getTransferCreepToSpawn END
 
 		createCreepToSpawnObject: (room, type, memory) => {
@@ -379,7 +381,7 @@ const { CREEP_TYPES } = require("../common/constants");
 				memory = {};
 			}
 
-			return { room, type };
+			return { room, type, memory };
 		}, // createCreepToSpawnObject END
 	};
 

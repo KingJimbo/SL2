@@ -247,9 +247,16 @@ const constants = {
 		//STRUCTURE_INVADER_CORE: "invaderCore",
 	],
 
-	STRUCTURE_PRIORITY: ["spawn", "storage", "terminal", "powerSpawn", "factory", "nuker", "lab", "extension", "tower", "container", "road"],
+	STRUCTURE_PRIORITY: ["spawn", "storage", "terminal", "powerSpawn", "factory", "nuker", "lab", "extension", "tower", "road"],
 
 	WALKABLE_STRUCTURES: [STRUCTURE_CONTAINER, STRUCTURE_RAMPART, STRUCTURE_ROAD],
+
+	GET_FIND_DIRECTION: {
+		1: FIND_EXIT_TOP,
+		3: FIND_EXIT_RIGHT,
+		5: FIND_EXIT_BOTTOM,
+		7: FIND_EXIT_LEFT,
+	},
 
 	BASE_POSITION_TYPES: {
 		CROSS_ROAD: 0,
