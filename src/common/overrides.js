@@ -47,6 +47,25 @@
 		};
 	}
 
+	if (!Room.prototype.lookAtSurroundingArea) {
+		Room.prototype.lookAtSurroundingArea = function (x, y, asArray, distance) {
+			if (!distance) {
+				distance = 1;
+			}
+
+			const top = y - distance,
+				left = x - distance,
+				right = x + distance,
+				bottom = y + distance;
+
+			if (process.env.NODE_ENV === "development") {
+				global.logger.log(` top: ${top}, left: ${left}, right: ${right}, bottom: ${bottom}`);
+			}
+
+			return this.lookAtArea(top, left, bottom, right, asArray);
+		};
+	}
+
 	// if (!StructureTower.prototype._attack) {
 	// 	StructureTower.prototype._attack = StructureTower.prototype.attack;
 

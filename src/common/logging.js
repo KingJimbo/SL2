@@ -9,18 +9,32 @@
 		LOG_GROUPS: {
 			ALL: "all",
 			CREEP: "creep",
-			SPAWN: "spawn",
+			DEFAULT: "default",
+			ERROR: "error",
+			PICKUP: "pickup",
+			POSITION: "position",
+			RESOURCE: "resource",
 			ROOM: "room",
+			SPAWN: "spawn",
+			TRANSFER: "transfer",
+			WITHDRAW: "withdraw",
 		},
 	};
 
 	global = Object.assign(global, logTypes);
 
 	global.logger.allowedGroups = {
-		all: true,
-		creep: true,
-		spawn: true,
-		room: true,
+		all: false,
+		creep: false,
+		default: true,
+		error: true,
+		pickup: false,
+		position: false,
+		spawn: false,
+		room: false,
+		resource: false,
+		transfer: false,
+		withdraw: false,
 	};
 
 	global.logger.log = function (msg, logTypes) {
@@ -29,7 +43,7 @@
 
 		if (logTypes) {
 			if (Array.isArray(logTypes)) {
-				for (const i in logType) {
+				for (const i in logTypes) {
 					const logType = logTypes[i];
 					const logTypeAllowed = global.logger.allowedGroups[logType];
 
@@ -57,7 +71,11 @@
 	};
 
 	global.logger.reportLog = function () {
-		console.log(global.logger.logMessages.join("\n"));
+		const log = global.logger.logMessages.join("\n");
+
+		if (!log || log != "") {
+			console.log(log);
+		}
 	};
 
 	global.logger.attachLogger = function (obj) {
@@ -70,7 +88,7 @@
 						var args = arguments;
 						return function () {
 							(function (name, fn) {
-								global.logger.log("calling " + name);
+								global.logger.log("calling " + name, LOG_GROUPS.DEFAULT);
 							}.apply(this, args));
 							return fn.apply(this, arguments);
 						};

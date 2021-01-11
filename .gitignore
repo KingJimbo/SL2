@@ -79,3 +79,5 @@ typings/
 dist/*
 dist/main.js
 *.config.js
+uploadToScreep.js
+uploadToTutorial.js

@@ -460,6 +460,13 @@ const { CREEP_TYPES } = require("../common/constants");
 
 					resourceModule.verifyPickupMemory(pickupMemory, assignedResourceType, assignedPosition);
 
+					if (process.env.NODE_ENV === "development") {
+						global.logger.log(`assignCreepToNextPickupRequest pickupMemory: ${JSON.stringify(pickupMemory)}`, [
+							LOG_GROUPS.RESOURCE,
+							LOG_GROUPS.PICKUP,
+						]);
+					}
+
 					return { pos: assignedPosition, resourceType: assignedResourceType };
 				}
 			}
@@ -469,6 +476,13 @@ const { CREEP_TYPES } = require("../common/constants");
 
 		calculatePickupPendingAmount: (pickupMemory) => {
 			pickupMemory.pendingAmount = 0;
+
+			if (process.env.NODE_ENV === "development") {
+				global.logger.log(`calculatePickupPendingAmount pickupMemory: ${JSON.stringify(pickupMemory)}`, [
+					LOG_GROUPS.RESOURCE,
+					LOG_GROUPS.PICKUP,
+				]);
+			}
 
 			const creepNames = Object.keys(pickupMemory.pendingCreepNames);
 
@@ -487,16 +501,44 @@ const { CREEP_TYPES } = require("../common/constants");
 				});
 			}
 
+			if (process.env.NODE_ENV === "development") {
+				global.logger.log(`calculatePickupPendingAmount END pickupMemory: ${JSON.stringify(pickupMemory)}`, [
+					LOG_GROUPS.RESOURCE,
+					LOG_GROUPS.PICKUP,
+				]);
+			}
+
 			return pickupMemory;
 		}, // calculatePickupPendingAmount END
 
 		verifyPickupMemory: (pickupMemory, resourceType, pos) => {
 			const { roomModule } = global.App;
 			var positionName = getPosName(pos.x, pos.y),
-				room = Game.rooms[pos.roomName];
+				room = Game.rooms[pos.roomName],
+				hasMiner = false;
+
+			if (process.env.NODE_ENV === "development") {
+				global.logger.log(`verifyPickupMemory START pickupMemory: ${JSON.stringify(pickupMemory)}`, [LOG_GROUPS.RESOURCE, LOG_GROUPS.PICKUP]);
+			}
+
+			if (pickupMemory.amount < room.memory.possiblyUtilityCarryAmount) {
+				const lookAtObjects = room.lookAt(pos);
+
+				if (lookAtObjects) {
+					lookAtObjects.forEach((object) => {
+						if (object.type === "creep" && object.creep.memory.type === CREEP_TYPES.MINER) {
+							hasMiner = true;
+						}
+					});
+				}
+			}
 
 			// if pending is less than total submit a request to the room
-			if (!roomModule.positionHasNearbyThreat(pos) && pickupMemory.pendingAmount < pickupMemory.amount) {
+			if (
+				!roomModule.positionHasNearbyThreat(pos) &&
+				pickupMemory.pendingAmount < pickupMemory.amount &&
+				(!hasMiner || (hasMiner && pickupMemory.amount > room.memory.possiblyUtilityCarryAmount))
+			) {
 				if (!room.memory.requests.pickup[resourceType]) {
 					room.memory.requests.pickup[resourceType] = {};
 
@@ -519,6 +561,10 @@ const { CREEP_TYPES } = require("../common/constants");
 				// }
 
 				delete room.memory.requests.pickup[resourceType][positionName];
+			}
+
+			if (process.env.NODE_ENV === "development") {
+				global.logger.log(`verifyPickupMemory END pickupMemory: ${JSON.stringify(pickupMemory)}`, [LOG_GROUPS.RESOURCE, LOG_GROUPS.PICKUP]);
 			}
 		}, // verifyPickupMemory END
 
@@ -679,7 +725,7 @@ const { CREEP_TYPES } = require("../common/constants");
 						repairerMemory = repairer.memory;
 					}
 
-					if (repairerMemory.structureId !== structureId) {
+					if (repairerMemory.structureId !== structure.id) {
 						delete structureMemory.repairerId;
 						room.memory.structureMemory[structure.structureType][structure.id] = structureMemory;
 					}
@@ -711,16 +757,18 @@ const { CREEP_TYPES } = require("../common/constants");
 				repairerMemory = repairer.memory;
 			}
 
-			const structure = Game.getObjectById(repairerMemory.repairStructureId);
+			const structure = Game.getObjectById(repairerMemory.structureId);
 
-			let structureMemory = resourceModule.getStructureMemory(structure);
+			if (structure) {
+				let structureMemory = resourceModule.getStructureMemory(structure);
 
-			delete structureMemory.repairerId;
+				delete structureMemory.repairerId;
 
-			resourceModule.saveStructureMemory(structure, structureMemory);
+				resourceModule.saveStructureMemory(structure, structureMemory);
+			}
 
 			return true;
-		},
+		}, // removeRepairerFromRepairRequest END
 
 		/*----------- REPAIR REQUEST FUNCTIONS END ---------------*/
 
@@ -876,23 +924,25 @@ const { CREEP_TYPES } = require("../common/constants");
 				if (!structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id]) {
 					structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id] = structure.id;
 
-					// if (process.env.NODE_ENV === "development") {
-					// 	global.logger.log(
-					// 		`Added resource request for structure ${JSON.stringify(
-					// 			structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id]
-					// 		)}`
-					// 	);
-					// }
+					if (process.env.NODE_ENV === "development") {
+						global.logger.log(
+							`Added resource request for structure ${JSON.stringify(
+								structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id]
+							)}`,
+							[LOG_GROUPS.RESOURCE, LOG_GROUPS.TRANSFER]
+						);
+					}
 				}
 			} else {
-				// if (process.env.NODE_ENV === "development") {
-				// 	global.logger.log(`structure ${JSON.stringify(structure.id)}`);
-				// 	global.logger.log(
-				// 		`Deleting resource request for structure ${JSON.stringify(
-				// 			structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id]
-				// 		)}`
-				// 	);
-				// }
+				if (process.env.NODE_ENV === "development") {
+					global.logger.log(`structure ${JSON.stringify(structure.id)}`, [LOG_GROUPS.RESOURCE, LOG_GROUPS.TRANSFER]);
+					global.logger.log(
+						`Deleting resource request for structure ${JSON.stringify(
+							structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id]
+						)}`,
+						[LOG_GROUPS.RESOURCE, LOG_GROUPS.TRANSFER]
+					);
+				}
 
 				delete structure.room.memory.requests.transfer[resourceType][structure.structureType][structure.id];
 			}
@@ -1072,6 +1122,17 @@ const { CREEP_TYPES } = require("../common/constants");
 
 				resourceModule.verifyWithdrawMemory(assignedStructure, assignedResourceType);
 
+				if (process.env.NODE_ENV === "development") {
+					global.logger.log(
+						`structureResourceMemory: ${JSON.stringify(
+							assignedStructure.room.memory.structureMemory[assignedStructure.structureType][assignedStructure.id].withdrawRequests[
+								assignedResourceType
+							]
+						)}`,
+						[LOG_GROUPS.RESOURCE, LOG_GROUPS.WITHDRAW]
+					);
+				}
+
 				return {
 					withdrawStructure: assignedStructure,
 					destinationId: structureResourceMemory.destinationId,
@@ -1109,30 +1170,57 @@ const { CREEP_TYPES } = require("../common/constants");
 			let structureWithdrawRequestMemory =
 				structure.room.memory.structureMemory[structure.structureType][structure.id].withdrawRequests[resourceType];
 
+			let structureMemory = structure.room.memory.structureMemory[structure.structureType][structure.id];
+
+			const creepNames = Object.keys(structureWithdrawRequestMemory.pendingCreepNames),
+				pendingCreepCount = creepNames ? creepNames.length : 0;
+
+			if (process.env.NODE_ENV === "development") {
+				global.logger.log(
+					`structure: ${JSON.stringify(structure.id)},
+                pendingCreepCount: ${JSON.stringify(pendingCreepCount)},
+                structureMemory: ${JSON.stringify(structureMemory)}`,
+					[LOG_GROUPS.RESOURCE, LOG_GROUPS.WITHDRAW]
+				);
+			}
+
 			// if pending is less than total submit a request to the room
-			if (structureWithdrawRequestMemory.pendingAmount < structureWithdrawRequestMemory.amount) {
+			if (
+				structureWithdrawRequestMemory.pendingAmount < structureWithdrawRequestMemory.amount &&
+				structureMemory.accessPoints.length > 0 &&
+				structureWithdrawRequestMemory.amount > structure.room.memory.possiblyUtilityCarryAmount
+			) {
 				if (!structure.room.memory.requests.withdraw[resourceType][structure.structureType][structure.id]) {
 					structure.room.memory.requests.withdraw[resourceType][structure.structureType][structure.id] = structure.id;
 
-					// if (process.env.NODE_ENV === "development") {
-					// 	global.logger.log(
-					// 		`Added resource request for structure ${JSON.stringify(
-					// 			structure.room.memory.requests.withdraw[resourceType][structure.structureType][structure.id]
-					// 		)}`
-					// 	);
-					// }
+					if (process.env.NODE_ENV === "development") {
+						global.logger.log(
+							`Added resource request for structure ${JSON.stringify(
+								structure.room.memory.requests.withdraw[resourceType][structure.structureType][structure.id]
+							)}`,
+							[LOG_GROUPS.RESOURCE, LOG_GROUPS.WITHDRAW]
+						);
+					}
 				}
 			} else {
-				// if (process.env.NODE_ENV === "development") {
-				// 	global.logger.log(`structure ${JSON.stringify(structure.id)}`);
-				// 	global.logger.log(
-				// 		`Deleting resource request for structure ${JSON.stringify(
-				// 			structure.room.memory.requests.withdraw[resourceType][structure.structureType][structure.id]
-				// 		)}`
-				// 	);
-				// }
+				if (process.env.NODE_ENV === "development") {
+					global.logger.log(`structure ${JSON.stringify(structure.id)}`, [LOG_GROUPS.RESOURCE, LOG_GROUPS.WITHDRAW]);
+					global.logger.log(
+						`Deleting resource request for structure ${JSON.stringify(
+							structure.room.memory.requests.withdraw[resourceType][structure.structureType][structure.id]
+						)}`,
+						[LOG_GROUPS.RESOURCE, LOG_GROUPS.WITHDRAW]
+					);
+				}
 
 				delete structure.room.memory.requests.withdraw[resourceType][structure.structureType][structure.id];
+			}
+
+			if (process.env.NODE_ENV === "development") {
+				global.logger.log(`structureWithdrawRequestMemory: ${JSON.stringify(structureWithdrawRequestMemory)}`, [
+					LOG_GROUPS.RESOURCE,
+					LOG_GROUPS.WITHDRAW,
+				]);
 			}
 		}, // verifySourceMemory END
 
@@ -1189,8 +1277,11 @@ const { CREEP_TYPES } = require("../common/constants");
 					transferRequests: {},
 					buildRequest: { amount: 0, pendingAmount: 0, pendingCreepNames: {} },
 					repairerId: null,
+					accessPoints: [],
 				};
 			}
+
+			structure.room.memory.structureMemory[structure.structureType][structure.id].accessPoints = getAccessiblePositions(structure.pos, true);
 		}, // addStructureMemory END
 
 		getStructureMemory: (structure) => {

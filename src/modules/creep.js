@@ -1,5 +1,7 @@
 const { CREEP_ACTIONS, CREEP_TYPES } = require("../common/constants");
 
+const { getAccessiblePositions } = require("../common/position");
+
 (() => {
 	let creepModule = {
 		runCreeps: () => {
@@ -22,8 +24,8 @@ const { CREEP_ACTIONS, CREEP_TYPES } = require("../common/constants");
 			}
 
 			if (process.env.NODE_ENV === "development") {
-				global.logger.log(`run creep ${creep.name}`);
-				global.logger.log(`run creep memory ${JSON.stringify(creep.memory)}`);
+				global.logger.log(`run creep ${creep.name}`), LOG_GROUPS.DEFAULT;
+				global.logger.log(`run creep memory ${JSON.stringify(creep.memory)}`, LOG_GROUPS.CREEP);
 			}
 
 			if (!creep.memory.type || creep.memory.type === "unknown") {
@@ -325,6 +327,12 @@ const { CREEP_ACTIONS, CREEP_TYPES } = require("../common/constants");
 
 			if (!harvestObject) {
 				harvestObject = Game.getObjectById(creep.memory.harvestObjectId);
+
+				if (!harvestObject) {
+					resourceModule.removeCreepFromHarvestRequest(creep);
+					creepModule.clearCreepMemory(creep);
+					return creepModule.runCreep(creep);
+				}
 			}
 
 			if (process.env.NODE_ENV === "development") {
@@ -383,21 +391,29 @@ const { CREEP_ACTIONS, CREEP_TYPES } = require("../common/constants");
 
 			// is a global scout
 			if (creep.memory.roomName) {
-				if (creep.room.name === creep.memory.roomName) {
-					creep.room.memory.scoutName = creep.name;
+				if (creep.pos.roomName === creep.memory.roomName) {
+					let room = Game.rooms[creep.pos.roomName];
+
+					if (room) {
+						room.memory.scoutName = creep.name;
+					}
 				}
 
-				return creep.moveTo(new RoomPosition(25, 25, creep.memory.roomName));
+				return creep.moveTo(new RoomPosition(25, 25, creep.pos.roomName));
 			}
 
 			// is a local scout
 			if (creep.memory.direction) {
-				if (creep.room.name !== creep.memory.spawnRoom) {
-					let room = Game.rooms[creep.memory.spawnRoom];
+				if (creep.pos.roomName !== creep.memory.spawnRoom) {
+					let spawnRoom = Game.rooms[creep.memory.spawnRoom],
+						currentRoom = Game.rooms[creep.pos.roomName];
 
-					roomModule.updateRoomExitDataRoomName(room, creep.memory.direction, creep.room.name);
-					creep.room.memory.scoutName = creep.name;
-					creep.room.memory.roomName = creep.room.name;
+					if (spawnRoom && currentRoom) {
+						roomModule.updateRoomExitDataRoomName(spawnRoom, creep.memory.direction, creep.pos.roomName);
+						currentRoom.memory.scoutName = creep.name;
+						currentRoom.memory.roomName = creep.pos.roomName;
+					}
+
 					return; // scouting room so exit
 				}
 
@@ -479,8 +495,18 @@ const { CREEP_ACTIONS, CREEP_TYPES } = require("../common/constants");
 			const harvestObject = Game.getObjectById(creep.memory.harvestObjectId),
 				{ resourceModule, roomModule } = global.App;
 
+			let isAccessible = true;
+
+			if (creep.memory.type !== CREEP_TYPES.MINER && !creep.pos.isNearTo(harvestObject.pos)) {
+				const accessiblePositions = getAccessiblePositions(harvestObject.pos, true);
+
+				if (!accessiblePositions || accessiblePositions.length === 0) {
+					isAccessible = false;
+				}
+			}
+
 			if (
-				(creep.memory.type !== CREEP_TYPES.MINER && creep.store.getFreeCapacity(creep.memory.resourceType) === 0) ||
+				(creep.memory.type !== CREEP_TYPES.MINER && (creep.store.getFreeCapacity(creep.memory.resourceType) === 0 || !isAccessible)) ||
 				roomModule.positionHasNearbyThreat(harvestObject.pos)
 			) {
 				resourceModule.removeCreepFromHarvestRequest(creep);

@@ -1,6 +1,6 @@
 let structureModule = {
 	checkStructure: (structure) => {
-		//
+		const { resourceModule } = global.App;
 		if (structure.hits < structure.hitsMax) {
 			resourceModule.addRepairRequest(structure);
 		}
@@ -28,7 +28,8 @@ let structureModule = {
 	},
 
 	runTower: (tower) => {
-		const freeCapacity = tower.store.getFreeCapacity(RESOURCE_ENERGY);
+		const { resourceModule } = global.App,
+			freeCapacity = tower.store.getFreeCapacity(RESOURCE_ENERGY);
 		let actionResult = null;
 
 		if (freeCapacity) {

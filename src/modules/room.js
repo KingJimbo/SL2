@@ -1,3 +1,5 @@
+const { CREEP_TYPES } = require("../common/constants");
+
 (() => {
 	let roomModule = {
 		runRooms: () => {
@@ -14,7 +16,19 @@
 			}
 
 			if (room.controller.my) {
-				let { roomSurveyModule, resourceModule } = global.App;
+				let { roomSurveyModule, resourceModule, spawnModule } = global.App;
+
+				// find room possiblyUtilityCarryAmount
+				const creepBodyResponse = spawnModule.getCreepBody(CREEP_TYPES.UTILITY, room.energyCapacityAvailable);
+				room.memory.possiblyUtilityCarryAmount = 0;
+
+				if (creepBodyResponse && creepBodyResponse.creepBody) {
+					const carryParts = creepBodyResponse.creepBody.filter((bodyPart) => {
+						return bodyPart === CARRY;
+					});
+
+					room.memory.possiblyUtilityCarryAmount = carryParts ? carryParts.length * CARRY_CAPACITY : 0;
+				}
 
 				roomSurveyModule.surveyRoomForStructures(room);
 
@@ -108,7 +122,7 @@
 		addScoutRequests: (room) => {
 			for (const i in room.memory.exits) {
 				let exitData = room.memory.exits[i],
-					roomToCheck = exitData ? Game.rooms[exitData] : null,
+					roomToCheck = exitData ? Game.rooms[exitData.roomName] : null,
 					scout = null;
 
 				// if room exists check for a valid scout
@@ -116,8 +130,25 @@
 					scout = Game.creeps[roomToCheck.memory.scoutName];
 				}
 
+				if (!roomToCheck && exitData && exitData.scout) {
+					scout = Game.creeps[exitData.scout];
+
+					// if scout already assigned don't add request
+					if (scout) {
+						return;
+					}
+				}
+
 				// not valid so ad request
-				if (!exitData || !exitData.roomName || (!exitData.roomName && !exitData.scout) || !roomToCheck || !scout) {
+				if ((!exitData || !exitData.roomName) && ((!exitData.roomName && !exitData.scout) || !roomToCheck || !scout)) {
+					if (process.env.NODE_ENV === "development") {
+						global.logger.log(
+							`Adding local scout request exitData: ${JSON.stringify(exitData)}, 
+                            roomToCheck: ${JSON.stringify(roomToCheck)}, 
+                            scout: ${JSON.stringify(scout)}`
+						);
+					}
+
 					roomModule.addLocalScoutRequest(room, i);
 				}
 			}
@@ -137,7 +168,7 @@
 			}
 
 			room.memory.requests.scout.local[direction] = direction;
-		},
+		}, // addLocalScoutRequest END
 
 		getLocalScoutRequests: (room) => {
 			if (!room.memory.requests) {
@@ -260,92 +291,98 @@
 		checkRoomStructures: (room) => {
 			// don't add construction site orders until level 2
 			const { spawnModule, structureModule } = global.App;
-			const structures = room.find(FIND_MY_STRUCTURES);
+			const structures = room.find(FIND_STRUCTURES);
 
 			//global.logger.log(`sites ${JSON.stringify(sites)}`);
 
+			if (process.env.NODE_ENV === "development") {
+				if (!structures) {
+					global.logger.log("No structures found!", LOG_GROUPS.ROOM);
+				}
+			}
+
 			if (structures || structures.length > 0) {
-				// if (process.env.NODE_ENV === "development") {
-				// 	global.logger.log("No structures found!");
-				// }
-
 				structures.forEach((structure) => {
-					structureModule.checkStructure(structure);
+					if (structure.my || NEUTRAL_STRUCTURES.includes(structure.structureType)) {
+						structureModule.checkStructure(structure);
 
-					switch (structure.structureType) {
-						case STRUCTURE_SPAWN:
-							//spawnModule.runSpawn(structure);
-							structureModule.runSpawn(structure);
-							break;
-						case STRUCTURE_EXTENSION:
-							structureModule.runExtension(structure);
-							break;
-						case STRUCTURE_ROAD:
-							structureModule.runRoad(structure);
-							break;
-						case STRUCTURE_WALL:
-							structureModule.runWall(structure);
-							break;
-						case STRUCTURE_RAMPART:
-							structureModule.runRampart(structure);
-							break;
-						// case STRUCTURE_LINK:
-						// 	spawnModule.runSpawn(structure);
-						// 	break;
-						// case STRUCTURE_STORAGE:
-						// 	spawnModule.runSpawn(structure);
-						// 	break;
-						case STRUCTURE_TOWER:
-							structureModule.runTower(structure);
-							break;
-						// case STRUCTURE_OBSERVER:
-						// 	spawnModule.runSpawn(structure);
-						// 	break;
-						// case STRUCTURE_POWER_SPAWN:
-						// 	spawnModule.runSpawn(structure);
-						// 	break;
-						// case STRUCTURE_EXTRACTOR:
-						// 	spawnModule.runSpawn(structure);
-						// 	break;
-						// case STRUCTURE_LAB:
-						// 	spawnModule.runSpawn(structure);
-						// 	break;
-						// case STRUCTURE_TERMINAL:
-						// 	spawnModule.runSpawn(structure);
-						// 	break;
-						case STRUCTURE_CONTAINER:
-							structureModule.runContainer(structure);
-							break;
-						case STRUCTURE_CONTROLLER:
-							structureModule.runController(structure);
-							break;
-						// case STRUCTURE_NUKER:
-						// 	spawnModule.runSpawn(structure);
-						// 	break;
-						// case STRUCTURE_FACTORY:
-						// 	spawnModule.runSpawn(structure);
-						//     break;
-						default:
-							// do nothing
-							// if (process.env.NODE_ENV === "development") {
-							// 	global.logger.log(`We don't currently do anything with structure type: ${structure.structureType}`);
-							// }
-							break;
+						switch (structure.structureType) {
+							case STRUCTURE_SPAWN:
+								//spawnModule.runSpawn(structure);
+								structureModule.runSpawn(structure);
+								break;
+							case STRUCTURE_EXTENSION:
+								structureModule.runExtension(structure);
+								break;
+							case STRUCTURE_ROAD:
+								structureModule.runRoad(structure);
+								break;
+							case STRUCTURE_WALL:
+								structureModule.runWall(structure);
+								break;
+							case STRUCTURE_RAMPART:
+								structureModule.runRampart(structure);
+								break;
+							// case STRUCTURE_LINK:
+							// 	spawnModule.runSpawn(structure);
+							// 	break;
+							// case STRUCTURE_STORAGE:
+							// 	spawnModule.runSpawn(structure);
+							// 	break;
+							case STRUCTURE_TOWER:
+								structureModule.runTower(structure);
+								break;
+							// case STRUCTURE_OBSERVER:
+							// 	spawnModule.runSpawn(structure);
+							// 	break;
+							// case STRUCTURE_POWER_SPAWN:
+							// 	spawnModule.runSpawn(structure);
+							// 	break;
+							// case STRUCTURE_EXTRACTOR:
+							// 	spawnModule.runSpawn(structure);
+							// 	break;
+							// case STRUCTURE_LAB:
+							// 	spawnModule.runSpawn(structure);
+							// 	break;
+							// case STRUCTURE_TERMINAL:
+							// 	spawnModule.runSpawn(structure);
+							// 	break;
+							case STRUCTURE_CONTAINER:
+								structureModule.runContainer(structure);
+								break;
+							case STRUCTURE_CONTROLLER:
+								structureModule.runController(structure);
+								break;
+							// case STRUCTURE_NUKER:
+							// 	spawnModule.runSpawn(structure);
+							// 	break;
+							// case STRUCTURE_FACTORY:
+							// 	spawnModule.runSpawn(structure);
+							//     break;
+							default:
+								// do nothing
+								// if (process.env.NODE_ENV === "development") {
+								// 	global.logger.log(`We don't currently do anything with structure type: ${structure.structureType}`);
+								// }
+								break;
+						}
 					}
 				});
 			}
 
-			const containers = room.find(FIND_STRUCTURES, { filter: { structureType: STRUCTURE_CONTAINER } });
+			// const containers = room.find(FIND_STRUCTURES, { filter: (structure) => {} });
 
-			if (process.env.NODE_ENV === "development") {
-				global.logger.log(`No containers found in ${room.name}.`, LOG_GROUPS.ROOM);
-			}
+			// //{ structureType: STRUCTURE_CONTAINER }
+			// if (process.env.NODE_ENV === "development") {
+			// 	global.logger.log(`No containers found in ${room.name}.`, LOG_GROUPS.ROOM);
+			// }
 
-			if (containers || containers.length > 0) {
-				containers.forEach((container) => {
-					structureModule.runContainer(container);
-				});
-			}
+			// if (containers || containers.length > 0) {
+			// 	containers.forEach((container) => {
+			// 		structureModule.checkStructure(container);
+			// 		structureModule.runContainer(container);
+			// 	});
+			// }
 		}, // checkRoomStructures END
 
 		buildNextSite: (room) => {
@@ -408,14 +445,14 @@
 						});
 					}
 
-					structTypeArray = [...structTypeArray, room.memory.structureMap[structureType].slice(0, availableNoOfStructures)];
+					structTypeArray = [...structTypeArray, ...room.memory.structureMap[structureType].slice(0, availableNoOfStructures)];
 				} else {
 					structTypeArray = room.memory.structureMap[structureType].slice(0, availableNoOfStructures);
 				}
 
-				// if (process.env.NODE_ENV === "development") {
-				// 	global.logger.log(`structTypeArray: ${JSON.stringify(structTypeArray)}`);
-				// }
+				if (process.env.NODE_ENV === "development") {
+					global.logger.log(`structTypeArray: ${JSON.stringify(structTypeArray)}`, LOG_GROUPS.ROOM);
+				}
 
 				while (structTypeArray && structTypeArray.length) {
 					const structurePosition = structTypeArray.shift();
@@ -447,11 +484,18 @@
 								}
 							});
 
-							if (!structureFound) {
+							if (
+								!structureFound &&
+								!roomModule.positionHasNearbyThreat(new RoomPosition(structurePosition.x, structurePosition.y, room.name))
+							) {
 								const createSiteResponse = room.createConstructionSite(structurePosition.x, structurePosition.y, structureType);
-								// if (process.env.NODE_ENV === "development") {
-								// 	global.logger.log(`createSiteResponse: ${JSON.stringify(createSiteResponse)}`);
-								// }
+								if (process.env.NODE_ENV === "development") {
+									global.logger.log(
+										`structurePosition: ${JSON.stringify(structurePosition)},
+                                    structureType: ${JSON.stringify(structureType)}`,
+										LOG_GROUPS.ROOM
+									);
+								}
 
 								switch (createSiteResponse) {
 									case OK:

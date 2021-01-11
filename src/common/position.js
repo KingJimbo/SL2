@@ -66,7 +66,7 @@ const position = {
 		return returnedPosition;
 	}, // getPositionFromDirection END
 
-	getAccessiblePositions: (pos) => {
+	getAccessiblePositions: (pos, includeObjects) => {
 		if (!pos) {
 			global.logger.log("getAccessiblePositions invalid parameter");
 		}
@@ -88,8 +88,38 @@ const position = {
 
 		surroundingPositions.forEach((pos) => {
 			const terrainGet = terrain.get(pos.x, pos.y);
+			let blockingObjects = null;
+
+			if (terrainGet !== TERRAIN_MASK_WALL && includeObjects) {
+				blockingObjects = room.lookAt(new RoomPosition(pos.x, pos.y, room.name));
+
+				if (blockingObjects) {
+					blockingObjects = blockingObjects.filter((object) => {
+						return (
+							object.type === "creep" || (object.type === "structure" && !WALKABLE_STRUCTURES.includes(object.structure.structureType))
+						);
+					});
+				}
+			}
+
 			const isAccessible =
-				pos.x >= 0 && pos.x <= COORDINATES_MAX_SIZE && pos.y >= 0 && pos.y <= COORDINATES_MAX_SIZE && terrainGet !== TERRAIN_MASK_WALL;
+				pos.x >= 0 &&
+				pos.x <= COORDINATES_MAX_SIZE &&
+				pos.y >= 0 &&
+				pos.y <= COORDINATES_MAX_SIZE &&
+				terrainGet !== TERRAIN_MASK_WALL &&
+				(!includeObjects || (includeObjects && blockingObjects && blockingObjects.length === 0));
+
+			if (process.env.NODE_ENV === "development") {
+				global.logger.log(
+					`pos ${JSON.stringify(pos)},
+                terrainGet ${JSON.stringify(terrainGet)},
+                includeObjects ${JSON.stringify(includeObjects)},
+                blockingObjects ${JSON.stringify(blockingObjects)},
+                isAccessible ${JSON.stringify(isAccessible)},`,
+					[LOG_GROUPS.POSITION]
+				);
+			}
 
 			if (isAccessible) {
 				accessiblePositions.push(pos);

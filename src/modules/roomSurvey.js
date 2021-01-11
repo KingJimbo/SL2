@@ -260,10 +260,13 @@
 				//global.logger.log(`type: ${JSON.stringify(type)}`);
 				//global.logger.log(`CONTROLLER_STRUCTURES: ${JSON.stringify(CONTROLLER_STRUCTURES)}`);
 				const type = STRUCTURE_PRIORITY[j];
-				let structureMax = CONTROLLER_STRUCTURES[type][8];
 
-				for (var i = 0; i < structureMax; i++) {
-					structureArray.push(type);
+				if (type !== STRUCTURE_ROAD) {
+					let structureMax = CONTROLLER_STRUCTURES[type][8];
+
+					for (var i = 0; i < structureMax; i++) {
+						structureArray.push(type);
+					}
 				}
 			}
 
