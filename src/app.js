@@ -1,19 +1,24 @@
-(() => {
-	let App = {
-		runApp: () => {
-			const { memoryModule, roomModule, creepModule, spawnModule } = global.App;
+const initialiseScreepsResources = require("./common/initialiseScreepsResources");
+const initialiseMemory = require("./memory/initialiseMemory");
+const runRooms = require("./room/runRooms");
+const runOperations = require("./operation/runOperations");
 
-			memoryModule.initialiseMemory();
+class App {
+	runApp(memory, game, config) {
+		// if (process.env.NODE_ENV === "development") {
+		// 	console.log(`Start runApp`);
+		// }
+		initialiseScreepsResources(memory, game);
+		initialiseMemory(memory, game, config);
 
-			roomModule.runRooms();
+		runRooms(game);
+		runOperations();
+		// const { memoryModule, roomModule, creepModule, spawnModule } = global.App;
+		// memoryModule.initialiseMemory();
+		// roomModule.runRooms();
+		// creepModule.runCreeps();
+		// spawnModule.runSpawns();
+	}
+}
 
-			creepModule.runCreeps();
-
-			spawnModule.runSpawns();
-		},
-	};
-
-	global.App = App;
-})();
-
-module.exports = global.App;
+module.exports = App;

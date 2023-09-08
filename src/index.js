@@ -1,4 +1,5 @@
-const { CREEP_TYPES } = require("./common/constants");
+const App = require("./app");
+const config = require("./config/config");
 
 module.exports.loop = function () {
 	if (process.env.NODE_ENV === "development") {
@@ -6,32 +7,14 @@ module.exports.loop = function () {
 		global.logger.log(`Start loop`, LOG_GROUPS.DEFAULT);
 	}
 
-	require("./common/constants");
-
-	const App = require("./app");
-	require("./modules/memory");
-	require("./modules/resource");
-	require("./modules/spawn");
-	require("./modules/creep");
-	require("./modules/room");
-	require("./modules/roomSurvey");
-	require("./modules/structure");
-	require("./common/overrides");
-
-	if (process.env.NODE_ENV === "development") {
-		if (global.logger.attachLogger) global.logger.attachLogger(global.App);
-	}
-
 	try {
-		// for (var creepName in Game.creeps) {
-		// 	let creep = Game.creeps[creepName];
+		var app = new App();
 
-		// 	if (creep.memory.type === CREEP_TYPES.MINER) {
-		// 		console.log("miner creep " + creepName);
-		// 	}
-		// }
+		if (process.env.NODE_ENV === "development") {
+			if (global.logger.attachLogger) global.logger.attachLogger(app);
+		}
 
-		App.runApp();
+		app.runApp(Memory, Game, config);
 	} catch (error) {
 		const errorMessage = `An error has occured!
         message: ${error.message}

@@ -1,0 +1,10 @@
+{
+	"diff": true,
+	"extension": ["js"],
+	"package": "../package.json",
+	"reporter": "spec",
+	"recursive": true,
+	"ui": "bdd",
+	"watch-files": ["test/**/*.tests.js"],
+	"watch-ignore": ["lib/vendor"]
+}
